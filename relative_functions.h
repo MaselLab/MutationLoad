@@ -1,5 +1,5 @@
-#ifndef RELATIVE_FITNESS_H_INCLUDED
-#define RELATIVE_FITNESS_H_INCLUDED 1
+#ifndef RELATIVE_FUNCTIONS_H_INCLUDED
+#define RELATIVE_FUNCTIONS_H_INCLUDED 1
 
 #include <stdio.h>
 #include <float.h>
@@ -16,4 +16,4 @@
 #include <err.h>
 #include "dependencies/pcg_basic.h"
 
-#endif // RELATIVE_FITNESS_H_INCLUDED
+#endif // RELATIVE_FUNCTIONS_H_INCLUDED
