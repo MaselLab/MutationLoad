@@ -1,5 +1,5 @@
-#ifndef ABSOLUTE_FITNESS_H_INCLUDED
-#define ABSOLUTE_FITNESS_H_INCLUDED 1
+#ifndef ABSOLUTE_FUNCTIONS_H_INCLUDED
+#define ABSOLUTE_FUNCTIONS_H_INCLUDED 1
 
 #include <stdio.h>
 #include <float.h>
@@ -17,4 +17,4 @@
 #include "dependencies/pcg_basic.h"
 
 
-#endif // ABSOLUTE_FITNESS_H_INCLUDED
+#endif // ABSOLUTE_FUNCTIONS_H_INCLUDED
