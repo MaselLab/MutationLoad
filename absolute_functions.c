@@ -11,7 +11,7 @@
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_fit.h>
 #include <err.h>
-#include "pcg_basic.h"
+#include "dependencies/pcg_basic.h"
 #include "absolute_functions.h"
 
 #define LSB(i) ((i) & -(i)) //isolates least significant single bit
