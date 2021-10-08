@@ -12,6 +12,7 @@
 #include <gsl/gsl_fit.h>
 #include <err.h>
 #include "pcg_basic.h"
+#include "relative_functions.h"
 
 #define LSB(i) ((i) & -(i)) //isolates least significant single bit
 #define PI 3.141592654
