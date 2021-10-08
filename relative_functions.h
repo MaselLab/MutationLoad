@@ -15,6 +15,5 @@
 #include <gsl/gsl_fit.h>
 #include <err.h>
 #include "pcg_basic.h"
-#include "relative_functions.h"
 
 #endif // ABSOLUTE_FITNESS_H_INCLUDED
