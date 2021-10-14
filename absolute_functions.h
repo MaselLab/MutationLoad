@@ -15,6 +15,9 @@
 #include <gsl/gsl_fit.h>
 #include <err.h>
 #include "dependencies/pcg_basic.h"
+#include "sharedfunc_flag.h"
+#include "global_vars.h"
+#include "main.h"
 
 
 #endif // ABSOLUTE_FUNCTIONS_H_INCLUDED

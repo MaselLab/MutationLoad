@@ -20,7 +20,12 @@
 #include "main.h"
 
 
-void InitializePopulation(long double *wholepopulationwistree, long double *wholepopulationwisarray, int populationsize, double *populationgenomes, int totalpopulationgenomelength, int totaltimesteps, long double * psumofwis);
+void InitializePopulation(bool isabsolute, long double *wholepopulationwistree, long double *wholepopulationwisarray, int populationsize, double *populationgenomes, int totalpopulationgenomelength, int totaltimesteps, long double * psumofwis);
+
+double PerformDeath(bool isabsolute, int currentpopsize, int currentvictim, long double *sumofwis, long double *wholepopulationwistree, long double *wholepopulationwisarray);
+void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete, int currentpopsize, int currentvictim, long double *sumofwis, double *wholepopulationgenomes, int totalindividualgenomelength, long double *wholepopulationwistree, long double *wholepopulationwisarray);
+
+
 
 #endif // SHAREFUNC_FLAG_H_INCLUDED
 

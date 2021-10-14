@@ -38,17 +38,18 @@ int SearchTree(int leftbound, int rightbound, long double targetvalue, long doub
 //Distribution
 int SampleFromPoisson(float poissonmean);
 
-//Gametes. UH might want to remove all the currenttimestep in these functions. It's not used
-void ProduceMutatedRecombinedGamete(int totaltimesteps, int currenttimestep, double *wholepopulationgenomes, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, int currentparent, double deleteriousmutationrate, double beneficialmutationrate, double Sb, char * beneficialdistribution, double *parentgamete, gsl_rng * randomnumbergeneratorforgamma);
+//Gametes.
+void ProduceMutatedRecombinedGamete(int totaltimesteps, double *wholepopulationgenomes, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, int currentparent, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double *parentgamete, gsl_rng * randomnumbergeneratorforgamma);
 //UH change to two recombination sites. //UH change determineNumberOfMutations outside the loop
-void RecombineChromosomesIntoGamete(int totaltimesteps, int currenttimestep, int persontorecombine, int chromosomesize, int numberofchromosomes, double *gamete, double *populationgenomes, int totalindividualgenomelength, int * recombinationsites);
+void RecombineChromosomesIntoGamete(int totaltimesteps, int persontorecombine, int chromosomesize, int numberofchromosomes, double *gamete, double *populationgenomes, int totalindividualgenomelength, int * recombinationsites);
 int DetermineNumberOfMutations(int chromosomesize, int numberofchromosomes, float mutationrate);
 void MutateGamete(int chromosomesize, int numberofchromosomes, double *gamete, double mutationeffectsize);
 
 //root simulations. UH might move them to shared with flags and remove files pointers (they are declared globally)
-int BracketZeroForSb(double *Sb1, double *Sb2, char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, char * typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double slopeforcontourline, char * beneficialdistribution, gsl_rng * randomnumbergeneratorforgamma, FILE * veryverbosefilepointer, FILE * verbosefilepointer, FILE * miscfilepointer);
-double BisectionMethodToFindSbWithZeroSlope(double * Sb1, double * Sb2, char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, char * typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double slopeforcontourline, char * beneficialdistribution, gsl_rng * randomnumbergeneratorforgamma, FILE * veryverbosefilepointer, FILE * verbosefilepointer, FILE * miscfilepointer);
+int BracketZeroForSb(double *Sb1, double *Sb2, char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double slopeforcontourline, int beneficialdistribution, gsl_rng * randomnumbergeneratorforgamma);
+double BisectionMethodToFindSbWithZeroSlope(double * Sb1, double * Sb2, char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double slopeforcontourline, int beneficialdistribution, gsl_rng * randomnumbergeneratorforgamma);
 
 
 #endif // MAIN_H_INCLUDED
+
 

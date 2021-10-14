@@ -20,17 +20,13 @@
 #include "main.h"
 
 
-//We might want to delete the file arguments because they are global variables UH
-double RunSimulation(char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, char * Sbname, char * typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, char * beneficialdistribution, gsl_rng * randomnumbergeneratorforgamma, FILE * veryverbosefilepointer, FILE * verbosefilepointer, FILE * miscfilepointer);
-//We might want to remove currenttimestep because this argument is not used at all
-void PerformOneTimeStep(int popsize, int totaltimesteps, int currenttimestep, long double *wholepopulationwistree, long double *wholepopulationwisarray, double *wholepopulationgenomes, long double * psumofwis, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double beneficialmutationrate, double Sb, char * beneficialdistribution, double *parent1gamete, double *parent2gamete, gsl_rng * randomnumbergeneratorforgamma);
+double RunSimulationRel(char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, char * Sbname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, gsl_rng * randomnumbergeneratorforgamma);
+
+void PerformOneTimeStepRel(int popsize, int totaltimesteps, long double *wholepopulationwistree, long double *wholepopulationwisarray, double *wholepopulationgenomes, long double * psumofwis, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double *parent1gamete, double *parent2gamete, gsl_rng * randomnumbergeneratorforgamma);
 
 int ChooseVictim(int populationsize);
 int ChooseParentWithTree(long double *wholepopulationwistree, int popsize, long double sumofwis);
 
-void ReplaceVictim(double *parent1gamete, double *parent2gamete, int currentpopsize, int currentvictim, long double *sumofwis, double *wholepopulationgenomes, int totalindividualgenomelength, long double *wholepopulationwistree, long double *wholepopulationwisarray);
-
-double CalculateWi(double *parent1gamete, double *parent2gamete, int totalindividualgenomelength);
+double CalculateWiRel(double *parent1gamete, double *parent2gamete, int totalindividualgenomelength);
 
 #endif // RELATIVE_FUNCTIONS_H_INCLUDED
-
