@@ -18,8 +18,10 @@
 #include "main.h"
 
 
-double RunSimulation(char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, char * Sbname, char * typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, char * beneficialdistribution, gsl_rng * randomnumbergeneratorforgamma, FILE * veryverbosefilepointer, FILE * verbosefilepointer, FILE * miscfilepointer)
+double RunSimulationRel(char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, char * Sbname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, gsl_rng * randomnumbergeneratorforgamma)
 {
+    bool isabsolute = 0;
+    
     int i, j, k;
     
     char * rawdatafilename = (char *) malloc(200);
@@ -89,7 +91,7 @@ double RunSimulation(char * Nxtimestepsname, char * popsizename, char * delmutra
         fflush(veryverbosefilepointer);
     }
     
-    InitializePopulation(wholepopulationwistree, wholepopulationwisarray, popsize, wholepopulationgenomes, totalpopulationgenomelength, totaltimesteps, psumofwis);
+    InitializePopulation(isabsolute, wholepopulationwistree, wholepopulationwisarray, popsize, wholepopulationgenomes, totalpopulationgenomelength, totaltimesteps, psumofwis);
     /*Sets the initial population to have zeroes in all their linkage blocks,
     death rates equal to the baseline wi, and an identifier number.
     It also sums the wis and returns the sum.*/
@@ -142,7 +144,7 @@ double RunSimulation(char * Nxtimestepsname, char * popsizename, char * delmutra
         //Following code performs N rounds of paired births and deaths.
         for (j = 0; j < popsize; j++) {
             currenttimestep += 1;            
-            PerformOneTimeStep(popsize, totaltimesteps, currenttimestep, wholepopulationwistree, wholepopulationwisarray, wholepopulationgenomes, psumofwis, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, parent2gamete, randomnumbergeneratorforgamma);
+            PerformOneTimeStepRel(popsize, totaltimesteps, wholepopulationwistree, wholepopulationwisarray, wholepopulationgenomes, psumofwis, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, parent2gamete, randomnumbergeneratorforgamma);
             
         }
         
@@ -187,7 +189,7 @@ double RunSimulation(char * Nxtimestepsname, char * popsizename, char * delmutra
         
         //This is to produce a histogram of the wis of the entire population from a single generation.
         //It's terrible and completely non-modular, but I just can't bring myself to add in two more user-input arguments.
-        if (strcmp(typeofrun, "single") == 0) {
+        if (typeofrun == 1) {
             if (i == 1999) {
                 
                 if (INDIVIDUALWIDATA == 1) {
@@ -288,9 +290,10 @@ double RunSimulation(char * Nxtimestepsname, char * popsizename, char * delmutra
     }
 }
 
-void PerformOneTimeStep(int popsize, int totaltimesteps, int currenttimestep, long double *wholepopulationwistree, long double *wholepopulationwisarray, double *wholepopulationgenomes, long double * psumofwis, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double beneficialmutationrate, double Sb, char * beneficialdistribution, double *parent1gamete, double *parent2gamete, gsl_rng * randomnumbergeneratorforgamma)
+void PerformOneTimeStepRel(int popsize, int totaltimesteps, long double *wholepopulationwistree, long double *wholepopulationwisarray, double *wholepopulationgenomes, long double * psumofwis, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double *parent1gamete, double *parent2gamete, gsl_rng * randomnumbergeneratorforgamma)
 {
-
+    bool isabsolute = 0;
+    
     int currentparent1, currentparent2, currentvictim;
 
     currentvictim = ChooseVictim(popsize);
@@ -301,10 +304,12 @@ void PerformOneTimeStep(int popsize, int totaltimesteps, int currenttimestep, lo
     }
     
    
-    ProduceMutatedRecombinedGamete(totaltimesteps, currenttimestep, wholepopulationgenomes, chromosomesize, numberofchromosomes, totalindividualgenomelength, currentparent1, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, randomnumbergeneratorforgamma);
-    ProduceMutatedRecombinedGamete(totaltimesteps, currenttimestep, wholepopulationgenomes, chromosomesize, numberofchromosomes, totalindividualgenomelength, currentparent2, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent2gamete, randomnumbergeneratorforgamma);
-                
-    ReplaceVictim(parent1gamete, parent2gamete, popsize, currentvictim, psumofwis, wholepopulationgenomes, totalindividualgenomelength, wholepopulationwistree, wholepopulationwisarray);
+    ProduceMutatedRecombinedGamete(totaltimesteps, wholepopulationgenomes, chromosomesize, numberofchromosomes, totalindividualgenomelength, currentparent1, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, randomnumbergeneratorforgamma);
+    ProduceMutatedRecombinedGamete(totaltimesteps, wholepopulationgenomes, chromosomesize, numberofchromosomes, totalindividualgenomelength, currentparent2, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent2gamete, randomnumbergeneratorforgamma);
+               
+    
+    PerformDeath(isabsolute, popsize, currentvictim, psumofwis, wholepopulationwistree, wholepopulationwisarray);
+    PerformBirth(isabsolute, parent1gamete, parent2gamete, popsize, currentvictim, psumofwis, wholepopulationgenomes, totalindividualgenomelength, wholepopulationwistree, wholepopulationwisarray);
     
 }
 
@@ -340,29 +345,8 @@ int ChooseParentWithTree(long double *wholepopulationwistree, int popsize, long 
     return newparent;
 }
 
-void ReplaceVictim(double *parent1gamete, double *parent2gamete, int currentpopsize, int currentvictim, long double *sumofwis, double *wholepopulationgenomes, int totalindividualgenomelength, long double *wholepopulationwistree, long double *wholepopulationwisarray)
-{
-    int i;
-    double newwi;
-	
-    newwi = CalculateWi(parent1gamete, parent2gamete, totalindividualgenomelength);
-	
-    for (i = 0; i < (totalindividualgenomelength/2); i++) {
-        wholepopulationgenomes[currentvictim*totalindividualgenomelength + i] = parent1gamete[i];
-        wholepopulationgenomes[currentvictim*totalindividualgenomelength + totalindividualgenomelength/2 + i] = parent2gamete[i];
-//It would be more efficient to build directly into victim slot, but right now it is possible for the victim to also be a parent, later add an if statement to more efficiently deal with more common case.
-    }
-
-    *sumofwis -= wholepopulationwisarray[currentvictim];
-    Fen_set(wholepopulationwistree, currentpopsize, newwi, currentvictim);
-    
-    wholepopulationwisarray[currentvictim] = (long double) newwi;
-    *sumofwis += (long double) newwi;
-
-}
-
 //this function seems inefficient, but with recombination and mutation, I'm not sure there's a significantly easier way.
-double CalculateWi(double *parent1gamete, double *parent2gamete, int totalindividualgenomelength)
+double CalculateWiRel(double *parent1gamete, double *parent2gamete, int totalindividualgenomelength)
 {
     double newwi = 0.0;
     long double currentlinkageblockssum = 0.0;

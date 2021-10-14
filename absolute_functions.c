@@ -13,7 +13,7 @@
 #include <err.h>
 #include "dependencies/pcg_basic.h"
 #include "absolute_functions.h"
-
-#define LSB(i) ((i) & -(i)) //isolates least significant single bit
-#define PI 3.141592654
+#include "sharedfunc_flag.h"
+#include "global_vars.h"
+#include "main.h"
 
