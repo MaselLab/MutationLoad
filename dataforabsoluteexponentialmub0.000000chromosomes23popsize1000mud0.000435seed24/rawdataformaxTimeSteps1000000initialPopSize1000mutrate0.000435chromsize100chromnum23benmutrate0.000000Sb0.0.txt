@@ -1,0 +1,1 @@
+Time, Pop size, average death rate

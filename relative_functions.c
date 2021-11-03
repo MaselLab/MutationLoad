@@ -18,9 +18,12 @@
 #include "main.h"
 
 
-double RunSimulationRel(char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, char * Sbname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, gsl_rng * randomnumbergeneratorforgamma)
+double RunSimulationRel(bool isabsolute, char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, char * Sbname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, gsl_rng * randomnumbergeneratorforgamma)
 {
-    bool isabsolute = 0;
+    if(isabsolute){
+        fprintf(miscfilepointer, "\n Trying to use RunSimulationRel within an absolute fitness program. \n");
+        exit(0);
+    }
     
     int i, j, k;
     
@@ -91,7 +94,16 @@ double RunSimulationRel(char * Nxtimestepsname, char * popsizename, char * delmu
         fflush(veryverbosefilepointer);
     }
     
-    InitializePopulation(isabsolute, wholepopulationwistree, wholepopulationwisarray, popsize, wholepopulationgenomes, totalpopulationgenomelength, totaltimesteps, psumofwis);
+    //next variables are only used for absolute simulations, however since InitializePopulation is a shared function I must initialize them here, even if I don't use them again
+    long double *pInverseSumOfWis;
+    bool *wholepopulationisfree;
+    int *wholepopulationindex;
+    long double *wholepopulationdeathratesarray;
+    int maxPopSize;
+    
+    InitializePopulation(isabsolute, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, popsize, maxPopSize, wholepopulationgenomes, totalpopulationgenomelength, psumofwis, pInverseSumOfWis);
+    
+    printf("hasta aqui bien \n");
     /*Sets the initial population to have zeroes in all their linkage blocks,
     death rates equal to the baseline wi, and an identifier number.
     It also sums the wis and returns the sum.*/
@@ -144,7 +156,7 @@ double RunSimulationRel(char * Nxtimestepsname, char * popsizename, char * delmu
         //Following code performs N rounds of paired births and deaths.
         for (j = 0; j < popsize; j++) {
             currenttimestep += 1;            
-            PerformOneTimeStepRel(popsize, totaltimesteps, wholepopulationwistree, wholepopulationwisarray, wholepopulationgenomes, psumofwis, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, parent2gamete, randomnumbergeneratorforgamma);
+            PerformOneTimeStepRel(popsize, wholepopulationwistree, wholepopulationwisarray, wholepopulationgenomes, psumofwis, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, parent2gamete, randomnumbergeneratorforgamma);
             
         }
         
@@ -290,7 +302,7 @@ double RunSimulationRel(char * Nxtimestepsname, char * popsizename, char * delmu
     }
 }
 
-void PerformOneTimeStepRel(int popsize, int totaltimesteps, long double *wholepopulationwistree, long double *wholepopulationwisarray, double *wholepopulationgenomes, long double * psumofwis, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double *parent1gamete, double *parent2gamete, gsl_rng * randomnumbergeneratorforgamma)
+void PerformOneTimeStepRel(int popsize, long double *wholepopulationwistree, long double *wholepopulationwisarray, double *wholepopulationgenomes, long double * psumofwis, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double *parent1gamete, double *parent2gamete, gsl_rng * randomnumbergeneratorforgamma)
 {
     bool isabsolute = 0;
     
@@ -304,12 +316,19 @@ void PerformOneTimeStepRel(int popsize, int totaltimesteps, long double *wholepo
     }
     
    
-    ProduceMutatedRecombinedGamete(totaltimesteps, wholepopulationgenomes, chromosomesize, numberofchromosomes, totalindividualgenomelength, currentparent1, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, randomnumbergeneratorforgamma);
-    ProduceMutatedRecombinedGamete(totaltimesteps, wholepopulationgenomes, chromosomesize, numberofchromosomes, totalindividualgenomelength, currentparent2, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent2gamete, randomnumbergeneratorforgamma);
+    ProduceMutatedRecombinedGamete(wholepopulationgenomes, chromosomesize, numberofchromosomes, totalindividualgenomelength, currentparent1, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, randomnumbergeneratorforgamma);
+    ProduceMutatedRecombinedGamete(wholepopulationgenomes, chromosomesize, numberofchromosomes, totalindividualgenomelength, currentparent2, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent2gamete, randomnumbergeneratorforgamma);
                
+    //next variables are only used for absolute simulations, however since InitializePopulation is a shared function I must initialize them here, even if I don't use them again
+    long double *pInverseSumOfWis;
+    bool *wholepopulationisfree;
+    int *wholepopulationindex;
+    long double *wholepopulationdeathratesarray;
+    int *pPopSize;
     
-    PerformDeath(isabsolute, popsize, currentvictim, psumofwis, wholepopulationwistree, wholepopulationwisarray);
-    PerformBirth(isabsolute, parent1gamete, parent2gamete, popsize, currentvictim, psumofwis, wholepopulationgenomes, totalindividualgenomelength, wholepopulationwistree, wholepopulationwisarray);
+    PerformDeath(isabsolute, popsize, pPopSize, currentvictim, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis);
+    
+    PerformBirth(isabsolute, parent1gamete, parent2gamete, popsize, pPopSize, currentvictim, wholepopulationgenomes, totalindividualgenomelength, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis);
     
 }
 
@@ -336,26 +355,11 @@ int ChooseParentWithTree(long double *wholepopulationwistree, int popsize, long 
     leftbound = 0;
     rightbound = popsize;
     if (leftbound > rightbound) {
-        return -1;
         fprintf(miscfilepointer, "\nError: population size is %d.", popsize);
+        return -1;
     }
     //Above lines initialize the variables necessary for the SearchTree function and check for an extinct population.
     
     newparent = (SearchTree(leftbound, rightbound, randomnumberofbirth, wholepopulationwistree));
     return newparent;
-}
-
-//this function seems inefficient, but with recombination and mutation, I'm not sure there's a significantly easier way.
-double CalculateWiRel(double *parent1gamete, double *parent2gamete, int totalindividualgenomelength)
-{
-    double newwi = 0.0;
-    long double currentlinkageblockssum = 0.0;
-    int i;
-
-    for (i = 0; i < (totalindividualgenomelength/2); i++) {
-        currentlinkageblockssum += parent1gamete[i];
-        currentlinkageblockssum += parent2gamete[i];
-    }
-    newwi = exp(currentlinkageblockssum);
-    return newwi;
 }
