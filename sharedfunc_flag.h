@@ -16,14 +16,16 @@
 #include <err.h>
 #include "dependencies/pcg_basic.h"
 #include "relative_functions.h"
+#include "absolute_functions.h"
 #include "global_vars.h"
 #include "main.h"
 
 
-void InitializePopulation(bool isabsolute, long double *wholepopulationwistree, long double *wholepopulationwisarray, int populationsize, double *populationgenomes, int totalpopulationgenomelength, int totaltimesteps, long double * psumofwis);
+void InitializePopulation(bool isabsolute, long double *wholepopulationloadstree, long double *wholepopulationwisarray, long double *wholepopulationdeathratessarray, int *wholepopulationindex, bool *wholepopulationisfree, int initialPopSize, int maxPopSize, double *wholepopulationgenomes, int totalpopulationgenomelength, long double *psumofloads, long double* pInversesumofloads);
 
-double PerformDeath(bool isabsolute, int currentpopsize, int currentvictim, long double *sumofwis, long double *wholepopulationwistree, long double *wholepopulationwisarray);
-void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete, int currentpopsize, int currentvictim, long double *sumofwis, double *wholepopulationgenomes, int totalindividualgenomelength, long double *wholepopulationwistree, long double *wholepopulationwisarray);
+double PerformDeath(bool isabsolute, int maxPopSize, int *pPopSize, int victim, long double *wholepopulationloadstree, long double *wholepopulationwisarray, long double *wholepopulationdeathratessarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *pInversesumofloads);
+
+void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete, int maxPopSize, int *pPopSize, int birthplace, double *wholepopulationgenomes, int totalindividualgenomelength, long double *wholepopulationloadstree, long double *wholepopulationwisarray, long double *wholepopulationdeathratessarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *pInversesumofloads);
 
 
 
