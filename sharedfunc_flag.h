@@ -20,12 +20,11 @@
 #include "global_vars.h"
 #include "main.h"
 
+void MutateGamete(bool isabsolute, int chromosomesize, int numberofchromosomes, double *gamete, double mutationeffectsize);
 
-void InitializePopulation(bool isabsolute, long double *wholepopulationloadstree, long double *wholepopulationwisarray, long double *wholepopulationdeathratessarray, int *wholepopulationindex, bool *wholepopulationisfree, int initialPopSize, int maxPopSize, double *wholepopulationgenomes, int totalpopulationgenomelength, long double *psumofloads, long double* pInversesumofloads);
+double PerformDeath(bool isabsolute, int maxPopSize, int *pPopSize, int victim, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates);
 
-double PerformDeath(bool isabsolute, int maxPopSize, int *pPopSize, int victim, long double *wholepopulationloadstree, long double *wholepopulationwisarray, long double *wholepopulationdeathratessarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *pInversesumofloads);
-
-void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete, int maxPopSize, int *pPopSize, int birthplace, double *wholepopulationgenomes, int totalindividualgenomelength, long double *wholepopulationloadstree, long double *wholepopulationwisarray, long double *wholepopulationdeathratessarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *pInversesumofloads);
+void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete, int maxPopSize, int *pPopSize, int birthplace, double *wholepopulationgenomes, int totalindividualgenomelength, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates, double d_0);
 
 
 
