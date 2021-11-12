@@ -26,8 +26,8 @@
 
 int main(int argc, char *argv[]) {
 
-    if (argc != 14) {
-        printf("[Error]; Wrong number of arguments in program. It should be timeSteps, initialPopsize, genome-wide deleterious mutation rate, chromosomesize, numberofchromosomes, beneficial/deleterious mutation ratio, Sb, beneficialdistribution, typeofrun, slope, seed, MaxPopSize, relative or absolute \n");
+    if (argc != 15) {
+        printf("[Error]; Wrong number of arguments in program. It should be timeSteps, initialPopsize, genome-wide deleterious mutation rate, chromosomesize, numberofchromosomes, beneficial/deleterious mutation ratio, Sb, beneficialdistribution, typeofrun, slope, seed, MaxPopSize, relative or absolute, d_0 \n");
         return -1;
     }
 
@@ -111,6 +111,8 @@ int main(int argc, char *argv[]) {
         return -1;
     }
     
+    double d_0 = atof(argv[14]);
+    
     pcg32_srandom(randomnumberseed, randomnumberseed); // seeds the random number generator.
     gsl_rng * randomnumbergeneratorforgamma = gsl_rng_alloc(gsl_rng_mt19937);
     //the gamma distribution function requires a gsl random number generator, which is set here.
@@ -129,6 +131,8 @@ int main(int argc, char *argv[]) {
     strcat(directoryname, argv[2]);
     strcat(directoryname, "mud");
     strcat(directoryname, delmutname);
+    strcat(directoryname, "d0");
+    strcat(directoryname, argv[14]);
     strcat(directoryname, "seed");
     strcat(directoryname, argv[11]);
     int check1, check2;
@@ -176,7 +180,7 @@ int main(int argc, char *argv[]) {
         }
         
         else{
-            RunSimulationAbs(isabsolute, argv[1], argv[2], delmutname, argv[4], argv[5], benmutname, argv[7], typeofrun, Nxtimesteps, popsize, maxPopSize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, randomnumbergeneratorforgamma);
+            RunSimulationAbs(isabsolute, argv[1], argv[2], delmutname, argv[4], argv[5], benmutname, argv[7], typeofrun, Nxtimesteps, popsize, maxPopSize, d_0, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, randomnumbergeneratorforgamma);
         }
         
     } else{
@@ -286,20 +290,6 @@ double CalculateSlopeOfLogFitness(int endofsimulation, int endofburninphase, dou
     free(justnumbers);
     return slopeoflogfitness;
 
-}
-
-double CalculateLoad(double *parent1gamete, double *parent2gamete, int totalindividualgenomelength)
-{
-    double newwi = 0.0;
-    long double currentlinkageblockssum = 0.0;
-    int i;
-
-    for (i = 0; i < (totalindividualgenomelength/2); i++) {
-        currentlinkageblockssum += parent1gamete[i];
-        currentlinkageblockssum += parent2gamete[i];
-    }
-    newwi = exp(currentlinkageblockssum);
-    return newwi;
 }
 
 /*All Fenwick tree functions from Wikipedia page "Fenwick tree" URL:https://en.wikipedia.org/wiki/Fenwick_tree
@@ -431,7 +421,7 @@ int SampleFromPoisson(float poissonmean)
 return numberofmutations;
 }
 
-void ProduceMutatedRecombinedGamete(double *wholepopulationgenomes, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, int currentparent, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double *parentgamete, gsl_rng * randomnumbergeneratorforgamma)
+void ProduceMutatedRecombinedGamete(bool isabsolute, double *wholepopulationgenomes, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, int currentparent, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double *parentgamete, gsl_rng * randomnumbergeneratorforgamma)
 {
     
     int k, numberofbeneficialmutations, numberofdeleteriousmutations;
@@ -468,7 +458,7 @@ void ProduceMutatedRecombinedGamete(double *wholepopulationgenomes, int chromoso
     
     //Adds the specified number of deleterious mutations to the gamete, recording the sites of each mutation for tree sequence recording.
     for (k = 0; k < numberofdeleteriousmutations; k++) {
-        MutateGamete(chromosomesize, numberofchromosomes, parentgamete, -Sds[k]);
+        MutateGamete(isabsolute, chromosomesize, numberofchromosomes, parentgamete, -Sds[k]);
     }
     
     //Adds the specified number of beneficial mutations, drawing Sb values from the specified distribution.
@@ -476,20 +466,20 @@ void ProduceMutatedRecombinedGamete(double *wholepopulationgenomes, int chromoso
     //point distribution
     if (beneficialdistribution == 0) {
         for (k = 0; k < numberofbeneficialmutations; k++) {
-            MutateGamete(chromosomesize, numberofchromosomes, parentgamete, Sb);
+            MutateGamete(isabsolute, chromosomesize, numberofchromosomes, parentgamete, Sb);
         }
     //exponential distribution
     } else if (beneficialdistribution == 1) {
         for (k = 0; k < numberofbeneficialmutations; k++) {
             generatedSb = gsl_ran_exponential(randomnumbergeneratorforgamma, Sb);
-            MutateGamete(chromosomesize, numberofchromosomes, parentgamete, generatedSb);
+            MutateGamete(isabsolute, chromosomesize, numberofchromosomes, parentgamete, generatedSb);
         }
     //uniform distribution
     } else if (beneficialdistribution == 2) {
         for (k = 0; k < numberofbeneficialmutations; k++) {
             double upperlimitforuniform = (2 * Sb);
             generatedSb = gsl_ran_flat(randomnumbergeneratorforgamma, 0, upperlimitforuniform);
-            MutateGamete(chromosomesize, numberofchromosomes, parentgamete, generatedSb);
+            MutateGamete(isabsolute, chromosomesize, numberofchromosomes, parentgamete, generatedSb);
         }
     } else {
         fprintf(miscfilepointer, "Error: type of distribution for beneficial effect sizes not recognized.");
@@ -543,18 +533,6 @@ int DetermineNumberOfMutations(int chromosomesize, int numberofchromosomes, floa
     
     int numberofmutations = SampleFromPoisson(meannumberofmutations);
     return numberofmutations;
-}
-
-void MutateGamete(int chromosomesize, int numberofchromosomes, double *gamete, double mutationeffectsize)
-{
-    
-    int randomchromosometomutate = pcg32_boundedrand(numberofchromosomes); //if we decide to include heterogenous rates of recombination/mutation, both of these will need to be replaced by a function that weights each linkage block's probability of mutating.
-    int randomblocktomutate = pcg32_boundedrand(chromosomesize);
-    int mutatedsite = randomchromosometomutate*chromosomesize + randomblocktomutate;
-    gamete[mutatedsite] += log(1 + mutationeffectsize);
-    char derivedstate[100];
-    sprintf(derivedstate, "%.9f", mutationeffectsize);
-    
 }
 
 //The following function is heavily modified from Numerical Recipes in C, Second Edition.

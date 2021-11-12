@@ -24,9 +24,11 @@ double RunSimulationRel(bool isabsolute, char * Nxtimestepsname, char * popsizen
 
 void PerformOneTimeStepRel(int popsize, long double *wholepopulationwistree, long double *wholepopulationwisarray, double *wholepopulationgenomes, long double * psumofwis, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double *parent1gamete, double *parent2gamete, gsl_rng * randomnumbergeneratorforgamma);
 
+void InitializePopulationRel(long double *wholepopulationwistree, long double *wholepopulationwisarray, int popsize, double *wholepopulationgenomes, int totalpopulationgenomelength, long double * psumofwis);
+
 int ChooseVictim(int populationsize);
 int ChooseParentWithTree(long double *wholepopulationwistree, int popsize, long double sumofwis);
 
-double CalculateWiRel(double *parent1gamete, double *parent2gamete, int totalindividualgenomelength);
+double CalculateWi(double *parent1gamete, double *parent2gamete, int totalindividualgenomelength);
 
 #endif // RELATIVE_FUNCTIONS_H_INCLUDED

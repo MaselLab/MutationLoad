@@ -94,14 +94,7 @@ double RunSimulationRel(bool isabsolute, char * Nxtimestepsname, char * popsizen
         fflush(veryverbosefilepointer);
     }
     
-    //next variables are only used for absolute simulations, however since InitializePopulation is a shared function I must initialize them here, even if I don't use them again
-    long double *pInverseSumOfWis;
-    bool *wholepopulationisfree;
-    int *wholepopulationindex;
-    long double *wholepopulationdeathratesarray;
-    int maxPopSize;
-    
-    InitializePopulation(isabsolute, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, popsize, maxPopSize, wholepopulationgenomes, totalpopulationgenomelength, psumofwis, pInverseSumOfWis);
+    InitializePopulationRel(wholepopulationwistree, wholepopulationwisarray, popsize, wholepopulationgenomes, totalpopulationgenomelength, psumofwis);
     
     printf("hasta aqui bien \n");
     /*Sets the initial population to have zeroes in all their linkage blocks,
@@ -316,8 +309,8 @@ void PerformOneTimeStepRel(int popsize, long double *wholepopulationwistree, lon
     }
     
    
-    ProduceMutatedRecombinedGamete(wholepopulationgenomes, chromosomesize, numberofchromosomes, totalindividualgenomelength, currentparent1, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, randomnumbergeneratorforgamma);
-    ProduceMutatedRecombinedGamete(wholepopulationgenomes, chromosomesize, numberofchromosomes, totalindividualgenomelength, currentparent2, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent2gamete, randomnumbergeneratorforgamma);
+    ProduceMutatedRecombinedGamete(isabsolute, wholepopulationgenomes, chromosomesize, numberofchromosomes, totalindividualgenomelength, currentparent1, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, randomnumbergeneratorforgamma);
+    ProduceMutatedRecombinedGamete(isabsolute, wholepopulationgenomes, chromosomesize, numberofchromosomes, totalindividualgenomelength, currentparent2, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent2gamete, randomnumbergeneratorforgamma);
                
     //next variables are only used for absolute simulations, however since InitializePopulation is a shared function I must initialize them here, even if I don't use them again
     long double *pInverseSumOfWis;
@@ -325,10 +318,35 @@ void PerformOneTimeStepRel(int popsize, long double *wholepopulationwistree, lon
     int *wholepopulationindex;
     long double *wholepopulationdeathratesarray;
     int *pPopSize;
+    double d_0;
     
     PerformDeath(isabsolute, popsize, pPopSize, currentvictim, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis);
     
-    PerformBirth(isabsolute, parent1gamete, parent2gamete, popsize, pPopSize, currentvictim, wholepopulationgenomes, totalindividualgenomelength, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis);
+    PerformBirth(isabsolute, parent1gamete, parent2gamete, popsize, pPopSize, currentvictim, wholepopulationgenomes, totalindividualgenomelength, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, d_0);
+    
+}
+
+void InitializePopulationRel(long double *wholepopulationwistree, long double *wholepopulationwisarray, int popsize, double *wholepopulationgenomes, int totalpopulationgenomelength, long double * psumofwis) 
+{
+    int i, j;
+        
+    for (i = 0; i < popsize; i++){
+        wholepopulationwistree[i] = 1.0; //all individuals start with load 1 (probability of being chosen to produce an offspring or to die of 1/N). 
+        wholepopulationwisarray[i] = 1.0;
+    }
+    //this for loop taken from the Fen_init function in sample implementation from 'Fenwick tree' Wikipedia page.
+    for (i = 0; i < popsize; i++) {
+        j = i + LSB(i+1);
+        if (j < popsize) {
+            wholepopulationwistree[j] += wholepopulationwistree[i];
+        }
+    }
+    
+    *psumofwis = (long double)popsize;
+    
+    for (i = 0; i < totalpopulationgenomelength; i++){
+        wholepopulationgenomes[i] = 0.0;
+    }
     
 }
 
@@ -362,4 +380,18 @@ int ChooseParentWithTree(long double *wholepopulationwistree, int popsize, long 
     
     newparent = (SearchTree(leftbound, rightbound, randomnumberofbirth, wholepopulationwistree));
     return newparent;
+}
+
+double CalculateWi(double *parent1gamete, double *parent2gamete, int totalindividualgenomelength)
+{
+    double newwi = 0.0;
+    long double currentlinkageblockssum = 0.0;
+    int i;
+
+    for (i = 0; i < (totalindividualgenomelength/2); i++) {
+        currentlinkageblockssum += parent1gamete[i];
+        currentlinkageblockssum += parent2gamete[i];
+    }
+    newwi = exp(currentlinkageblockssum);
+    return newwi;
 }

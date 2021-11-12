@@ -18,66 +18,20 @@
 #include "global_vars.h"
 #include "main.h"
 
+void MutateGamete(bool isabsolute, int chromosomesize, int numberofchromosomes, double *gamete, double mutationeffectsize)
+{
+    
+    int randomchromosometomutate = pcg32_boundedrand(numberofchromosomes); //if we decide to include heterogenous rates of recombination/mutation, both of these will need to be replaced by a function that weights each linkage block's probability of mutating.
+    int randomblocktomutate = pcg32_boundedrand(chromosomesize);
+    int mutatedsite = randomchromosometomutate*chromosomesize + randomblocktomutate;
+    if(isabsolute)
+        gamete[mutatedsite] += mutationeffectsize;
+    else
+        gamete[mutatedsite] += log(1 + mutationeffectsize);
 
-void InitializePopulation(bool isabsolute, long double *wholepopulationloadstree, long double *wholepopulationwisarray, long double *wholepopulationdeathratessarray, int *wholepopulationindex, bool *wholepopulationisfree, int initialPopSize, int maxPopSize, double *wholepopulationgenomes, int totalpopulationgenomelength, long double * psumofloads, long double* pInversesumofloads) {
-    
-    int i, j;
-    
-    for (i = 0; i < initialPopSize; i++) {
-        wholepopulationloadstree[i] = 1.0; //all individuals start with load 1 (probability of being chosen to produce an offspring or to die of 1/N). wholepopulationloadstree is mult((1+s_m)(1+s_f)) for relative fitness simulations and mult(1/(1+s_m)(1+s_f)) for absolute fitness simulations.
-    }
-    
-    if(isabsolute){
-        for (i = 0; i < initialPopSize; i++) {
-            wholepopulationdeathratessarray[i] = 1.0;
-            
-            wholepopulationindex[i] = i;
-            
-            wholepopulationisfree[i] = false;
-        }
-        
-        for (i = initialPopSize; i < maxPopSize; i++) {
-            wholepopulationloadstree[i] = 0.0;
-            
-            wholepopulationdeathratessarray[i] = 0.0;
-                                    
-            wholepopulationindex[i] = i;
-            
-            wholepopulationisfree[i] = true;
-        }
-        //this for loop taken from the Fen_init function in sample implementation from 'Fenwick tree' Wikipedia page. Absolute trees needs to contemplate all popSize, including non occupied spaces. 
-        for (i = 0; i < maxPopSize; i++) {
-            j = i + LSB(i+1);
-            if (j < maxPopSize) {
-                wholepopulationloadstree[j] += wholepopulationloadstree[i];
-            }
-        }
-        
-        *pInversesumofloads = (long double)initialPopSize;
-    }
-    
-    else{
-        for (i = 0; i < initialPopSize; i++)
-            wholepopulationwisarray[i] = 1.0;
-        //this for loop taken from the Fen_init function in sample implementation from 'Fenwick tree' Wikipedia page.
-        for (i = 0; i < initialPopSize; i++) {
-            j = i + LSB(i+1);
-            if (j < initialPopSize) {
-                wholepopulationloadstree[j] += wholepopulationloadstree[i];
-            }
-        }
-        
-        *psumofloads = (long double)initialPopSize;
-    }
-    
-    for (i = 0; i < totalpopulationgenomelength; i++){
-        wholepopulationgenomes[i] = 0.0;
-    }
-    
 }
 
-
-double PerformDeath(bool isabsolute, int maxPopSize, int *pPopSize, int victim, long double *wholepopulationloadstree, long double *wholepopulationwisarray, long double *wholepopulationdeathratessarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *pInversesumofloads)
+double PerformDeath(bool isabsolute, int maxPopSize, int *pPopSize, int victim, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates)
 {
     int placeinindex;
     if(isabsolute){
@@ -86,10 +40,10 @@ double PerformDeath(bool isabsolute, int maxPopSize, int *pPopSize, int victim, 
             exit(0);
         }
         
-        *pInversesumofloads -= wholepopulationdeathratessarray[victim];
+        *psumofdeathrates -= wholepopulationdeathratesarray[victim];
         
         wholepopulationisfree[victim] = true;
-        wholepopulationdeathratessarray[victim] = 0.0;
+        wholepopulationdeathratesarray[victim] = 0.0;
         
         //Joseph way of doing the tree just with popsize is better, once this is working change it
         placeinindex = findinindex(wholepopulationindex, victim, *pPopSize);
@@ -104,18 +58,18 @@ double PerformDeath(bool isabsolute, int maxPopSize, int *pPopSize, int victim, 
         wholepopulationwisarray[victim] = 0.0;
     }
     
-    Fen_set(wholepopulationloadstree, maxPopSize, 0.0, victim);
+    Fen_set(wholepopulationselectiontree, maxPopSize, 0.0, victim);
 }
 
-void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete, int maxPopSize, int *pPopSize, int birthplace, double *wholepopulationgenomes, int totalindividualgenomelength, long double *wholepopulationloadstree, long double *wholepopulationwisarray, long double *wholepopulationdeathratessarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *pInversesumofloads)
+void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete, int maxPopSize, int *pPopSize, int birthplace, double *wholepopulationgenomes, int totalindividualgenomelength, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates, double d_0)
 {
     int i;
     
-    long double newload = (long double) CalculateLoad(parent1gamete, parent2gamete, totalindividualgenomelength);
+    long double newwi;
     
-    long double newInverse = 1.0 / (long double) newload;
+    long double newdeathrate;
     
-//     printf("%Lf %Lf \n", newload, newInverse);
+//     printf("%Lf %Lf \n", newwi, newInverse);
     
     bool placefound = false;
     
@@ -131,6 +85,16 @@ void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete,
             printf("wholepopulationisfree is corrupted in PerformBirth \n");
             exit(0);
         }
+        
+        newdeathrate = CalculateDeathRate(parent1gamete, parent2gamete, totalindividualgenomelength, d_0);
+        
+        if(newdeathrate <= 0.0){
+            fprintf(miscfilepointer, "\n The death rate of a new born is less than 0.0 (he is even more than immortal). \n");
+            exit(0);
+        }
+    }
+    else{
+        newwi = (long double) CalculateWi(parent1gamete, parent2gamete, totalindividualgenomelength);
     }
     
     for (i = 0; i < (totalindividualgenomelength/2); i++) {
@@ -139,19 +103,19 @@ void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete,
     }
         
     if(isabsolute){
-        Fen_set(wholepopulationloadstree, maxPopSize, newInverse, birthplace);
-        wholepopulationdeathratessarray[birthplace] = newInverse;
+        Fen_set(wholepopulationselectiontree, maxPopSize, newdeathrate, birthplace);
+        wholepopulationdeathratesarray[birthplace] = newdeathrate;
         wholepopulationisfree[birthplace] = false;
         
-        *pInversesumofloads += newInverse;
+        *psumofdeathrates += newdeathrate;
                 
         *pPopSize += 1;
     }
     else{
-        Fen_set(wholepopulationloadstree, maxPopSize, newload, birthplace);
-        wholepopulationwisarray[birthplace] = newload;
+        Fen_set(wholepopulationselectiontree, maxPopSize, newwi, birthplace);
+        wholepopulationwisarray[birthplace] = newwi;
         
-        *psumofloads += newload;
+        *psumofloads += newwi;
     }
     
 }
