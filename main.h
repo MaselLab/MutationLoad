@@ -40,9 +40,9 @@ double ExponentialDerivate(double mean);
 int SampleFromPoisson(float poissonmean);
 
 //Gametes.
-void ProduceMutatedRecombinedGamete(bool isabsoulte, double *wholepopulationgenomes, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, int currentparent, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double *parentgamete, gsl_rng * randomnumbergeneratorforgamma);
-//UH change to two recombination sites. //UH change determineNumberOfMutations outside the loop
-void RecombineChromosomesIntoGamete(int persontorecombine, int chromosomesize, int numberofchromosomes, double *gamete, double *populationgenomes, int totalindividualgenomelength, int * recombinationsites);
+//UH change to two recombination sites.
+void RecombineChromosomesIntoGamete(int persontorecombine, int chromosomesize, int numberofchromosomes, double *gamete, double *populationgenomes, int totalindividualgenomelength);
+bool ProduceMutatedGamete(bool isabsolute, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double *gamete, gsl_rng * randomnumbergeneratorforgamma);
 int DetermineNumberOfMutations(int chromosomesize, int numberofchromosomes, float mutationrate);
 
 //root simulations. UH might move them to shared with flags and remove files pointers (they are declared globally)

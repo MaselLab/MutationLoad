@@ -421,78 +421,10 @@ int SampleFromPoisson(float poissonmean)
 return numberofmutations;
 }
 
-void ProduceMutatedRecombinedGamete(bool isabsolute, double *wholepopulationgenomes, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, int currentparent, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double *parentgamete, gsl_rng * randomnumbergeneratorforgamma)
-{
-    
-    int k, numberofbeneficialmutations, numberofdeleteriousmutations;
-    double generatedSb;
-    double Sds[30];
-    int recombinationsites[numberofchromosomes];
-    
-    //Following lines produce a gamete from parent 1 and add deleterious and beneficial mutations to the gamete.
-    RecombineChromosomesIntoGamete(currentparent, chromosomesize, numberofchromosomes, parentgamete, wholepopulationgenomes, totalindividualgenomelength, recombinationsites);
-    
-    //Following lines stochastically generate a number of deleterious mutations drawn from a Poisson distribution with mean determined by the deleterious mutation rate
-    //with effect sizes drawn from a gamma distribution with parameters taken from Kim et al 2017.
-    int DontBreakWhileLoop = 0;
-    while (1) {
-        DontBreakWhileLoop = 0;
-        //This may be changed before loop
-        numberofdeleteriousmutations = DetermineNumberOfMutations(chromosomesize, numberofchromosomes, deleteriousmutationrate);
-        for (k = 0; k < numberofdeleteriousmutations; k++) {
-            Sds[k] = (gsl_ran_gamma(randomnumbergeneratorforgamma, 0.169, 1327.4)/23646); //Uses parameters for the gamma distribution of the selection coefficients of new mutations scaled to an inferred ancestral populations size. To produce the distribution of unscaled effect sizes, numbers drawn from this distribution must be divided by two times the ancestral population size for the population from which the distribution was derived (11,823 in this case). Data used to produce these fits were samples from 6503 individuals from the National Heart, Lung, and Blood Institute European-American dataset. Analysis of DFE from Kim et al. 2017.
-            //This gamma distribution can occasionally produce deleterious mutations with effect sizes larger than 1,
-            //which would result in a gamete with fitness less than zero, which would break my algorithm.
-            //The following if statement simply throws out any deleterious mutations with effect sizes larger than 1.
-            if (Sds[k] >= 1) {
-                DontBreakWhileLoop = 1;
-                break;
-            }     
-        }
-        if (DontBreakWhileLoop == 0) 
-            break;
-    }
-    
-    //Following lines stochastically generate a number of beneficial mutations drawn from a Poisson distribution with mean determined by the beneficial mutation rate.
-    numberofbeneficialmutations = DetermineNumberOfMutations(chromosomesize, numberofchromosomes, beneficialmutationrate);
-    
-    //Adds the specified number of deleterious mutations to the gamete, recording the sites of each mutation for tree sequence recording.
-    for (k = 0; k < numberofdeleteriousmutations; k++) {
-        MutateGamete(isabsolute, chromosomesize, numberofchromosomes, parentgamete, -Sds[k]);
-    }
-    
-    //Adds the specified number of beneficial mutations, drawing Sb values from the specified distribution.
-    //Sites of each mutation are added to the mutationsites array for tree sequence recording.
-    //point distribution
-    if (beneficialdistribution == 0) {
-        for (k = 0; k < numberofbeneficialmutations; k++) {
-            MutateGamete(isabsolute, chromosomesize, numberofchromosomes, parentgamete, Sb);
-        }
-    //exponential distribution
-    } else if (beneficialdistribution == 1) {
-        for (k = 0; k < numberofbeneficialmutations; k++) {
-            generatedSb = gsl_ran_exponential(randomnumbergeneratorforgamma, Sb);
-            MutateGamete(isabsolute, chromosomesize, numberofchromosomes, parentgamete, generatedSb);
-        }
-    //uniform distribution
-    } else if (beneficialdistribution == 2) {
-        for (k = 0; k < numberofbeneficialmutations; k++) {
-            double upperlimitforuniform = (2 * Sb);
-            generatedSb = gsl_ran_flat(randomnumbergeneratorforgamma, 0, upperlimitforuniform);
-            MutateGamete(isabsolute, chromosomesize, numberofchromosomes, parentgamete, generatedSb);
-        }
-    } else {
-        fprintf(miscfilepointer, "Error: type of distribution for beneficial effect sizes not recognized.");
-        exit(0);
-    }
-    
-    
-}
-
 //1 recombination site per chromosome
-void RecombineChromosomesIntoGamete(int persontorecombine, int chromosomesize, int numberofchromosomes, double *gamete, double *populationgenomes, int totalindividualgenomelength, int * recombinationsites)
-{
-    int recombinationsite, startchromosome, startofindividual, h, i, returnvaluefortskit;
+void RecombineChromosomesIntoGamete(int persontorecombine, int chromosomesize, int numberofchromosomes, double *gamete, double *wholepopulationgenomes, int totalindividualgenomelength)
+{    
+    int recombinationsite, startchromosome, startofindividual, h, i;
     startofindividual = persontorecombine * totalindividualgenomelength;
     
     
@@ -504,23 +436,93 @@ void RecombineChromosomesIntoGamete(int persontorecombine, int chromosomesize, i
         } while (recombinationsite == 0); //it doesn't make sense to do a recombination event before the first linkage block. Note that this will never break if the chromosome size is only one linkage block.
         
         
-	for (i = 0; i < recombinationsite; i++) {
+        for (i = 0; i < recombinationsite; i++) {
             if (startchromosome == 0) {
-		gamete[h*chromosomesize + i] = populationgenomes[startofindividual + (h*chromosomesize) + i];
+                gamete[h*chromosomesize + i] = wholepopulationgenomes[startofindividual + (h*chromosomesize) + i];
             }
             else {
-		gamete[h*chromosomesize + i] = populationgenomes[startofindividual + totalindividualgenomelength / 2 + (h*chromosomesize) + i];
+                gamete[h*chromosomesize + i] = wholepopulationgenomes[startofindividual + totalindividualgenomelength / 2 + (h*chromosomesize) + i];
             }
-	}
+        }
         for (i = recombinationsite; i < chromosomesize; i++) {
             if (startchromosome == 0) {
-                gamete[h*chromosomesize + i] = populationgenomes[startofindividual + totalindividualgenomelength / 2 + (h*chromosomesize) + i];
+                gamete[h*chromosomesize + i] = wholepopulationgenomes[startofindividual + totalindividualgenomelength / 2 + (h*chromosomesize) + i];
             }
             else {
-                gamete[h*chromosomesize + i] = populationgenomes[startofindividual + (h*chromosomesize) + i];
+                gamete[h*chromosomesize + i] = wholepopulationgenomes[startofindividual + (h*chromosomesize) + i];
             }
-	}
+        }
     }
+}
+
+bool ProduceMutatedGamete(bool isabsolute, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double *gamete, gsl_rng * randomnumbergeneratorforgamma)
+{
+    
+    int k, numberofbeneficialmutations, numberofdeleteriousmutations;
+    double generatedSb;
+    double Sds[30];
+    
+    //Following lines stochastically generate a number of deleterious mutations drawn from a Poisson distribution with mean determined by the deleterious mutation rate
+    //with effect sizes drawn from a gamma distribution with parameters taken from Kim et al 2017.
+    bool DontBreakWhileLoop = false;
+    numberofdeleteriousmutations = DetermineNumberOfMutations(chromosomesize, numberofchromosomes, deleteriousmutationrate);
+    
+    while(1){
+        DontBreakWhileLoop = false;
+        for (k = 0; k < numberofdeleteriousmutations; k++) {
+            Sds[k] = (gsl_ran_gamma(randomnumbergeneratorforgamma, 0.169, 1327.4)/23646); //Uses parameters for the gamma distribution of the selection coefficients of new mutations scaled to an inferred ancestral populations size. To produce the distribution of unscaled effect sizes, numbers drawn from this distribution must be divided by two times the ancestral population size for the population from which the distribution was derived (11,823 in this case). Data used to produce these fits were samples from 6503 individuals from the National Heart, Lung, and Blood Institute European-American dataset. Analysis of DFE from Kim et al. 2017.
+            //This gamma distribution can occasionally produce deleterious mutations with effect sizes larger than 1,
+            //which would result in a gamete with fitness less than zero, which would break my algorithm.
+            //The following if statement simply throws out any deleterious mutations with effect sizes larger than 1.
+            if (Sds[k] >= 1) {
+                //this mean a new lethal mutation appeared
+                DontBreakWhileLoop = true;
+                break;
+            }
+            //store the number of mutations excluded
+        }
+        //in absolute runs a lethal mutation means the new offspring 
+        if(isabsolute && DontBreakWhileLoop){
+            return false;
+        }
+        if (!DontBreakWhileLoop) 
+            break;
+    }
+    
+    //Adds the specified number of deleterious mutations to the gamete, recording the sites of each mutation for tree sequence recording.
+    for (k = 0; k < numberofdeleteriousmutations; k++) {
+        MutateGamete(isabsolute, chromosomesize, numberofchromosomes, gamete, -Sds[k]);
+    }
+    
+    //Following lines stochastically generate a number of beneficial mutations drawn from a Poisson distribution with mean determined by the beneficial mutation rate.
+    numberofbeneficialmutations = DetermineNumberOfMutations(chromosomesize, numberofchromosomes, beneficialmutationrate);
+    
+    //Adds the specified number of beneficial mutations, drawing Sb values from the specified distribution.
+    //Sites of each mutation are added to the mutationsites array for tree sequence recording.
+    //point distribution
+    if (beneficialdistribution == 0) {
+        for (k = 0; k < numberofbeneficialmutations; k++) {
+            MutateGamete(isabsolute, chromosomesize, numberofchromosomes, gamete, Sb);
+        }
+    //exponential distribution
+    } else if (beneficialdistribution == 1) {
+        for (k = 0; k < numberofbeneficialmutations; k++) {
+            generatedSb = gsl_ran_exponential(randomnumbergeneratorforgamma, Sb);
+            MutateGamete(isabsolute, chromosomesize, numberofchromosomes, gamete, generatedSb);
+        }
+    //uniform distribution
+    } else if (beneficialdistribution == 2) {
+        for (k = 0; k < numberofbeneficialmutations; k++) {
+            double upperlimitforuniform = (2 * Sb);
+            generatedSb = gsl_ran_flat(randomnumbergeneratorforgamma, 0, upperlimitforuniform);
+            MutateGamete(isabsolute, chromosomesize, numberofchromosomes, gamete, generatedSb);
+        }
+    } else {
+        fprintf(miscfilepointer, "Error: type of distribution for beneficial effect sizes not recognized.");
+        exit(0);
+    }
+    
+    return true;
 }
 
 int DetermineNumberOfMutations(int chromosomesize, int numberofchromosomes, float mutationrate)

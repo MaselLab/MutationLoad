@@ -19,11 +19,19 @@ totaldatas <- cbind(totaldatas, sbgroups)
 ppopd0.5 <- ggplot(data=totaldatas, aes(x=Time, y=Pop.size, group=sbgroups)) +
   geom_line(aes(color=sbgroups))
 
-ggplot(data=totaldatas, aes(x=Time, y=Mean_death_rate, group=sbgroups)) +
+pdeathrate0.5 <- ggplot(data=totaldatas, aes(x=Time, y=Mean_death_rate, group=sbgroups)) +
   geom_line(aes(color=sbgroups))
 
 ggplot(data=totaldatas, aes(x=Time, y=Mean_birth_rate, group=sbgroups)) +
   geom_line(aes(color=sbgroups))
+
+pdf("popsize_time.pdf")
+ppopd0.5
+dev.off()
+
+pdf("meandeathrate_time.pdf")
+pdeathrate0.5
+dev.off()
 
 
 #d = 0.2
@@ -47,15 +55,23 @@ totaldatas <- cbind(totaldatas, sbgroups)
 ppopd0.2 <- ggplot(data=totaldatas, aes(x=Time, y=Pop.size, group=sbgroups)) +
   geom_line(aes(color=sbgroups))
 
-ggplot(data=totaldatas, aes(x=Time, y=Mean_death_rate, group=sbgroups)) +
+pdeathrate0.2 <- ggplot(data=totaldatas, aes(x=Time, y=Mean_death_rate, group=sbgroups)) +
   geom_line(aes(color=sbgroups))
 
 ggplot(data=totaldatas, aes(x=Time, y=Mean_birth_rate, group=sbgroups)) +
   geom_line(aes(color=sbgroups))
 
+pdf("popsize_time.pdf")
+ppopd0.2
+dev.off()
+
+pdf("meandeathrate_time.pdf")
+pdeathrate0.2
+dev.off()
+
 setwd("../")
 
-ppopd0.2
-ppopd0.5
+
+
 
 
