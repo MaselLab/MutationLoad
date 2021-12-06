@@ -465,10 +465,11 @@ bool ProduceMutatedGamete(bool isabsolute, int chromosomesize, int numberofchrom
     //Following lines stochastically generate a number of deleterious mutations drawn from a Poisson distribution with mean determined by the deleterious mutation rate
     //with effect sizes drawn from a gamma distribution with parameters taken from Kim et al 2017.
     bool DontBreakWhileLoop = false;
-    numberofdeleteriousmutations = DetermineNumberOfMutations(chromosomesize, numberofchromosomes, deleteriousmutationrate);
     
     while(1){
         DontBreakWhileLoop = false;
+        numberofdeleteriousmutations = DetermineNumberOfMutations(chromosomesize, numberofchromosomes, deleteriousmutationrate);
+        
         for (k = 0; k < numberofdeleteriousmutations; k++) {
             Sds[k] = (gsl_ran_gamma(randomnumbergeneratorforgamma, 0.169, 1327.4)/23646); //Uses parameters for the gamma distribution of the selection coefficients of new mutations scaled to an inferred ancestral populations size. To produce the distribution of unscaled effect sizes, numbers drawn from this distribution must be divided by two times the ancestral population size for the population from which the distribution was derived (11,823 in this case). Data used to produce these fits were samples from 6503 individuals from the National Heart, Lung, and Blood Institute European-American dataset. Analysis of DFE from Kim et al. 2017.
             //This gamma distribution can occasionally produce deleterious mutations with effect sizes larger than 1,
