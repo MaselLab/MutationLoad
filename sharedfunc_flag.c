@@ -20,12 +20,15 @@
 
 void MutateGamete(bool isabsolute, int chromosomesize, int numberofchromosomes, double *gamete, double mutationeffectsize)
 {
+    //this c must be changed after we figure out its value
+    double c = 2;
     
     int randomchromosometomutate = pcg32_boundedrand(numberofchromosomes); //if we decide to include heterogenous rates of recombination/mutation, both of these will need to be replaced by a function that weights each linkage block's probability of mutating.
     int randomblocktomutate = pcg32_boundedrand(chromosomesize);
     int mutatedsite = randomchromosometomutate*chromosomesize + randomblocktomutate;
     if(isabsolute)
-        gamete[mutatedsite] += mutationeffectsize;
+        //check if it can work with log and ln or is it just for ln
+        gamete[mutatedsite] += c*log(1 + mutationeffectsize);
     else
         gamete[mutatedsite] += log(1 + mutationeffectsize);
 

@@ -289,7 +289,7 @@ bool discoverEvent(double deathRate, double birthRate) {
 }
 
 
-void PerformOneEventAbs(bool isabsolute, bool birthhappens, int maxPopSize, int *pPopSize, double *wholepopulationgenomes, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, bool *wholepopulationisfree, int *wholepopulationindex, long double *psumofdeathrates, double d_0, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution,  double* parent1gamete, double* parent2gamete, gsl_rng* randomnumbergeneratorforgamma)
+bool PerformOneEventAbs(bool isabsolute, bool birthhappens, int maxPopSize, int *pPopSize, double *wholepopulationgenomes, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, bool *wholepopulationisfree, int *wholepopulationindex, long double *psumofdeathrates, double d_0, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution,  double* parent1gamete, double* parent2gamete, gsl_rng* randomnumbergeneratorforgamma)
 {
     if(isabsolute == 0){
         fprintf(miscfilepointer, "\n Trying to use PerformOneEventAbs within a non absolute fitness simulation. \n");
@@ -298,6 +298,7 @@ void PerformOneEventAbs(bool isabsolute, bool birthhappens, int maxPopSize, int 
     
     int randparent1, randparent2, currentparent1, currentparent2, currentvictim;
     int i;
+    bool nolethalmut = true;
         
     int victim;
     
@@ -311,7 +312,7 @@ void PerformOneEventAbs(bool isabsolute, bool birthhappens, int maxPopSize, int 
         exit(0);
     }
     
-    //next pointers are only used in relative fitness scenarios, here they are just initialized
+    //next pointers are only used in relative fitness scenarios. Here, they are just initialized
     long double *psumofloads, *wholepopulationwisarray;
     
     if (birthhappens){
@@ -329,10 +330,15 @@ void PerformOneEventAbs(bool isabsolute, bool birthhappens, int maxPopSize, int 
         
 
 //         printf("%f \n", deleteriousmutationrate);
+        RecombineChromosomesIntoGamete(currentparent1, chromosomesize, numberofchromosomes, parent1gamete, wholepopulationgenomes, totalindividualgenomelength);
+        nolethalmut = ProduceMutatedGamete(isabsolute, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, randomnumbergeneratorforgamma);
+        if(!nolethalmut)
+            return false;
         
-        ProduceMutatedRecombinedGamete(isabsolute, wholepopulationgenomes, chromosomesize, numberofchromosomes, totalindividualgenomelength, currentparent1, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, randomnumbergeneratorforgamma);
-        ProduceMutatedRecombinedGamete(isabsolute, wholepopulationgenomes, chromosomesize, numberofchromosomes, totalindividualgenomelength, currentparent2, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent2gamete, randomnumbergeneratorforgamma);
-        
+        RecombineChromosomesIntoGamete(currentparent2, chromosomesize, numberofchromosomes, parent2gamete, wholepopulationgenomes, totalindividualgenomelength);
+        nolethalmut = ProduceMutatedGamete(isabsolute, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent2gamete, randomnumbergeneratorforgamma);
+        if(!nolethalmut)
+            return false;
         
         PerformBirth(isabsolute, parent1gamete, parent2gamete, maxPopSize, pPopSize, victim, wholepopulationgenomes, totalindividualgenomelength, wholepopulationselectiontree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofloads, psumofdeathrates, d_0);
     }
@@ -351,7 +357,8 @@ void PerformOneEventAbs(bool isabsolute, bool birthhappens, int maxPopSize, int 
         
         PerformDeath(isabsolute, maxPopSize, pPopSize, victim, wholepopulationselectiontree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofloads, psumofdeathrates);
     }
-
+    
+    return true;
 
 }
 
@@ -443,7 +450,7 @@ int findinindex(int *wholepopulationindex, int which, int tam){
 void indexArrayFlipDeath(int *wholepopulationindex, int placeinindex, int popsize){
 
     /*
-    * This function flips the integer value from the last in the array of  wholepopulationindex to the place where an individual died. This way wholepopulationindex is mantained without unoccupied spaces
+    This function flips the integer value from the last in the array of  wholepopulationindex to the place where an individual died. This way wholepopulationindex is mantained without unoccupied spaces
     */
 	int indexlast = wholepopulationindex[(popsize-1)];
     int indexvictim = wholepopulationindex[placeinindex];
@@ -459,9 +466,9 @@ double CalculateDeathRate(double *parent1gamete, double *parent2gamete, int tota
     int i;
 
     for (i = 0; i < (totalindividualgenomelength/2); i++) {
-        currentlinkageblocksload += parent1gamete[i];
-        currentlinkageblocksload += parent2gamete[i];
+        currentlinkageblocksload -= parent1gamete[i];
+        currentlinkageblocksload -= parent2gamete[i];
     }
-    newdeathrate = d_0 - currentlinkageblocksload;
+    newdeathrate = d_0 + currentlinkageblocksload;
     return newdeathrate;
 }
