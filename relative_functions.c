@@ -14,16 +14,18 @@
 #include "dependencies/pcg_basic.h"
 #include "relative_functions.h"
 #include "sharedfunc_flag.h"
-#include "global_vars.h"
 #include "main.h"
 
 
-double RunSimulationRel(bool isabsolute, char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, char * Sbname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, gsl_rng * randomnumbergeneratorforgamma)
+double RunSimulationRel(bool isabsolute, char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, char * Sbname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, gsl_rng * randomnumbergeneratorforgamma, FILE *miscfilepointer, FILE *veryverbosefilepointer)
 {
     if(isabsolute){
         fprintf(miscfilepointer, "\n Trying to use RunSimulationRel within an absolute fitness program. \n");
         exit(0);
     }
+    
+    FILE *rawdatafilepointer;
+    FILE *summarydatafilepointer;
     
     int i, j, k;
     
@@ -149,7 +151,7 @@ double RunSimulationRel(bool isabsolute, char * Nxtimestepsname, char * popsizen
         //Following code performs N rounds of paired births and deaths.
         for (j = 0; j < popsize; j++) {
             currenttimestep += 1;            
-            PerformOneTimeStepRel(popsize, wholepopulationwistree, wholepopulationwisarray, wholepopulationgenomes, psumofwis, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, parent2gamete, randomnumbergeneratorforgamma);
+            PerformOneTimeStepRel(popsize, wholepopulationwistree, wholepopulationwisarray, wholepopulationgenomes, psumofwis, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, parent2gamete, randomnumbergeneratorforgamma, miscfilepointer);
             
         }
         
@@ -295,25 +297,25 @@ double RunSimulationRel(bool isabsolute, char * Nxtimestepsname, char * popsizen
     }
 }
 
-void PerformOneTimeStepRel(int popsize, long double *wholepopulationwistree, long double *wholepopulationwisarray, double *wholepopulationgenomes, long double * psumofwis, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double *parent1gamete, double *parent2gamete, gsl_rng * randomnumbergeneratorforgamma)
+void PerformOneTimeStepRel(int popsize, long double *wholepopulationwistree, long double *wholepopulationwisarray, double *wholepopulationgenomes, long double * psumofwis, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double *parent1gamete, double *parent2gamete, gsl_rng * randomnumbergeneratorforgamma, FILE *miscfilepointer)
 {
     bool isabsolute = 0;
     
     int currentparent1, currentparent2, currentvictim;
 
     currentvictim = ChooseVictim(popsize);
-    currentparent1 = ChooseParentWithTree(wholepopulationwistree, popsize, *psumofwis);
-    currentparent2 = ChooseParentWithTree(wholepopulationwistree, popsize, *psumofwis);
+    currentparent1 = ChooseParentWithTree(wholepopulationwistree, popsize, *psumofwis, miscfilepointer);
+    currentparent2 = ChooseParentWithTree(wholepopulationwistree, popsize, *psumofwis, miscfilepointer);
     while (currentparent1 == currentparent2) { //probably not ideal, since it'll never break with population sizes of zero or one.
-        currentparent2 = ChooseParentWithTree(wholepopulationwistree, popsize, *psumofwis);
+        currentparent2 = ChooseParentWithTree(wholepopulationwistree, popsize, *psumofwis, miscfilepointer);
     }
     
    
     RecombineChromosomesIntoGamete(currentparent1, chromosomesize, numberofchromosomes, parent1gamete, wholepopulationgenomes, totalindividualgenomelength);
-    ProduceMutatedGamete(isabsolute, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, randomnumbergeneratorforgamma);
+    ProduceMutatedGamete(isabsolute, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, randomnumbergeneratorforgamma, miscfilepointer);
         
     RecombineChromosomesIntoGamete(currentparent2, chromosomesize, numberofchromosomes, parent2gamete, wholepopulationgenomes, totalindividualgenomelength);
-    ProduceMutatedGamete(isabsolute, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent2gamete, randomnumbergeneratorforgamma);
+    ProduceMutatedGamete(isabsolute, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent2gamete, randomnumbergeneratorforgamma, miscfilepointer);
                
     //next variables are only used for absolute simulations, however since InitializePopulation is a shared function I must initialize them here, even if I don't use them again
     long double *pInverseSumOfWis;
@@ -323,9 +325,9 @@ void PerformOneTimeStepRel(int popsize, long double *wholepopulationwistree, lon
     int *pPopSize;
     double d_0;
     
-    PerformDeath(isabsolute, popsize, pPopSize, currentvictim, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis);
+    PerformDeath(isabsolute, popsize, pPopSize, currentvictim, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, miscfilepointer);
     
-    PerformBirth(isabsolute, parent1gamete, parent2gamete, popsize, pPopSize, currentvictim, wholepopulationgenomes, totalindividualgenomelength, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, d_0);
+    PerformBirth(isabsolute, parent1gamete, parent2gamete, popsize, pPopSize, currentvictim, wholepopulationgenomes, totalindividualgenomelength, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, d_0, miscfilepointer);
     
 }
 
@@ -362,7 +364,7 @@ int ChooseVictim(int populationsize)
 
 //The tree in the name is the Fenwick tree, which stores the fitnesses of individuals in the population.
 //This function is where selection occurs -- individuals with higher-than-average fitness will be chosen more often as parents.
-int ChooseParentWithTree(long double *wholepopulationwistree, int popsize, long double sumofwis)
+int ChooseParentWithTree(long double *wholepopulationwistree, int popsize, long double sumofwis, FILE *miscfilepointer)
 {
     long double randomnumberofbirth;
     int newparent = 0;

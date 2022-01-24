@@ -15,26 +15,25 @@
 #include "relative_functions.h"
 #include "absolute_functions.h"
 #include "sharedfunc_flag.h"
-#include "global_vars.h"
 #include "main.h"
 
 void MutateGamete(bool isabsolute, int chromosomesize, int numberofchromosomes, double *gamete, double mutationeffectsize)
 {
     //this c must be changed after we figure out its value
-    double c = 2;
+    //double c = 2;
     
     int randomchromosometomutate = pcg32_boundedrand(numberofchromosomes); //if we decide to include heterogenous rates of recombination/mutation, both of these will need to be replaced by a function that weights each linkage block's probability of mutating.
     int randomblocktomutate = pcg32_boundedrand(chromosomesize);
     int mutatedsite = randomchromosometomutate*chromosomesize + randomblocktomutate;
     if(isabsolute)
         //check if it can work with log and ln or is it just for ln
-        gamete[mutatedsite] += c*log(1 + mutationeffectsize);
+        gamete[mutatedsite] += (mutationeffectsize);
     else
         gamete[mutatedsite] += log(1 + mutationeffectsize);
 
 }
 
-double PerformDeath(bool isabsolute, int maxPopSize, int *pPopSize, int victim, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates)
+double PerformDeath(bool isabsolute, int maxPopSize, int *pPopSize, int victim, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates, FILE *miscfilepointer)
 {
     int placeinindex;
     if(isabsolute){
@@ -49,7 +48,7 @@ double PerformDeath(bool isabsolute, int maxPopSize, int *pPopSize, int victim, 
         wholepopulationdeathratesarray[victim] = 0.0;
         
         //Joseph way of doing the tree just with popsize is better, once this is working change it
-        placeinindex = findinindex(wholepopulationindex, victim, *pPopSize);
+        placeinindex = findinindex(wholepopulationindex, victim, *pPopSize, miscfilepointer);
         indexArrayFlipDeath(wholepopulationindex, placeinindex, *pPopSize);
         
         
@@ -64,7 +63,7 @@ double PerformDeath(bool isabsolute, int maxPopSize, int *pPopSize, int victim, 
     Fen_set(wholepopulationselectiontree, maxPopSize, 0.0, victim);
 }
 
-void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete, int maxPopSize, int *pPopSize, int birthplace, double *wholepopulationgenomes, int totalindividualgenomelength, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates, double d_0)
+void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete, int maxPopSize, int *pPopSize, int birthplace, double *wholepopulationgenomes, int totalindividualgenomelength, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates, double d_0, FILE *miscfilepointer)
 {
     int i;
     

@@ -23,13 +23,17 @@
 #include "global_vars.h"
 #include "main.h"
 
-
 int main(int argc, char *argv[]) {
 
     if (argc != 15) {
         printf("[Error]; Wrong number of arguments in program. It should be timeSteps, initialPopsize, genome-wide deleterious mutation rate, chromosomesize, numberofchromosomes, beneficial/deleterious mutation ratio, Sb, beneficialdistribution, typeofrun, slope, seed, MaxPopSize, relative or absolute, d_0 \n");
         return -1;
     }
+
+    FILE *miscfilepointer;
+    FILE *verbosefilepointer;
+    FILE *finaldatafilepointer;
+    FILE *veryverbosefilepointer;
 
     int Nxtimesteps = atoi(argv[1]);
 
@@ -167,20 +171,20 @@ int main(int argc, char *argv[]) {
         double sbrequiredforzeroslopeoffitness;
         fprintf(miscfilepointer, "Beginning bracketing function.");
         fflush(miscfilepointer);
-        BracketZeroForSb(isabsolute, pSb1, pSb2, argv[1], argv[2], delmutname, argv[4], argv[5], benmutname, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, slopeforcontourline, beneficialdistribution, randomnumbergeneratorforgamma);
+        BracketZeroForSb(isabsolute, pSb1, pSb2, argv[1], argv[2], delmutname, argv[4], argv[5], benmutname, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, slopeforcontourline, beneficialdistribution, randomnumbergeneratorforgamma, verbosefilepointer, miscfilepointer, veryverbosefilepointer);
         fprintf(miscfilepointer, "Finished bracketing function.");
         fflush(miscfilepointer);
-        sbrequiredforzeroslopeoffitness = BisectionMethodToFindSbWithZeroSlope(isabsolute, pSb1, pSb2, argv[1], argv[2], delmutname, argv[4], argv[5], benmutname, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, slopeforcontourline, beneficialdistribution, randomnumbergeneratorforgamma);
+        sbrequiredforzeroslopeoffitness = BisectionMethodToFindSbWithZeroSlope(isabsolute, pSb1, pSb2, argv[1], argv[2], delmutname, argv[4], argv[5], benmutname, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, slopeforcontourline, beneficialdistribution, randomnumbergeneratorforgamma, miscfilepointer, verbosefilepointer, finaldatafilepointer, veryverbosefilepointer);
         fprintf(finaldatafilepointer, "The value of Sb for which the slope of log fitness is zero with mub of %.10f is %.10f", beneficialmutationrate, sbrequiredforzeroslopeoffitness);
     
     } else if (typeofrun == 1) {
         if(isabsolute == 0){
             //This type of run just simulates a single population with the input parameters.
-            RunSimulationRel(isabsolute, argv[1], argv[2], delmutname, argv[4], argv[5], benmutname, argv[7], typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, randomnumbergeneratorforgamma);
+            RunSimulationRel(isabsolute, argv[1], argv[2], delmutname, argv[4], argv[5], benmutname, argv[7], typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer);
         }
         
         else{
-            RunSimulationAbs(isabsolute, argv[1], argv[2], delmutname, argv[4], argv[5], benmutname, argv[7], typeofrun, Nxtimesteps, popsize, maxPopSize, d_0, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, randomnumbergeneratorforgamma);
+            RunSimulationAbs(isabsolute, argv[1], argv[2], delmutname, argv[4], argv[5], benmutname, argv[7], typeofrun, Nxtimesteps, popsize, maxPopSize, d_0, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer);
         }
         
     } else{
@@ -455,7 +459,7 @@ void RecombineChromosomesIntoGamete(int persontorecombine, int chromosomesize, i
     }
 }
 
-bool ProduceMutatedGamete(bool isabsolute, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double *gamete, gsl_rng * randomnumbergeneratorforgamma)
+bool ProduceMutatedGamete(bool isabsolute, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double *gamete, gsl_rng * randomnumbergeneratorforgamma, FILE *miscfilepointer)
 {
     
     int k, numberofbeneficialmutations, numberofdeleteriousmutations;
@@ -541,7 +545,7 @@ int DetermineNumberOfMutations(int chromosomesize, int numberofchromosomes, floa
 //The following function is heavily modified from Numerical Recipes in C, Second Edition.
 //For large population sizes, populations with mean Sb > 0 may actually have a more negative fitness slope than mean Sb = 0.
 //
-int BracketZeroForSb(bool isabsolute, double *Sb1, double *Sb2, char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double slopeforcontourline, int beneficialdistribution, gsl_rng * randomnumbergeneratorforgamma) {
+int BracketZeroForSb(bool isabsolute, double *Sb1, double *Sb2, char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double slopeforcontourline, int beneficialdistribution, gsl_rng * randomnumbergeneratorforgamma, FILE *verbosefilepointer, FILE *miscfilepointer, FILE *veryverbosefilepointer) {
     int i, numberoftries;
     numberoftries = 10;
     float factor = 0.01;
@@ -553,8 +557,8 @@ int BracketZeroForSb(bool isabsolute, double *Sb1, double *Sb2, char * Nxtimeste
         fflush(verbosefilepointer);
     }
     float resultingslope1, resultingslope2;
-    resultingslope1 = RunSimulationRel(isabsolute, Nxtimestepsname, popsizename, delmutratename, chromsizename, chromnumname, mubname, Sb1name, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, *Sb1, beneficialdistribution, randomnumbergeneratorforgamma);
-    resultingslope2 = RunSimulationRel(isabsolute, Nxtimestepsname, popsizename, delmutratename, chromsizename, chromnumname, mubname, Sb2name, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, *Sb2, beneficialdistribution, randomnumbergeneratorforgamma);
+    resultingslope1 = RunSimulationRel(isabsolute, Nxtimestepsname, popsizename, delmutratename, chromsizename, chromnumname, mubname, Sb1name, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, *Sb1, beneficialdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer);
+    resultingslope2 = RunSimulationRel(isabsolute, Nxtimestepsname, popsizename, delmutratename, chromsizename, chromnumname, mubname, Sb2name, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, *Sb2, beneficialdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer);
     if (VERBOSE == 1) {
         fprintf(verbosefilepointer, "First two slopes are: %.6f for sb %.6f, and %.6f for sb %.6f\n", resultingslope1, *Sb1, resultingslope2, *Sb2);
         fflush(verbosefilepointer);
@@ -579,7 +583,7 @@ int BracketZeroForSb(bool isabsolute, double *Sb1, double *Sb2, char * Nxtimeste
                 fprintf(verbosefilepointer, "Starting run with new sb2 = %.6f\n", *Sb2);
                 fflush(verbosefilepointer);
             }
-            resultingslope2 = RunSimulationRel(isabsolute, Nxtimestepsname, popsizename, delmutratename, chromsizename, chromnumname, mubname, Sb2name, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, *Sb2, beneficialdistribution, randomnumbergeneratorforgamma);
+            resultingslope2 = RunSimulationRel(isabsolute, Nxtimestepsname, popsizename, delmutratename, chromsizename, chromnumname, mubname, Sb2name, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, *Sb2, beneficialdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer);
             if (VERBOSE == 1) {
                 fprintf(verbosefilepointer, "Slope for sb %.6f = %.6f\n", *Sb2, resultingslope2);
                 fflush(verbosefilepointer);
@@ -593,7 +597,7 @@ int BracketZeroForSb(bool isabsolute, double *Sb1, double *Sb2, char * Nxtimeste
                 fprintf(verbosefilepointer, "Starting run with new sb1 = %.6f\n", *Sb2);
                 fflush(verbosefilepointer);
             }
-            resultingslope1 = RunSimulationRel(isabsolute, Nxtimestepsname, popsizename, delmutratename, chromsizename, chromnumname, mubname, Sb2name, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, *Sb2, beneficialdistribution, randomnumbergeneratorforgamma);
+            resultingslope1 = RunSimulationRel(isabsolute, Nxtimestepsname, popsizename, delmutratename, chromsizename, chromnumname, mubname, Sb2name, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, *Sb2, beneficialdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer);
             if (VERBOSE == 1) {
                 fprintf(verbosefilepointer, "Slope for sb %.6f = %.6f\n", *Sb2, resultingslope2);
                 fflush(verbosefilepointer);
@@ -606,7 +610,7 @@ int BracketZeroForSb(bool isabsolute, double *Sb1, double *Sb2, char * Nxtimeste
 }
 
 //The following function is modified from Numerical Recipes in C, Second Edition.
-double BisectionMethodToFindSbWithZeroSlope(bool isabsolute, double * Sb1, double * Sb2, char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double slopeforcontourline, int beneficialdistribution, gsl_rng * randomnumbergeneratorforgamma) {
+double BisectionMethodToFindSbWithZeroSlope(bool isabsolute, double * Sb1, double * Sb2, char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double slopeforcontourline, int beneficialdistribution, gsl_rng * randomnumbergeneratorforgamma, FILE *miscfilepointer, FILE *verbosefilepointer, FILE *finaldatafilepointer, FILE *veryverbosefilepointer) {
     int i;
     double factor, slope1, slopemid, Sbmid, root;
     double accuracy = 0.00005;
@@ -619,13 +623,13 @@ double BisectionMethodToFindSbWithZeroSlope(bool isabsolute, double * Sb1, doubl
         fprintf(verbosefilepointer, "Starting Sb1name: %s, starting Sb2name: %s", Sb1name, Sb2name);
         fflush(verbosefilepointer);
     }
-    slope1 = RunSimulationRel(isabsolute, Nxtimestepsname, popsizename, delmutratename, chromsizename, chromnumname, mubname, Sb1name, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, *Sb1, beneficialdistribution, randomnumbergeneratorforgamma);
+    slope1 = RunSimulationRel(isabsolute, Nxtimestepsname, popsizename, delmutratename, chromsizename, chromnumname, mubname, Sb1name, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, *Sb1, beneficialdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer);
     if (VERBOSE == 1) {
         fprintf(verbosefilepointer, "Finished run with sb %.6f, resulting in a slope of %.6f\n", *Sb1, slope1);
         fflush(verbosefilepointer);
     }
     
-    slopemid = RunSimulationRel(isabsolute, Nxtimestepsname, popsizename, delmutratename, chromsizename, chromnumname, mubname, Sb2name, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, *Sb2, beneficialdistribution, randomnumbergeneratorforgamma);
+    slopemid = RunSimulationRel(isabsolute, Nxtimestepsname, popsizename, delmutratename, chromsizename, chromnumname, mubname, Sb2name, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, *Sb2, beneficialdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer);
     if (VERBOSE == 1) {
         fprintf(verbosefilepointer, "Finished run with sb %.6f, resulting in a slope of %.6f\n", *Sb2, slopemid);
     }
@@ -643,7 +647,7 @@ double BisectionMethodToFindSbWithZeroSlope(bool isabsolute, double * Sb1, doubl
             fprintf(verbosefilepointer, "Starting run with sb %.6f\n", Sbmid);
             fflush(verbosefilepointer);
         }
-        slopemid = RunSimulationRel(isabsolute, Nxtimestepsname, popsizename, delmutratename, chromsizename, chromnumname, mubname, Sbmidname, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sbmid, beneficialdistribution, randomnumbergeneratorforgamma);
+        slopemid = RunSimulationRel(isabsolute, Nxtimestepsname, popsizename, delmutratename, chromsizename, chromnumname, mubname, Sbmidname, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sbmid, beneficialdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer);
         if (VERBOSE == 1) {
             fprintf(verbosefilepointer, "Finished run with sb %.6f, resulting in a slope of %.6f\n", Sbmid, slopemid);
             fflush(verbosefilepointer);

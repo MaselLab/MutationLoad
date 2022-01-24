@@ -9,14 +9,5 @@
 #define LSB(i) ((i) & -(i)) //isolates least significant single bit for fenwick tree
 #define PI 3.141592654
 
-//bug checking files
-FILE	*verbosefilepointer;
-FILE	*veryverbosefilepointer;
-FILE	*miscfilepointer;
-//simulation data files
-FILE	*rawdatafilepointer;
-FILE    *summarydatafilepointer;
-FILE    *finaldatafilepointer;
-
 #endif // GLOBAL_VARS_H_INCLUDED
 
