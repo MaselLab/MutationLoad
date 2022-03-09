@@ -251,9 +251,9 @@ bool monteCarloStep(int popsize, double *pCurrentTime, double sumOfDeathRates, i
     //rate of births is calculated using equation used in lab write up
     birthRate = rateOfBirthsCalc(popsize, maxPopSize, b_0);
 
-    mean = ((1.0)/(deathRate + birthRate));
+    mean = (deathRate + birthRate);
     
-    time = ExponentialDerivate(mean);//draws a random number from a exponential distribution with an specified mean. This occurs because a even t is most likely to occur right after a previous event.
+    time = mean;//draws a random number from a exponential distribution with an specified mean. This occurs because a even t is most likely to occur right after a previous event.
 
     *pCurrentTime += time;
 
@@ -278,7 +278,7 @@ bool discoverEvent(double deathRate, double birthRate) {
 
     randomNumber = ldexp(pcg32_random(), -32);
 
-    //if lands on the cutoff point death occurs, techincally skewing towards death but is very minor.
+    //if lands on the cutoff point death occurs, technically skewing towards death but is very minor.
     cutOffPoint = deathRate/(deathRate + birthRate);
 
     if (randomNumber > cutOffPoint)
