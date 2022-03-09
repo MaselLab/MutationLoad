@@ -16,7 +16,7 @@
 #include "sharedfunc_flag.h"
 #include "main.h"
 
-double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, char* delmutratename, char* chromsizename, char* chromnumname, char* mubname, char* Sbname, int typeofrun, int maxTime, int initialPopSize, int maxPopSize, double d_0, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, gsl_rng* randomnumbergeneratorforgamma, FILE *miscfilepointer, FILE *veryverbosefilepointer)
+double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, char* delmutratename, char* chromsizename, char* chromnumname, char* mubname, char* Sbname, int typeofrun, int maxTime, int initialPopSize, int maxPopSize, double d_0, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, gsl_rng* randomnumbergeneratorforgamma, double r, double sdmin, FILE *miscfilepointer, FILE *veryverbosefilepointer)
 {
 
     if(!isabsolute){
@@ -29,7 +29,7 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
     
     int i, j, k, w;
 
-    char* rawdatafilename = (char*)malloc(sizeof(char) * 200);//editied slightly if everything blows up definitly this (11/25/2019)
+    char* rawdatafilename = (char*)malloc(sizeof(char) * 200);//edited slightly if everything blows up definitely this (11/25/2019)
     strcpy(rawdatafilename, "rawdatafor"); //starting the string that will be the name of the data file.
 
     strcat(rawdatafilename, "maxTime"); //for adding values of generations to the data name.
@@ -171,7 +171,7 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
         
         birthhappens = monteCarloStep(popsize, pCurrentTau, sumofdeathrates, maxPopSize, b_0);//This is the monte carlo step. This decides if a birth or a death event takes place by returning a 0 or 1
         
-        PerformOneEventAbs(isabsolute, birthhappens, maxPopSize, pPopSize, wholepopulationgenomes, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationisfree, wholepopulationindex, psumofdeathrates, d_0, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, parent2gamete, randomnumbergeneratorforgamma, miscfilepointer);
+        PerformOneEventAbs(isabsolute, birthhappens, maxPopSize, pPopSize, wholepopulationgenomes, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationisfree, wholepopulationindex, psumofdeathrates, d_0, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, parent2gamete, randomnumbergeneratorforgamma, r, sdmin miscfilepointer);
         
         if(tau > printtime){
             birthrate = rateOfBirthsCalc(popsize, maxPopSize, b_0);
@@ -291,7 +291,7 @@ bool discoverEvent(double deathRate, double birthRate) {
 }
 
 
-bool PerformOneEventAbs(bool isabsolute, bool birthhappens, int maxPopSize, int *pPopSize, double *wholepopulationgenomes, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, bool *wholepopulationisfree, int *wholepopulationindex, long double *psumofdeathrates, double d_0, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution,  double* parent1gamete, double* parent2gamete, gsl_rng* randomnumbergeneratorforgamma, FILE *miscfilepointer)
+bool PerformOneEventAbs(bool isabsolute, bool birthhappens, int maxPopSize, int *pPopSize, double *wholepopulationgenomes, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, bool *wholepopulationisfree, int *wholepopulationindex, long double *psumofdeathrates, double d_0, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution,  double* parent1gamete, double* parent2gamete, double r, double sdmin, gsl_rng* randomnumbergeneratorforgamma, FILE *miscfilepointer)
 {
     if(isabsolute == 0){
         fprintf(miscfilepointer, "\n Trying to use PerformOneEventAbs within a non absolute fitness simulation. \n");
@@ -342,7 +342,7 @@ bool PerformOneEventAbs(bool isabsolute, bool birthhappens, int maxPopSize, int 
         if(!nolethalmut)
             return false;
         
-        PerformBirth(isabsolute, parent1gamete, parent2gamete, maxPopSize, pPopSize, victim, wholepopulationgenomes, totalindividualgenomelength, wholepopulationselectiontree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofloads, psumofdeathrates, d_0, miscfilepointer);
+        PerformBirth(isabsolute, parent1gamete, parent2gamete, maxPopSize, pPopSize, victim, wholepopulationgenomes, totalindividualgenomelength, wholepopulationselectiontree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofloads, psumofdeathrates, d_0, r, sdmin, miscfilepointer);
     }
     
     
@@ -461,16 +461,16 @@ void indexArrayFlipDeath(int *wholepopulationindex, int placeinindex, int popsiz
     wholepopulationindex[(popsize-1)] = indexvictim;
 }
 
-double CalculateDeathRate(double *parent1gamete, double *parent2gamete, int totalindividualgenomelength, double d_0)
+double CalculateDeathRate(double *parent1gamete, double *parent2gamete, int totalindividualgenomelength, double d_0, double r, double sdmin)
 {
-    double newdeathrate = 0.0;
-    long double currentlinkageblocksload = 0.0;
+    double inddeathrate = 0.0;
+    double currentlinkageblocksload = 0.0;
     int i;
 
     for (i = 0; i < (totalindividualgenomelength/2); i++) {
         currentlinkageblocksload -= parent1gamete[i];
         currentlinkageblocksload -= parent2gamete[i];
     }
-    newdeathrate = d_0 + currentlinkageblocksload;
-    return newdeathrate;
+    inddeathrate = d_0 + sdmin * (1 - pow(r, -currentlinkageblocksload))/log(r);
+    return inddeathrate;
 }

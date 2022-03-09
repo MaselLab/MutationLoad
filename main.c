@@ -25,41 +25,39 @@
 
 int main(int argc, char *argv[]) {
 
-    if (argc != 15) {
-        printf("[Error]; Wrong number of arguments in program. It should be timeSteps, initialPopsize, genome-wide deleterious mutation rate, chromosomesize, numberofchromosomes, beneficial/deleterious mutation ratio, Sb, beneficialdistribution, typeofrun, slope, seed, MaxPopSize, relative or absolute, d_0 \n");
+    if (argc != 17) {
+        printf("[Error]; Wrong number of arguments in program. It should be timeSteps, initialPopsize, genome-wide deleterious mutation rate, chromosomesize, numberofchromosomes, beneficial/deleterious mutation ratio, Sb, beneficialdistribution, typeofrun, slope, seed, MaxPopSize, relative or absolute, d_0, epistasis r, sdmin \n");
         return -1;
     }
-
+    //declare the file pointers for the files used for printing across the program
     FILE *miscfilepointer;
     FILE *verbosefilepointer;
     FILE *finaldatafilepointer;
     FILE *veryverbosefilepointer;
-
+    //number of time steps which crudely translate to generations. So far, 1000 is the value used
     int Nxtimesteps = atoi(argv[1]);
-
+    //initial population size
     int popsize = atoi(argv[2]);
-
-    double numberofdelmut = atof(argv[3]); //remember that this is the genome-wide mutation rate.
-    
+    //deleterious mutation rate; remember that this is the genome-wide mutation rate
+    double deleteriousmutationrate = atof(argv[3]);
+    printf("%f \n", deleteriousmutationrate);
+    //size of a single chromosome, i.e. number of blocks within a single chromosome. so far, we use 50 blocks
     int chromosomesize = atoi(argv[4]);
-
-    int numberofchromosomes = atoi(argv[5]); //remember that this is total number of chromosomes, not ploidy -- all individuals will be diploid.
-
-    double bentodel = atof(argv[6]); //remember that this is the beneficial/deleterious mutation ratio.
+    //number of chromosomes; remember that this is total number of chromosomes, not ploidy -- all individuals will be diploid; to mimic a human genome, we use 23 chromosomes
+    int numberofchromosomes = atoi(argv[5]); //
+    //given that we don't have an exact idea what the beneficial mutation rate is in humans, we use instead a beneficial/deleterious mutation ratio.
+    double bentodel = atof(argv[6]);
     
+    char *delmutname = (char *) malloc(30);//create a pointer for the deleterious mutation rate
+    sprintf(delmutname, "%Lf", deleteriousmutationrate);
+    //calculate the beneficial mutation rate from the inputted ratio
+    double beneficialmutationrate = bentodel*deleteriousmutationrate;
+    printf("%f \n", beneficialmutationrate);
+    
+    char *benmutname = (char *) malloc(30);//create a pointer for the beneficial mutation rate
+    sprintf(benmutname, "%Lf", beneficialmutationrate);
     //I have two parameters for Sb for the type of run that needs to have bracketed values of Sb.
     //In the case with just a single simulation being run, Sb2 here will be the value of Sb used.
-    
-    double deleteriousmutationrate = numberofdelmut/(2*numberofchromosomes*chromosomesize); //remember that this is the per-locus deleterious mutation rate, not the genome-wide mutation rate.
-    printf("%f \n", deleteriousmutationrate);
-    
-    char *delmutname = (char *) malloc(30);
-    sprintf(delmutname, "%f", deleteriousmutationrate);
-    
-    double beneficialmutationrate = bentodel*deleteriousmutationrate;
-    char *benmutname = (char *) malloc(30);
-    sprintf(benmutname, "%f", beneficialmutationrate);
-    
     double Sb2 = atof(argv[7]);
     double *pSb2 = &Sb2;
     
@@ -70,28 +68,29 @@ int main(int argc, char *argv[]) {
     int beneficialdistribution = atoi(argv[8]);
     char *bendistname = (char *) malloc(30);
     if(beneficialdistribution == 0)
-        strcpy(bendistname, "point");
+        strncpy(bendistname, "point", sizeof("point"));
     else if(beneficialdistribution == 1)
-        strcpy(bendistname, "exponential");
+        strncpy(bendistname, "exponential", sizeof("exponential"));
     else if(beneficialdistribution == 2)
-        strcpy(bendistname, "uniform");
+        strncpy(bendistname, "uniform", sizeof("uniform"));
     else
-        strcpy(bendistname, "NA");
+        strncpy(bendistname, "NA", sizeof("NA"));
     
     //0 is root; 1 is single
     int typeofrun = atoi(argv[9]);
     char *typeofrunname = (char *) malloc(30);
     if(typeofrun == 0)
-        strcpy(typeofrunname, "root");
+        strncpy(typeofrunname, "root", sizeof("root"));
     else if(typeofrun == 1)
-        strcpy(typeofrunname, "single");
+        strncpy(typeofrunname, "single", sizeof("single"));
     else
-        strcpy(typeofrunname, "NA");
+        strncpy(typeofrunname, "NA", sizeof("NA"));
     
+    //the slope for the contour line; so far it is used in the relative scheme
     double slopeforcontourline = atof(argv[10]);
-    
+    // the see for the random number generators used in this program *don't forget to be consistent with the seed*
     int randomnumberseed = atoi(argv[11]);
-    
+    //the maximum population size K or carrying capacity. so far, we used 20000 as a value for K.
     int maxPopSize = atoi(argv[12]);
     if(maxPopSize < popsize){
         printf("[Error]maxPopSize is smaller than initial popsize \n");
@@ -104,59 +103,47 @@ int main(int argc, char *argv[]) {
     char *isabsolutename = (char *) malloc(30);
     if(relorabs == 0){
         isabsolute = false;
-        strcpy(isabsolutename, "relative");
+        strncpy(isabsolutename, "relative", sizeof("relative"));
     }
     else if(relorabs == 1){
         isabsolute = true;
-        strcpy(isabsolutename, "absolute");
+        strncpy(isabsolutename, "absolute", sizeof("absolute"));
     }
     else{
         printf("[Error] 12th argument must be 0 or 1 \n");
         return -1;
     }
-    
+    //the initial death rate; so far, we test with two values: 0.5 and 0.2
     double d_0 = atof(argv[14]);
+    if (d_0 >= 1 || d_0 <= 0){
+        printf("[Error] initial death rate d0 should vary between 0 and 1");
+        return -1;
+    }   
+    //the epistasis variable R; R varies between 0 and 1, 1 representing no epistasis and 0 is full epistasis
+    double r = atof(argv[15]);
+    if (r < 0 || r > 1){
+        printf("[Error] epistasis degree variable R must be between 0 and 1");
+        return -1;
+    } 
+    //the selection coefficient of a beneficial mutation at minimum death rate (i.e. max birth rate). so far we use the arbitrary value 0.01 
+    double sdmin = atof(argv[16]);
     
     pcg32_srandom(randomnumberseed, randomnumberseed); // seeds the random number generator.
     gsl_rng * randomnumbergeneratorforgamma = gsl_rng_alloc(gsl_rng_mt19937);
     //the gamma distribution function requires a gsl random number generator, which is set here.
     //it's a bit inelegant to have two different RNGs, which could be solved by using a different algorithm 
     //for choosing variates from a gamma distribution, instead of using the free one from gsl.
-
-    char * directoryname = (char *) malloc(200);
-    strcpy(directoryname, "datafor");
-    strcat(directoryname, isabsolutename);
-    strcat(directoryname, bendistname);
-    strcat(directoryname, "mub");
-    strcat(directoryname, benmutname);
-    strcat(directoryname, "chromosomes");
-    strcat(directoryname, argv[5]);
-    strcat(directoryname, "popsize");
-    strcat(directoryname, argv[2]);
-    strcat(directoryname, "mud");
-    strcat(directoryname, delmutname);
-    strcat(directoryname, "d0");
-    strcat(directoryname, argv[14]);
-    strcat(directoryname, "seed");
-    strcat(directoryname, argv[11]);
-    int check1, check2;
-    check1 = mkdir(directoryname, 0777);
-    check2 = chdir(directoryname);
+    
+    char * directoryname = MakeDirectoryName(isabsolutename, bendistname, benmutname, argv[5], argv[2], delmutname, argv[14], argv[11]);// this will create the directory name pointer using input parameter values
+    
+    mkdir(directoryname, 0777);//create the directory with the directory name pointer
+    chdir(directoryname);//move into the created directory
     
     verbosefilepointer = fopen("verbose.txt", "w");	//opens the file to which to print verbose data.
     veryverbosefilepointer = fopen("veryverbose.txt", "w"); //opens the file to which to print very verbose data.
     miscfilepointer = fopen("miscellaneous.txt", "w"); //opens the file to which to print miscellaneous data.
     
-    char * finaldatafilename = (char *) malloc(60);
-    strcpy(finaldatafilename, "finaldatafor");
-    strcat(finaldatafilename, "runtype");
-    strcat(finaldatafilename, typeofrunname);
-    strcat(finaldatafilename, "mub");
-    strcat(finaldatafilename, benmutname);
-    strcat(finaldatafilename, "slope");
-    strcat(finaldatafilename, argv[10]);
-    strcat(finaldatafilename, "seed");
-    strcat(finaldatafilename, argv[11]);
+    char * finaldatafilename = MakeFinalDataFileName(typeofrunname, benmutname, argv[10], argv[11]);//create the final data file name using the input parameter values
     finaldatafilepointer = fopen(finaldatafilename, "w");
    
     if (typeofrun == 0) {
@@ -184,7 +171,7 @@ int main(int argc, char *argv[]) {
         }
         
         else{
-            RunSimulationAbs(isabsolute, argv[1], argv[2], delmutname, argv[4], argv[5], benmutname, argv[7], typeofrun, Nxtimesteps, popsize, maxPopSize, d_0, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer);
+            RunSimulationAbs(isabsolute, argv[1], argv[2], delmutname, argv[4], argv[5], benmutname, argv[7], typeofrun, Nxtimesteps, popsize, maxPopSize, d_0, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, randomnumbergeneratorforgamma, r, sdmin, miscfilepointer, veryverbosefilepointer);
         }
         
     } else{
@@ -461,7 +448,6 @@ void RecombineChromosomesIntoGamete(int persontorecombine, int chromosomesize, i
 
 bool ProduceMutatedGamete(bool isabsolute, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double *gamete, gsl_rng * randomnumbergeneratorforgamma, FILE *miscfilepointer)
 {
-    
     int k, numberofbeneficialmutations, numberofdeleteriousmutations;
     double generatedSb;
     double Sds[30];
@@ -495,32 +481,45 @@ bool ProduceMutatedGamete(bool isabsolute, int chromosomesize, int numberofchrom
     }
     
     //Adds the specified number of deleterious mutations to the gamete, recording the sites of each mutation for tree sequence recording.
+    //Mutation effect sign depends on fitness scheme, for absolute fitness the sign of the deleterious mutation effect is positive while for relative fitness the sign is negative
     for (k = 0; k < numberofdeleteriousmutations; k++) {
-        MutateGamete(isabsolute, chromosomesize, numberofchromosomes, gamete, -Sds[k]);
+        if (isabsolute)
+            MutateGamete(isabsolute, chromosomesize, numberofchromosomes, gamete, Sds[k]);
+        else
+            MutateGamete(isabsolute, chromosomesize, numberofchromosomes, gamete, -Sds[k]);
     }
     
     //Following lines stochastically generate a number of beneficial mutations drawn from a Poisson distribution with mean determined by the beneficial mutation rate.
     numberofbeneficialmutations = DetermineNumberOfMutations(chromosomesize, numberofchromosomes, beneficialmutationrate);
-    
     //Adds the specified number of beneficial mutations, drawing Sb values from the specified distribution.
     //Sites of each mutation are added to the mutationsites array for tree sequence recording.
+    ////Mutation effect sign depends on fitness scheme, for absolute fitness the sign of the beneficial mutation effect is negative while for relative fitness the sign is positive
     //point distribution
     if (beneficialdistribution == 0) {
         for (k = 0; k < numberofbeneficialmutations; k++) {
-            MutateGamete(isabsolute, chromosomesize, numberofchromosomes, gamete, Sb);
+            if (isabsolute)
+                MutateGamete(isabsolute, chromosomesize, numberofchromosomes, gamete, -Sb);
+            else
+                MutateGamete(isabsolute, chromosomesize, numberofchromosomes, gamete, Sb); 
         }
     //exponential distribution
     } else if (beneficialdistribution == 1) {
         for (k = 0; k < numberofbeneficialmutations; k++) {
             generatedSb = gsl_ran_exponential(randomnumbergeneratorforgamma, Sb);
-            MutateGamete(isabsolute, chromosomesize, numberofchromosomes, gamete, generatedSb);
+            if (isabsolute)
+                MutateGamete(isabsolute, chromosomesize, numberofchromosomes, gamete, -generatedSb);
+            else
+                MutateGamete(isabsolute, chromosomesize, numberofchromosomes, gamete, generatedSb);
         }
     //uniform distribution
     } else if (beneficialdistribution == 2) {
         for (k = 0; k < numberofbeneficialmutations; k++) {
             double upperlimitforuniform = (2 * Sb);
             generatedSb = gsl_ran_flat(randomnumbergeneratorforgamma, 0, upperlimitforuniform);
-            MutateGamete(isabsolute, chromosomesize, numberofchromosomes, gamete, generatedSb);
+            if (isabsolute)
+                MutateGamete(isabsolute, chromosomesize, numberofchromosomes, gamete, -generatedSb);
+            else
+                MutateGamete(isabsolute, chromosomesize, numberofchromosomes, gamete, generatedSb);
         }
     } else {
         fprintf(miscfilepointer, "Error: type of distribution for beneficial effect sizes not recognized.");
@@ -530,9 +529,9 @@ bool ProduceMutatedGamete(bool isabsolute, int chromosomesize, int numberofchrom
     return true;
 }
 
-int DetermineNumberOfMutations(int chromosomesize, int numberofchromosomes, float mutationrate)
-{
-    float meannumberofmutations = mutationrate * (float) chromosomesize * (float) numberofchromosomes;
+int DetermineNumberOfMutations(int chromosomesize, int numberofchromosomes, double mutationrate)
+{      
+    double meannumberofmutations = mutationrate/2.0;
     
     //Note that because this function operates on gametes, the calculation above appears haploid.
     //There shouldn't be a multiplication by 2 (for diploidy) in this function, since it will be called twice per individual: once per gamete.
@@ -664,4 +663,43 @@ double BisectionMethodToFindSbWithZeroSlope(bool isabsolute, double * Sb1, doubl
     fprintf(finaldatafilepointer, "Error: root not found. Root after 30 tries was: %.10f", root);
     return 0.0;
     
+}
+char * MakeDirectoryName(char * isabsolute, char * bendist, char * benmut, char * numberofchromosomes, char * popsize, char * delmut, char * d_0, char * randomnumberseed) 
+{
+	
+	char * directoryname = (char *) malloc(200);
+	strcpy(directoryname, "datafor_");
+	strcat(directoryname, isabsolute);
+	strcat(directoryname, bendist);
+	strcat(directoryname, "mub_");
+	strcat(directoryname, benmut);
+	strcat(directoryname, "chromosomes_");
+	strcat(directoryname, numberofchromosomes);
+	strcat(directoryname, "popsize_");
+	strcat(directoryname, popsize);
+	strcat(directoryname, "mud_");
+	strcat(directoryname, delmut);
+	strcat(directoryname, "d0_");
+	strcat(directoryname, d_0);
+	strcat(directoryname, "seed_");
+	strcat(directoryname, randomnumberseed);
+	
+	return directoryname;
+}
+
+char * MakeFinalDataFileName(char * typeofrun, char * benmut, char * slopeforcontourline, char * randomnumberseed) 
+{
+	
+    char * finaldatafilename = (char *) malloc(60);
+    strcpy(finaldatafilename, "finaldatafor_");
+    strcat(finaldatafilename, "runtype_");
+    strcat(finaldatafilename, typeofrun);
+    strcat(finaldatafilename, "mub_");
+    strcat(finaldatafilename, benmut);
+    strcat(finaldatafilename, "slope_");
+    strcat(finaldatafilename, slopeforcontourline);
+    strcat(finaldatafilename, "seed_");
+    strcat(finaldatafilename, randomnumberseed);
+    
+    return finaldatafilename;
 }

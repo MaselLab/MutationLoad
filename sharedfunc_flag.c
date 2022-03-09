@@ -19,14 +19,10 @@
 
 void MutateGamete(bool isabsolute, int chromosomesize, int numberofchromosomes, double *gamete, double mutationeffectsize)
 {
-    //this c must be changed after we figure out its value
-    //double c = 2;
-    
     int randomchromosometomutate = pcg32_boundedrand(numberofchromosomes); //if we decide to include heterogenous rates of recombination/mutation, both of these will need to be replaced by a function that weights each linkage block's probability of mutating.
     int randomblocktomutate = pcg32_boundedrand(chromosomesize);
     int mutatedsite = randomchromosometomutate*chromosomesize + randomblocktomutate;
     if(isabsolute)
-        //check if it can work with log and ln or is it just for ln
         gamete[mutatedsite] += (mutationeffectsize);
     else
         gamete[mutatedsite] += log(1 + mutationeffectsize);
@@ -63,13 +59,13 @@ double PerformDeath(bool isabsolute, int maxPopSize, int *pPopSize, int victim, 
     Fen_set(wholepopulationselectiontree, maxPopSize, 0.0, victim);
 }
 
-void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete, int maxPopSize, int *pPopSize, int birthplace, double *wholepopulationgenomes, int totalindividualgenomelength, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates, double d_0, FILE *miscfilepointer)
+void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete, int maxPopSize, int *pPopSize, int birthplace, double *wholepopulationgenomes, int totalindividualgenomelength, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates, double d_0, double r, double sdmin, FILE *miscfilepointer)
 {
     int i;
     
     long double newwi;
     
-    long double newdeathrate;
+    long double inddeathrate;
     
 //     printf("%Lf %Lf \n", newwi, newInverse);
     
@@ -88,10 +84,10 @@ void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete,
             exit(0);
         }
         
-        newdeathrate = CalculateDeathRate(parent1gamete, parent2gamete, totalindividualgenomelength, d_0);
+        inddeathrate = CalculateDeathRate(parent1gamete, parent2gamete, totalindividualgenomelength, d_0, r, sdmin);
         
-        if(newdeathrate <= 0.0){
-            fprintf(miscfilepointer, "\n The death rate of a new born is less than 0.0 (he is even more than immortal). \n");
+        if(inddeathrate < 0.0){
+            fprintf(miscfilepointer, "\n The individual death rate of a new born is less than 0.0 (he is even more than immortal). \n");
             exit(0);
         }
     }
@@ -105,11 +101,11 @@ void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete,
     }
         
     if(isabsolute){
-        Fen_set(wholepopulationselectiontree, maxPopSize, newdeathrate, birthplace);
-        wholepopulationdeathratesarray[birthplace] = newdeathrate;
+        Fen_set(wholepopulationselectiontree, maxPopSize, inddeathrate, birthplace);
+        wholepopulationdeathratesarray[birthplace] = inddeathrate;
         wholepopulationisfree[birthplace] = false;
         
-        *psumofdeathrates += newdeathrate;
+        *psumofdeathrates += inddeathrate;
                 
         *pPopSize += 1;
     }
