@@ -140,8 +140,8 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
     double variancesum;
     
     bool birthhappens;
-    double tau = 0;
-    double *pCurrentTau = &tau;
+    double t = 0;
+    double *pCurrenttime = &t;
     
     double parent1gamete[numberofchromosomes*chromosomesize], parent2gamete[numberofchromosomes*chromosomesize];
     
@@ -156,7 +156,7 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
     
     //BEGIN THE SIMULATION FOR LOOP
     
-    while (tau < maxTime) {
+    while (t < maxTime) {
         
         if(popsize < 3){
         		fprintf(summarydatafilepointer, "Population died during run at time %f", tau);
@@ -169,13 +169,13 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
                 break;
         }
         
-        birthhappens = monteCarloStep(popsize, pCurrentTau, sumofdeathrates, maxPopSize, b_0);//This is the monte carlo step. This decides if a birth or a death event takes place by returning a 0 or 1
+        birthhappens = monteCarloStep(popsize, pCurrenttime, sumofdeathrates, maxPopSize, b_0);//This is the monte carlo step. This decides if a birth or a death event takes place by returning a 0 or 1
         
         PerformOneEventAbs(isabsolute, birthhappens, maxPopSize, pPopSize, wholepopulationgenomes, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationisfree, wholepopulationindex, psumofdeathrates, d_0, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, parent2gamete, randomnumbergeneratorforgamma, r, sdmin miscfilepointer);
         
-        if(tau > printtime){
+        if(t > printtime){
             birthrate = rateOfBirthsCalc(popsize, maxPopSize, b_0);
-            fprintf(rawdatafilepointer, "%f\t%i\t%Lf\t%f\n", tau, popsize, (sumofdeathrates/(double)popsize), (birthrate/(double)popsize));
+            fprintf(rawdatafilepointer, "%f\t%i\t%Lf\t%f\n", t, popsize, (sumofdeathrates/(double)popsize), (birthrate/(double)popsize));
             printtime += printeach;
         }
             
@@ -211,7 +211,7 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
     
     if (VERYVERBOSE == 1) {
         fprintf(veryverbosefilepointer, "Finished simulation with mean sb %f \n", Sb);
-        fprintf(veryverbosefilepointer, "Time elapsed: %f\n", tau);
+        fprintf(veryverbosefilepointer, "Time elapsed: %f\n", t);
         fprintf(veryverbosefilepointer, "Final population size was: %d\n", popsize);
     }
     
@@ -243,19 +243,16 @@ bool monteCarloStep(int popsize, double *pCurrentTime, double sumOfDeathRates, i
 
     double deathRate;
     double birthRate;
-    double time;
-    double mean;
+    double timestep;
 
     deathRate = sumOfDeathRates;
 
     //rate of births is calculated using equation used in lab write up
     birthRate = rateOfBirthsCalc(popsize, maxPopSize, b_0);
-
-    mean = (deathRate + birthRate);
     
-    time = mean;//draws a random number from a exponential distribution with an specified mean. This occurs because a even t is most likely to occur right after a previous event.
+    timestep = 1/(deathRate + birthRate);//To make time steps dynamical, we directly use the inverse of the sum of the rates as value for a time step.
 
-    *pCurrentTime += time;
+    *pCurrentTime += timestep;
 
     //This is the actual monte carlo step
     return discoverEvent(deathRate, birthRate);
@@ -468,8 +465,8 @@ double CalculateDeathRate(double *parent1gamete, double *parent2gamete, int tota
     int i;
 
     for (i = 0; i < (totalindividualgenomelength/2); i++) {
-        currentlinkageblocksload -= parent1gamete[i];
-        currentlinkageblocksload -= parent2gamete[i];
+        currentlinkageblocksload += parent1gamete[i];
+        currentlinkageblocksload += parent2gamete[i];
     }
     inddeathrate = d_0 + sdmin * (1 - pow(r, -currentlinkageblocksload))/log(r);
     return inddeathrate;
