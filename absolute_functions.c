@@ -159,19 +159,19 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
     while (t < maxTime) {
         
         if(popsize < 3){
-        		fprintf(summarydatafilepointer, "Population died during run at time %f", tau);
+        		fprintf(summarydatafilepointer, "Population died during run at time %f", t);
                 break;
         }
         
         if(popsize >= (maxPopSize-1)){
-        		fprintf(summarydatafilepointer, "Population achieved its maximum population size  at time %f", tau);
+        		fprintf(summarydatafilepointer, "Population achieved its maximum population size  at time %f", t);
 //                 printf("entro \n");
                 break;
         }
         
         birthhappens = monteCarloStep(popsize, pCurrenttime, sumofdeathrates, maxPopSize, b_0);//This is the monte carlo step. This decides if a birth or a death event takes place by returning a 0 or 1
         
-        PerformOneEventAbs(isabsolute, birthhappens, maxPopSize, pPopSize, wholepopulationgenomes, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationisfree, wholepopulationindex, psumofdeathrates, d_0, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, parent2gamete, randomnumbergeneratorforgamma, r, sdmin miscfilepointer);
+        PerformOneEventAbs(isabsolute, birthhappens, maxPopSize, pPopSize, wholepopulationgenomes, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationisfree, wholepopulationindex, psumofdeathrates, d_0, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, parent2gamete, randomnumbergeneratorforgamma, r, sdmin, miscfilepointer);
         
         if(t > printtime){
             birthrate = rateOfBirthsCalc(popsize, maxPopSize, b_0);
