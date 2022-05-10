@@ -302,6 +302,8 @@ void PerformOneTimeStepRel(int popsize, long double *wholepopulationwistree, lon
     bool isabsolute = 0;
     
     int currentparent1, currentparent2, currentvictim;
+    double r = 0.0;
+    double sdmin = 0.0;
 
     currentvictim = ChooseVictim(popsize);
     currentparent1 = ChooseParentWithTree(wholepopulationwistree, popsize, *psumofwis, miscfilepointer);
@@ -327,7 +329,7 @@ void PerformOneTimeStepRel(int popsize, long double *wholepopulationwistree, lon
     
     PerformDeath(isabsolute, popsize, pPopSize, currentvictim, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, miscfilepointer);
     
-    PerformBirth(isabsolute, parent1gamete, parent2gamete, popsize, pPopSize, currentvictim, wholepopulationgenomes, totalindividualgenomelength, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, d_0, miscfilepointer);
+    PerformBirth(isabsolute, parent1gamete, parent2gamete, popsize, pPopSize, currentvictim, wholepopulationgenomes, totalindividualgenomelength, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, d_0, r, sdmin, miscfilepointer);
     
 }
 

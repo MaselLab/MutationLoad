@@ -1,23 +1,48 @@
 nohup: ignoring input
-gcc -I/home/wmawass/gsl/include -O3 -frounding-math -c absolute_functions.c
-gcc -L/home/wmawass/gsl/lib -O3 -frounding-math dependencies/pcg_basic.o main.o sharedfunc_flag.o relative_functions.o absolute_functions.o -lm -lgsl -lgslcblas -o mutationload
-2.000000 
-0.002000 
-2.000000 
-0.002000 
-2.000000 
-0.002000 
-2.000000 
-0.002000 
-2.000000 
-0.002000 
-2.000000 
-0.002000 
-2.000000 
-0.002000 
-2.000000 
-0.002000 
-2.000000 
-0.002000 
-2.000000 
-0.002000 
+gcc -I/home/wmawass/gsl/include -O3 -frounding-math -c main.c
+gcc -I/home/wmawass/gsl/include -O3 -frounding-math -c dependencies/pcg_basic.c
+gcc -I/home/wmawass/gsl/include -O3 -frounding-math -c sharedfunc_flag.c
+gcc -I/home/wmawass/gsl/include -O3 -frounding-math -c relative_functions.c
+relative_functions.c: In function ‘PerformOneTimeStepRel’:
+relative_functions.c:330:5: warning: passing argument 12 of ‘PerformDeath’ from incompatible pointer type [enabled by default]
+     PerformDeath(isabsolute, popsize, pPopSize, currentvictim, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, miscfilepointer);
+     ^
+In file included from relative_functions.h:18:0,
+                 from relative_functions.c:15:
+sharedfunc_flag.h:24:8: note: expected ‘long double *’ but argument is of type ‘struct FILE *’
+ double PerformDeath(bool isabsolute, int maxPopSize, int *pPopSize, int victim, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates, long double *psumofdeathratessquared, FILE *miscfilepointer);
+        ^
+relative_functions.c:330:5: error: too few arguments to function ‘PerformDeath’
+     PerformDeath(isabsolute, popsize, pPopSize, currentvictim, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, miscfilepointer);
+     ^
+In file included from relative_functions.h:18:0,
+                 from relative_functions.c:15:
+sharedfunc_flag.h:24:8: note: declared here
+ double PerformDeath(bool isabsolute, int maxPopSize, int *pPopSize, int victim, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates, long double *psumofdeathratessquared, FILE *miscfilepointer);
+        ^
+relative_functions.c:332:5: error: incompatible type for argument 16 of ‘PerformBirth’
+     PerformBirth(isabsolute, parent1gamete, parent2gamete, popsize, pPopSize, currentvictim, wholepopulationgenomes, totalindividualgenomelength, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, d_0, r, sdmin, miscfilepointer);
+     ^
+In file included from relative_functions.h:18:0,
+                 from relative_functions.c:15:
+sharedfunc_flag.h:26:6: note: expected ‘long double *’ but argument is of type ‘double’
+ void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete, int maxPopSize, int *pPopSize, int birthplace, double *wholepopulationgenomes, int totalindividualgenomelength, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates, long double *psumofdeathratessquared, double d_0, double r, double sdmin, FILE *miscfilepointer);
+      ^
+relative_functions.c:332:5: error: incompatible type for argument 19 of ‘PerformBirth’
+     PerformBirth(isabsolute, parent1gamete, parent2gamete, popsize, pPopSize, currentvictim, wholepopulationgenomes, totalindividualgenomelength, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, d_0, r, sdmin, miscfilepointer);
+     ^
+In file included from relative_functions.h:18:0,
+                 from relative_functions.c:15:
+sharedfunc_flag.h:26:6: note: expected ‘double’ but argument is of type ‘struct FILE *’
+ void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete, int maxPopSize, int *pPopSize, int birthplace, double *wholepopulationgenomes, int totalindividualgenomelength, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates, long double *psumofdeathratessquared, double d_0, double r, double sdmin, FILE *miscfilepointer);
+      ^
+relative_functions.c:332:5: error: too few arguments to function ‘PerformBirth’
+     PerformBirth(isabsolute, parent1gamete, parent2gamete, popsize, pPopSize, currentvictim, wholepopulationgenomes, totalindividualgenomelength, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, d_0, r, sdmin, miscfilepointer);
+     ^
+In file included from relative_functions.h:18:0,
+                 from relative_functions.c:15:
+sharedfunc_flag.h:26:6: note: declared here
+ void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete, int maxPopSize, int *pPopSize, int birthplace, double *wholepopulationgenomes, int totalindividualgenomelength, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates, long double *psumofdeathratessquared, double d_0, double r, double sdmin, FILE *miscfilepointer);
+      ^
+make: *** [relative_functions.o] Error 1
+./bash.sh: line 9: 27832 Terminated              ./mutationload 100000 10000 2 50 23 0.001 0.010 1 1 0 24 20000 1 0.5 0.8 0.01

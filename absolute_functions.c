@@ -56,7 +56,7 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
     strcat(rawdatafilename, ".txt");
 
     rawdatafilepointer = fopen(rawdatafilename, "w"); //opens the file to which to print data to be plotted.
-    fprintf(rawdatafilepointer, "Time\tPop size\tMean_death_rate\tMean_birth_rate\n");
+    fprintf(rawdatafilepointer, "Time\tPop_size\tMean_death_rate\tVariance_death_rate\tMean_birth_rate\n");
 
     char* summarydatafilename = (char*)malloc(100);
     strcpy(summarydatafilename, "summarydatafor");
@@ -77,7 +77,11 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
     totalindividualgenomelength = numberofchromosomes * 2 * chromosomesize;
     wholepopulationgenomes = malloc(sizeof(double) * totalpopulationgenomelength);
     long double sumofdeathrates;
-    long double *psumofdeathrates = &sumofdeathrates;
+    long double sumofdeathratessquared;
+    long double *psumofdeathrates;
+    psumofdeathrates = &sumofdeathrates;
+    long double *psumofdeathratessquared;
+    psumofdeathratessquared = &sumofdeathratessquared;
     long double *wholepopulationselectiontree;
     wholepopulationselectiontree = malloc(sizeof(long double) * maxPopSize);
        
@@ -105,7 +109,7 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
     double const b_0 = 1.0;
     
     //assignment of data to popArray for index, wis, and deathrate
-    InitializePopulationAbs(wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, initialPopSize, maxPopSize, wholepopulationgenomes, totalpopulationgenomelength, psumofdeathrates, d_0);//sets up all data within the population for a run. As this initializes data I think it should be a seperate funtion.
+    InitializePopulationAbs(wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, initialPopSize, maxPopSize, wholepopulationgenomes, totalpopulationgenomelength, psumofdeathrates, psumofdeathratessquared, d_0);//sets up all data within the population for a run. As this initializes data I think it should be a separate function.
 
     if (VERYVERBOSE == 1) {
         fprintf(veryverbosefilepointer, "Population initialized.\n");
@@ -140,12 +144,12 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
     double variancesum;
     
     bool birthhappens;
-    double t = 0;
+    double t = 0.0;
     double *pCurrenttime = &t;
     
     double parent1gamete[numberofchromosomes*chromosomesize], parent2gamete[numberofchromosomes*chromosomesize];
     
-    int printeach = 1;
+    int printeach = 10;
     int printtime = 0;
     double birthrate;
     
@@ -164,49 +168,22 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
         }
         
         if(popsize >= (maxPopSize-1)){
-        		fprintf(summarydatafilepointer, "Population achieved its maximum population size  at time %f", t);
+        		fprintf(summarydatafilepointer, "Population achieved its maximum population size at time %f", t);
 //                 printf("entro \n");
                 break;
         }
         
         birthhappens = monteCarloStep(popsize, pCurrenttime, sumofdeathrates, maxPopSize, b_0);//This is the monte carlo step. This decides if a birth or a death event takes place by returning a 0 or 1
         
-        PerformOneEventAbs(isabsolute, birthhappens, maxPopSize, pPopSize, wholepopulationgenomes, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationisfree, wholepopulationindex, psumofdeathrates, d_0, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, parent2gamete, randomnumbergeneratorforgamma, r, sdmin, miscfilepointer);
+        PerformOneEventAbs(isabsolute, birthhappens, maxPopSize, pPopSize, wholepopulationgenomes, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationisfree, wholepopulationindex, psumofdeathrates,psumofdeathratessquared, d_0, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, parent2gamete, randomnumbergeneratorforgamma, r, sdmin, miscfilepointer);
         
         if(t > printtime){
             birthrate = rateOfBirthsCalc(popsize, maxPopSize, b_0);
-            fprintf(rawdatafilepointer, "%f\t%i\t%Lf\t%f\n", t, popsize, (sumofdeathrates/(double)popsize), (birthrate/(double)popsize));
+            fprintf(rawdatafilepointer, "%f\t%d\t%Lf\t%Lf\t%f\n", t, popsize, (sumofdeathrates/(double)popsize), ((sumofdeathratessquared/(double)popsize) - (long double) pow((sumofdeathrates/(double)popsize),2)), (birthrate/(double)popsize));
+            fflush(rawdatafilepointer);
             printtime += printeach;
-        }
-            
-        
-//         if(*pCurrentTime < 0.1)
-//             Â¸
-//         printf("%d %d \n", birthhappens, popsize);
-//         
-//     for(i = 0; i < maxPopSize; i++)
-//         printf("%2d  ", (i+1));
-//     printf("\n");
-//     
-//     for(i = 0; i < maxPopSize; i++)
-//         printf("%2d  ", wholepopulationisfree[i]);
-//     printf("\n \n");
-//     
-//     
-//     for(i = 0; i < maxPopSize; i++)
-//         printf("%2d  ", wholepopulationindex[i]);
-//     printf("\n \n");
-        
-//         for(j = 0; j < maxPopSize; j++)
-//             printf("%d ", wholepopulationisfree[j]);
-//         printf("\n");
-         
-//          printf("%f\n", *pCurrentTime);
-        
-    }
-    
-//     printf("salio \n");
-    
+        }        
+    }  
     //END OF SIMULATION FOR LOOP
     
     if (VERYVERBOSE == 1) {
@@ -288,7 +265,7 @@ bool discoverEvent(double deathRate, double birthRate) {
 }
 
 
-bool PerformOneEventAbs(bool isabsolute, bool birthhappens, int maxPopSize, int *pPopSize, double *wholepopulationgenomes, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, bool *wholepopulationisfree, int *wholepopulationindex, long double *psumofdeathrates, double d_0, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution,  double* parent1gamete, double* parent2gamete, double r, double sdmin, gsl_rng* randomnumbergeneratorforgamma, FILE *miscfilepointer)
+bool PerformOneEventAbs(bool isabsolute, bool birthhappens, int maxPopSize, int *pPopSize, double *wholepopulationgenomes, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, bool *wholepopulationisfree, int *wholepopulationindex, long double *psumofdeathrates, long double *psumofdeathratessquared, double d_0, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution,  double* parent1gamete, double* parent2gamete, gsl_rng* randomnumbergeneratorforgamma, double r, double sdmin, FILE *miscfilepointer)
 {
     if(isabsolute == 0){
         fprintf(miscfilepointer, "\n Trying to use PerformOneEventAbs within a non absolute fitness simulation. \n");
@@ -339,7 +316,7 @@ bool PerformOneEventAbs(bool isabsolute, bool birthhappens, int maxPopSize, int 
         if(!nolethalmut)
             return false;
         
-        PerformBirth(isabsolute, parent1gamete, parent2gamete, maxPopSize, pPopSize, victim, wholepopulationgenomes, totalindividualgenomelength, wholepopulationselectiontree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofloads, psumofdeathrates, d_0, r, sdmin, miscfilepointer);
+        PerformBirth(isabsolute, parent1gamete, parent2gamete, maxPopSize, pPopSize, victim, wholepopulationgenomes, totalindividualgenomelength, wholepopulationselectiontree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofloads, psumofdeathrates, psumofdeathratessquared, d_0, r, sdmin, miscfilepointer);
     }
     
     
@@ -354,7 +331,7 @@ bool PerformOneEventAbs(bool isabsolute, bool birthhappens, int maxPopSize, int 
 //             printf("%2d  ", wholepopulationisfree[i]);
 //         printf("\n");
         
-        PerformDeath(isabsolute, maxPopSize, pPopSize, victim, wholepopulationselectiontree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofloads, psumofdeathrates, miscfilepointer);
+        PerformDeath(isabsolute, maxPopSize, pPopSize, victim, wholepopulationselectiontree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofloads, psumofdeathrates,psumofdeathratessquared, miscfilepointer);
     }
     
     return true;
@@ -362,7 +339,7 @@ bool PerformOneEventAbs(bool isabsolute, bool birthhappens, int maxPopSize, int 
 }
 
 
-void InitializePopulationAbs(long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, int initialPopSize, int maxPopSize, double *wholepopulationgenomes, int totalpopulationgenomelength, long double* psumofdeathrates, double d_0)
+void InitializePopulationAbs(long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, int initialPopSize, int maxPopSize, double *wholepopulationgenomes, int totalpopulationgenomelength, long double *psumofdeathrates, long double *psumofdeathratessquared, double d_0)
 {    
     int i, j;
 
@@ -393,7 +370,9 @@ void InitializePopulationAbs(long double *wholepopulationselectiontree, long dou
         }
     }
     
-    *psumofdeathrates = (long double)initialPopSize*d_0;
+    *psumofdeathrates = (long double) initialPopSize * d_0;
+    
+    *psumofdeathratessquared = (long double) initialPopSize * pow(d_0, 2);
     
     for (i = 0; i < totalpopulationgenomelength; i++){
         wholepopulationgenomes[i] = 0.0;
