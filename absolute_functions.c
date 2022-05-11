@@ -153,6 +153,11 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
     int printtime = 0;
     double birthrate;
     
+    double *arrayofbirthrates;
+    arrayofbirthrates = malloc(sizeof(double)*maxPopSize);
+    
+    calcRateofBirths(arrayofbirthrates, maxPopSize, b_0);
+    
     if (VERYVERBOSE == 1) {
         fprintf(veryverbosefilepointer, "Variables initialized, preparing to begin simulation.\n");
     }
@@ -173,12 +178,12 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
                 break;
         }
         
-        birthhappens = monteCarloStep(popsize, pCurrenttime, sumofdeathrates, maxPopSize, b_0);//This is the monte carlo step. This decides if a birth or a death event takes place by returning a 0 or 1
+        birthhappens = monteCarloStep(arrayofbirthrates, popsize, sumofdeathrates, pCurrenttime);//This is the monte carlo step. This decides if a birth or a death event takes place by returning a 0 or 1
         
         PerformOneEventAbs(isabsolute, birthhappens, maxPopSize, pPopSize, wholepopulationgenomes, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationisfree, wholepopulationindex, psumofdeathrates,psumofdeathratessquared, d_0, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, parent2gamete, randomnumbergeneratorforgamma, r, sdmin, miscfilepointer);
         
         if(t > printtime){
-            birthrate = rateOfBirthsCalc(popsize, maxPopSize, b_0);
+            birthrate = arrayofbirthrates[popsize];
             fprintf(rawdatafilepointer, "%f\t%d\t%Lf\t%Lf\t%f\n", t, popsize, (sumofdeathrates/(double)popsize), ((sumofdeathratessquared/(double)popsize) - (long double) pow((sumofdeathrates/(double)popsize),2)), (birthrate/(double)popsize));
             fflush(rawdatafilepointer);
             printtime += printeach;
@@ -215,32 +220,31 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
 }
 
 
+void calcRateofBirths(double *arrayofbirthrates, int maxPopSize, double b_0) {
+    int i;
+    for(i = 0; i < maxPopSize; i++){
+        arrayofbirthrates[i] = (b_0) * (double)i * (1 - ((double)i/(double)maxPopSize));
+    }
+}
+
 //returns output of either birth or death
-bool monteCarloStep(int popsize, double *pCurrentTime, double sumOfDeathRates, int maxPopSize, double b_0) {
+bool monteCarloStep(double *arrayofbirthrates, int popsize, double sumofdeathrates, double *pCurrenttime) {
 
     double deathRate;
     double birthRate;
     double timestep;
 
-    deathRate = sumOfDeathRates;
+    deathRate = sumofdeathrates;
 
     //rate of births is calculated using equation used in lab write up
-    birthRate = rateOfBirthsCalc(popsize, maxPopSize, b_0);
+    birthRate = arrayofbirthrates[popsize];
     
     timestep = 1/(deathRate + birthRate);//To make time steps dynamical, we directly use the inverse of the sum of the rates as value for a time step.
 
-    *pCurrentTime += timestep;
+    *pCurrenttime += timestep;
 
     //This is the actual monte carlo step
     return discoverEvent(deathRate, birthRate);
-
-}
-
-double rateOfBirthsCalc(int popsize, int maxPopSize, double b_0) {
-
-    double birthRate;
-    birthRate = (b_0) * (double)popsize * (1 - ((double)popsize/(double)maxPopSize));
-    return  birthRate;
 
 }
 
