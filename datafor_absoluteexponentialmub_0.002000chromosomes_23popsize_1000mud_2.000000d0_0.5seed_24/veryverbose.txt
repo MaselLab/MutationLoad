@@ -1,0 +1,6 @@
+Entered simulation run.
+Population initialized.
+Variables initialized, preparing to begin simulation.
+Finished simulation with mean sb 0.010000 
+Time elapsed: 100.000292
+Final population size was: 972
