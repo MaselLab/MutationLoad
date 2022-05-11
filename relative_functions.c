@@ -324,10 +324,12 @@ void PerformOneTimeStepRel(int popsize, long double *wholepopulationwistree, lon
     long double *wholepopulationdeathratesarray;
     int *pPopSize;
     double d_0;
+    double r;
+    double sdmin;
     
     PerformDeath(isabsolute, popsize, pPopSize, currentvictim, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, miscfilepointer);
     
-    PerformBirth(isabsolute, parent1gamete, parent2gamete, popsize, pPopSize, currentvictim, wholepopulationgenomes, totalindividualgenomelength, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, d_0, miscfilepointer);
+    PerformBirth(isabsolute, parent1gamete, parent2gamete, popsize, pPopSize, currentvictim, wholepopulationgenomes, totalindividualgenomelength, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, d_0, r, sdmin, miscfilepointer);
     
 }
 

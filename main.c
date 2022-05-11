@@ -26,7 +26,7 @@
 int main(int argc, char *argv[]) {
 
     if (argc != 17) {
-        printf("[Error]; Wrong number of arguments in program. It should be timeSteps, initialPopsize, genome-wide deleterious mutation rate, chromosomesize, numberofchromosomes, beneficial/deleterious mutation ratio, Sb, beneficialdistribution, typeofrun, slope, seed, MaxPopSize, relative or absolute, d_0, epistasis r, sdmin \n");
+        printf("[Error]; Wrong number of arguments in program. It should be timeSteps, initialPopsize, genome-wide deleterious mutation rate, chromosomesize, numberofchromosomes, beneficial/deleterious mutation ratio, Sb, beneficialdistribution, root or single, slope, seed, MaxPopSize, relative or absolute, d_0, epistasis r, sdmin \n");
         return -1;
     }
     //declare the file pointers for the files used for printing across the program
@@ -49,13 +49,13 @@ int main(int argc, char *argv[]) {
     double bentodel = atof(argv[6]);
     
     char *delmutname = (char *) malloc(30);//create a pointer for the deleterious mutation rate
-    sprintf(delmutname, "%Lf", deleteriousmutationrate);
+    sprintf(delmutname, "%f", deleteriousmutationrate);
     //calculate the beneficial mutation rate from the inputted ratio
     double beneficialmutationrate = bentodel*deleteriousmutationrate;
     printf("%f \n", beneficialmutationrate);
     
     char *benmutname = (char *) malloc(30);//create a pointer for the beneficial mutation rate
-    sprintf(benmutname, "%Lf", beneficialmutationrate);
+    sprintf(benmutname, "%f", beneficialmutationrate);
     //I have two parameters for Sb for the type of run that needs to have bracketed values of Sb.
     //In the case with just a single simulation being run, Sb2 here will be the value of Sb used.
     double Sb2 = atof(argv[7]);
