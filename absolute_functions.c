@@ -331,7 +331,7 @@ bool PerformOneEventAbs(bool isabsolute, bool birthhappens, int maxPopSize, int 
 //             printf("%2d  ", wholepopulationisfree[i]);
 //         printf("\n");
         
-        PerformDeath(isabsolute, maxPopSize, pPopSize, victim, wholepopulationselectiontree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofloads, psumofdeathrates,psumofdeathratessquared, miscfilepointer);
+        PerformDeath(isabsolute, maxPopSize, pPopSize, victim, wholepopulationselectiontree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofloads, psumofdeathrates, psumofdeathratessquared, miscfilepointer);
     }
     
     return true;
