@@ -321,15 +321,16 @@ void PerformOneTimeStepRel(int popsize, long double *wholepopulationwistree, lon
                
     //next variables are only used for absolute simulations, however since InitializePopulation is a shared function I must initialize them here, even if I don't use them again
     long double *pInverseSumOfWis;
+    long double *psumofdeathratessquared;
     bool *wholepopulationisfree;
     int *wholepopulationindex;
     long double *wholepopulationdeathratesarray;
     int *pPopSize;
     double d_0;
     
-    PerformDeath(isabsolute, popsize, pPopSize, currentvictim, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, miscfilepointer);
+    PerformDeath(isabsolute, popsize, pPopSize, currentvictim, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, psumofdeathratessquared, miscfilepointer);
     
-    PerformBirth(isabsolute, parent1gamete, parent2gamete, popsize, pPopSize, currentvictim, wholepopulationgenomes, totalindividualgenomelength, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, d_0, r, sdmin, miscfilepointer);
+    PerformBirth(isabsolute, parent1gamete, parent2gamete, popsize, pPopSize, currentvictim, wholepopulationgenomes, totalindividualgenomelength, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, psumofdeathratessquared, d_0, r, sdmin, miscfilepointer);
     
 }
 
