@@ -25,8 +25,8 @@
 
 int main(int argc, char *argv[]) {
 
-    if (argc != 17) {
-        printf("[Error]; Wrong number of arguments in program. It should be timeSteps, initialPopsize, genome-wide deleterious mutation rate, chromosomesize, numberofchromosomes, beneficial/deleterious mutation ratio, Sb, beneficialdistribution, typeofrun, slope, seed, MaxPopSize, relative or absolute, d_0, epistasis r, sdmin \n");
+    if (argc != 19) {
+        printf("[Error]; Wrong number of arguments in program. It should be timeSteps; initialPopsize; genome-wide deleterious mutation rate; chromosomesize; numberofchromosomes; beneficial/deleterious mutation ratio; Sb; point, exponential or unifrom distribution; root or single; slope; seed; MaxPopSize; relative or absolute; d_0; epistasis r; sdmin; without modular epistasis or with it; elements per linkage block \n");
         return -1;
     }
     //declare the file pointers for the files used for printing across the program
@@ -40,7 +40,6 @@ int main(int argc, char *argv[]) {
     int popsize = atoi(argv[2]);
     //deleterious mutation rate; remember that this is the genome-wide mutation rate
     double deleteriousmutationrate = atof(argv[3]);
-    printf("%f \n", deleteriousmutationrate);
     //size of a single chromosome, i.e. number of blocks within a single chromosome. so far, we use 50 blocks
     int chromosomesize = atoi(argv[4]);
     //number of chromosomes; remember that this is total number of chromosomes, not ploidy -- all individuals will be diploid; to mimic a human genome, we use 23 chromosomes
@@ -49,13 +48,12 @@ int main(int argc, char *argv[]) {
     double bentodel = atof(argv[6]);
     
     char *delmutname = (char *) malloc(30);//create a pointer for the deleterious mutation rate
-    sprintf(delmutname, "%f", deleteriousmutationrate);
+    sprintf(delmutname, "%1.1f", deleteriousmutationrate);
     //calculate the beneficial mutation rate from the inputted ratio
     double beneficialmutationrate = bentodel*deleteriousmutationrate;
-    printf("%f \n", beneficialmutationrate);
     
     char *benmutname = (char *) malloc(30);//create a pointer for the beneficial mutation rate
-    sprintf(benmutname, "%f", beneficialmutationrate);
+    sprintf(benmutname, "%1.4f", beneficialmutationrate);
     //I have two parameters for Sb for the type of run that needs to have bracketed values of Sb.
     //In the case with just a single simulation being run, Sb2 here will be the value of Sb used.
     double Sb2 = atof(argv[7]);
@@ -128,13 +126,30 @@ int main(int argc, char *argv[]) {
     //the selection coefficient of a beneficial mutation at minimum death rate (i.e. max birth rate). so far we use the arbitrary value 0.01 
     double sdmin = atof(argv[16]);
     
+    //Indicate whether epistasis is modular or not. 0 for non modular epistasis and 1 for modular epistasis. 
+    int nonmodormod = atoi(argv[17]);
+    bool ismodular;
+    if(nonmodormod == 0){
+        ismodular = false;
+    }
+    else if(nonmodormod == 1){
+        ismodular = true;
+    }
+    else{
+        printf("[Error] 17th argument (non modular epistasis or modular epistasis) must be 0 or 1 \n");
+        return -1;
+    }
+    
+    //Number of elements per linkage block
+    int elementsperlb = atoi(argv[18]);
+    
     pcg32_srandom(randomnumberseed, randomnumberseed); // seeds the random number generator.
     gsl_rng * randomnumbergeneratorforgamma = gsl_rng_alloc(gsl_rng_mt19937);
     //the gamma distribution function requires a gsl random number generator, which is set here.
     //it's a bit inelegant to have two different RNGs, which could be solved by using a different algorithm 
     //for choosing variates from a gamma distribution, instead of using the free one from gsl.
     
-    char * directoryname = MakeDirectoryName(isabsolutename, bendistname, benmutname, argv[5], argv[2], delmutname, argv[14], argv[11]);// this will create the directory name pointer using input parameter values
+    char * directoryname = MakeDirectoryName(argv[1], argv[2], delmutname, argv[4], argv[5], benmutname, bendistname, argv[11], argv[12], isabsolute, isabsolutename, argv[14], argv[15], argv[16], ismodular, argv[18]);// this will create the directory name pointer using input parameter values
     
     mkdir(directoryname, 0777);//create the directory with the directory name pointer
     chdir(directoryname);//move into the created directory
@@ -143,11 +158,11 @@ int main(int argc, char *argv[]) {
     veryverbosefilepointer = fopen("veryverbose.txt", "w"); //opens the file to which to print very verbose data.
     miscfilepointer = fopen("miscellaneous.txt", "w"); //opens the file to which to print miscellaneous data.
     
-    char * finaldatafilename = MakeFinalDataFileName(typeofrunname, benmutname, argv[10], argv[11]);//create the final data file name using the input parameter values
-    finaldatafilepointer = fopen(finaldatafilename, "w");
    
     if (typeofrun == 0) {
         
+        char * finaldatafilename = MakeFinalDataFileName(typeofrunname, benmutname, argv[10], argv[11]);//create the final data file name using the input parameter values
+        finaldatafilepointer = fopen(finaldatafilename, "w");
         /*This type of run finds the Sb value for the given set of parameters
          that produces a population whose fitness stays almost exactly stable.
          It does this by finding values of Sb that lead to populations definitely
@@ -163,6 +178,9 @@ int main(int argc, char *argv[]) {
         fflush(miscfilepointer);
         sbrequiredforzeroslopeoffitness = BisectionMethodToFindSbWithZeroSlope(isabsolute, pSb1, pSb2, argv[1], argv[2], delmutname, argv[4], argv[5], benmutname, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, slopeforcontourline, beneficialdistribution, randomnumbergeneratorforgamma, miscfilepointer, verbosefilepointer, finaldatafilepointer, veryverbosefilepointer);
         fprintf(finaldatafilepointer, "The value of Sb for which the slope of log fitness is zero with mub of %.10f is %.10f", beneficialmutationrate, sbrequiredforzeroslopeoffitness);
+        
+        free(finaldatafilename);
+        fclose(finaldatafilepointer);
     
     } else if (typeofrun == 1) {
         if(isabsolute == 0){
@@ -181,7 +199,6 @@ int main(int argc, char *argv[]) {
     }
     
     free(directoryname);
-    free(finaldatafilename);
     free(bendistname);
     free(typeofrunname);
     free(delmutname);
@@ -191,7 +208,6 @@ int main(int argc, char *argv[]) {
     fclose(verbosefilepointer);
     fclose(veryverbosefilepointer);
     fclose(miscfilepointer); 
-    fclose(finaldatafilepointer);
     
     gsl_rng_free(randomnumbergeneratorforgamma);
     
@@ -664,23 +680,41 @@ double BisectionMethodToFindSbWithZeroSlope(bool isabsolute, double * Sb1, doubl
     return 0.0;
     
 }
-char * MakeDirectoryName(char * isabsolute, char * bendist, char * benmut, char * numberofchromosomes, char * popsize, char * delmut, char * d_0, char * randomnumberseed) 
+char * MakeDirectoryName(char * timeSteps, char * popsize, char * delmut, char * chromosomesize, char * numberofchromosomes, char * benmut, char * bendist, char * randomnumberseed, char * maxPopSize, bool isabsolute, char * isabsolutename, char * d_0, char * r, char * sdmin, bool ismodular, char *elementsperlb) 
 {
 	
 	char * directoryname = (char *) malloc(200);
 	strcpy(directoryname, "datafor_");
-	strcat(directoryname, isabsolute);
-	strcat(directoryname, bendist);
-	strcat(directoryname, "mub_");
+	strcat(directoryname, isabsolutename);
+    strcat(directoryname, "_");
+    if(ismodular){
+        strcat(directoryname, "elementsperlb_");
+        strcat(directoryname, elementsperlb);
+    }
+    if(isabsolute){
+        strcat(directoryname, "d0_");
+        strcat(directoryname, d_0);
+        strcat(directoryname, "r_");
+        strcat(directoryname, r);
+        strcat(directoryname, "sdmin_");
+        strcat(directoryname, sdmin);
+        strcat(directoryname, "K_");
+        strcat(directoryname, maxPopSize);
+    }
+    strcat(directoryname, "mud_");
+	strcat(directoryname, delmut);
+    strcat(directoryname, bendist);
+    strcat(directoryname, "_");
+    strcat(directoryname, "mub_");
 	strcat(directoryname, benmut);
-	strcat(directoryname, "chromosomes_");
-	strcat(directoryname, numberofchromosomes);
 	strcat(directoryname, "popsize_");
 	strcat(directoryname, popsize);
-	strcat(directoryname, "mud_");
-	strcat(directoryname, delmut);
-	strcat(directoryname, "d0_");
-	strcat(directoryname, d_0);
+    strcat(directoryname, "chromosomes_");
+	strcat(directoryname, numberofchromosomes);
+    strcat(directoryname, "L_");
+	strcat(directoryname, chromosomesize);
+    strcat(directoryname, "totalt_");
+	strcat(directoryname, timeSteps);
 	strcat(directoryname, "seed_");
 	strcat(directoryname, randomnumberseed);
 	
