@@ -30,28 +30,12 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
     int i, j, k, w;
 
     char* rawdatafilename = (char*)malloc(sizeof(char) * 200);//edited slightly if everything blows up definitely this (11/25/2019)
-    strcpy(rawdatafilename, "rawdatafor"); //starting the string that will be the name of the data file.
+    strcpy(rawdatafilename, "rawdatafor_"); //starting the string that will be the name of the data file.
 
-    strcat(rawdatafilename, "maxTime"); //for adding values of generations to the data name.
-    strcat(rawdatafilename, maxTimename);
-
-    strcat(rawdatafilename, "initialPopSize"); //for adding values of starting population sizes to the data name.
-    strcat(rawdatafilename, popsizename);
-
-    strcat(rawdatafilename, "mutrate"); //for adding values of mutation rate to the data name (remember that mutation rate is currently the per-locus rate, not per-genome).
-    strcat(rawdatafilename, delmutratename);
-
-    strcat(rawdatafilename, "chromsize"); //for adding values of chromosome size to the data name.
-    strcat(rawdatafilename, chromsizename);
-
-    strcat(rawdatafilename, "chromnum"); //for adding values of the number of chromosomes to the data name.
-    strcat(rawdatafilename, chromnumname);
-
-    strcat(rawdatafilename, "benmutrate"); //for adding values of the beneficial mutation rate to the data name.
-    strcat(rawdatafilename, mubname);
-
-    strcat(rawdatafilename, "Sb"); //for adding values of the beneficial mutation effect size to the data name.
+    strcat(rawdatafilename, "Sb_"); //for adding values of the beneficial mutation effect size to the data name.
     strcat(rawdatafilename, Sbname);
+    strcat(rawdatafilename, "mub_");
+    strcat(rawdatafilename, mubname);
 
     strcat(rawdatafilename, ".txt");
 
@@ -59,10 +43,10 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
     fprintf(rawdatafilepointer, "Time\tPop_size\tMean_death_rate\tVariance_death_rate\tMean_birth_rate\n");
 
     char* summarydatafilename = (char*)malloc(100);
-    strcpy(summarydatafilename, "summarydatafor");
-    strcat(summarydatafilename, "Sb");
+    strcpy(summarydatafilename, "summarydatafor_");
+    strcat(summarydatafilename, "Sb_");
     strcat(summarydatafilename, Sbname);
-    strcat(summarydatafilename, "mub");
+    strcat(summarydatafilename, "mub_");
     strcat(summarydatafilename, mubname);
     strcat(summarydatafilename, ".txt");
     summarydatafilepointer = fopen(summarydatafilename, "w"); //opens the file to which to print summary data.
