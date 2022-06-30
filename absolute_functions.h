@@ -18,7 +18,7 @@
 #include "sharedfunc_flag.h"
 #include "main.h"
 
-double RunSimulationAbs(bool isabsolute, char* maxTimeStepsname, char* popsizename, char* delmutratename, char* chromsizename, char* chromnumname, char* mubname, char* Sbname, int typeofrun, int maxTimeSteps, int initialPopSize, int maxPopSize, double d_0, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, gsl_rng* randomnumbergeneratorforgamma, double r, double sdmin, FILE *miscfilepointer, FILE *veryverbosefilepointer);
+double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isabsolute, char* maxTimeStepsname, char* popsizename, char* delmutratename, char* chromsizename, char* chromnumname, char* mubname, char* Sbname, int typeofrun, int maxTimeSteps, int initialPopSize, int maxPopSize, double d_0, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, gsl_rng* randomnumbergeneratorforgamma, double r, double sdmin, FILE *miscfilepointer, FILE *veryverbosefilepointer);
 
 void calcRateofBirths(double *arrayofbirthrates, int maxPopSize, double b_0);
 bool monteCarloStep(double *arrayofbirthrates, int popsize, double sumofdeathrates, double *pCurrenttime);
@@ -29,6 +29,8 @@ bool PerformOneEventAbs(bool isabsolute, bool birthhappens, int maxPopSize, int 
 
 void InitializePopulationAbs(long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, int initialPopSize, int maxPopSize, double *wholepopulationgenomes, int totalpopulationgenomelength, long double* psumofdeathrates, long double *psumofdeathratessquared, double d_0);
 
+void InitializeWithSnapshotAbs(long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, int maxPopSize, double *wholepopulationgenomes, int totalpopulationgenomelength, long double *psumofdeathrates, long double *psumofdeathratessquared, int *pPopSize, double *pCurrenttime, FILE *prevsnapshotfilepointer, FILE *miscfilepointer);
+
 int ChooseParent(int populationsize);
 int ChooseVictimWithTree(long double *wholepopulationselectiontree, int popsiez, int maxPopSize, long double inversesumofloads, FILE *miscfilepointer);
 
@@ -36,5 +38,7 @@ int findinindex(int *wholepopulationindex, int which, int tam, FILE *miscfilepoi
 void indexArrayFlipDeath(int *wholepopulationindex, int placeinindex, int popsize);
 
 double CalculateDeathRate(double *parent1gamete, double *parent2gamete, int totalindividualgenomelength, double d_0, double r, double sdmin);
+
+void WritePopSnapshot(double *wholepopulationgenomes, int totalpopulationgenomelength, long double sumofdeathrates, long double sumofdeathratessquared, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, bool *wholepopulationisfree, int *wholepopulationindex, int maxPopSize, int popsize, double t, FILE *popsnapshotfilepointer);
 
 #endif // ABSOLUTE_FUNCTIONS_H_INCLUDED

@@ -16,11 +16,11 @@
 #include "sharedfunc_flag.h"
 #include "main.h"
 
-double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, char* delmutratename, char* chromsizename, char* chromnumname, char* mubname, char* Sbname, int typeofrun, int maxTime, int initialPopSize, int maxPopSize, double d_0, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, gsl_rng* randomnumbergeneratorforgamma, double r, double sdmin, FILE *miscfilepointer, FILE *veryverbosefilepointer)
+double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isabsolute, char* maxTimename, char* popsizename, char* delmutratename, char* chromsizename, char* chromnumname, char* mubname, char* Sbname, int typeofrun, int maxTime, int initialPopSize, int maxPopSize, double d_0, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, gsl_rng* randomnumbergeneratorforgamma, double r, double sdmin,  FILE *miscfilepointer, FILE *veryverbosefilepointer)
 {
 
     if(!isabsolute){
-        fprintf(miscfilepointer, "\n Trying to use RunSimulationAbs within a relative fitness program. \n");
+        fprintf(miscfilepointer, "\nError: Trying to use RunSimulationAbs within a relative fitness program.");
         exit(0);
     }
     
@@ -36,11 +36,7 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
     strcat(rawdatafilename, Sbname);
     strcat(rawdatafilename, "mub_");
     strcat(rawdatafilename, mubname);
-
     strcat(rawdatafilename, ".txt");
-
-    rawdatafilepointer = fopen(rawdatafilename, "w"); //opens the file to which to print data to be plotted.
-    fprintf(rawdatafilepointer, "Time\tPop_size\tMean_death_rate\tVariance_death_rate\tMean_birth_rate\n");
 
     char* summarydatafilename = (char*)malloc(100);
     strcpy(summarydatafilename, "summarydatafor_");
@@ -49,11 +45,12 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
     strcat(summarydatafilename, "mub_");
     strcat(summarydatafilename, mubname);
     strcat(summarydatafilename, ".txt");
-    summarydatafilepointer = fopen(summarydatafilename, "w"); //opens the file to which to print summary data.
-
-    int popsize = initialPopSize;
-    int *pPopSize;
-    pPopSize = &popsize;
+    
+    int popsize;
+    double t;
+    int *pPopSize = &popsize;
+    double *pCurrenttime = &t;
+    
     double *wholepopulationgenomes;
     int totalpopulationgenomelength;
     int totalindividualgenomelength;
@@ -73,17 +70,51 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
     wholepopulationdeathratesarray = malloc(sizeof(long double) * maxPopSize);
     //The Fenwick tree does not store each individual's wi, but rather a collection of partial sums.
     //For debugging purposes and data that requires summarizing wis, storing the wis in an array is necessary.
-
-    long double *sortedwisarray;
-    sortedwisarray = malloc(sizeof(long double) * maxPopSize);
-    //In order to visualize the distribution of fitness in the population,
-    //the individual fitnesses need to be sorted, which requires a separate array.
-    
     bool *wholepopulationisfree;
     wholepopulationisfree = malloc(sizeof(bool) * maxPopSize);
     
     int *wholepopulationindex;
     wholepopulationindex = malloc(sizeof(int) * maxPopSize);
+    
+    long double *sortedwisarray;
+    sortedwisarray = malloc(sizeof(long double) * maxPopSize);
+    //In order to visualize the distribution of fitness in the population,
+    //the individual fitnesses need to be sorted, which requires a separate array.
+    
+    //These parameters specify the intervals to print rawdata from the simulations
+    int printeach = 100;
+    int printtime = 0;
+    
+    if(!issnapshot){
+        rawdatafilepointer = fopen(rawdatafilename, "w"); //opens the file to which to print data to be plotted.
+        fprintf(rawdatafilepointer, "Time\tPop_size\tMean_death_rate\tVariance_death_rate\tMean_birth_rate\n");
+        
+        summarydatafilepointer = fopen(summarydatafilename, "w"); //opens the file to which to print summary data.
+        popsize = initialPopSize;
+        t = 0.0;
+        //assignment of data to popArray for index, wis, and deathrate
+        InitializePopulationAbs(wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, initialPopSize, maxPopSize, wholepopulationgenomes, totalpopulationgenomelength, psumofdeathrates, psumofdeathratessquared, d_0);//sets up all data within the population for a run. As this initializes data I think it should be a separate function.
+    }else{
+        rawdatafilepointer = fopen(rawdatafilename, "a");
+        summarydatafilepointer = fopen(summarydatafilename, "a"); //opens the file to which to print summary data.
+        FILE *prevsnapshotfilepointer;
+        prevsnapshotfilepointer = fopen(prevsnapshotfilename, "r");
+        if(prevsnapshotfilepointer == NULL){
+            fprintf(miscfilepointer, "\nError: There was an error oppening the snapshot file");
+            exit(0);
+        }
+        
+        InitializeWithSnapshotAbs(wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationindex,wholepopulationisfree, maxPopSize, wholepopulationgenomes, totalpopulationgenomelength, psumofdeathrates, psumofdeathratessquared, pPopSize, pCurrenttime, prevsnapshotfilepointer, miscfilepointer);
+        
+        if (VERYVERBOSE == 1) {
+            fprintf(veryverbosefilepointer, "Started population with snapshot file.\n");
+        }
+        //the previous simulation time had to be added to the max time of the simulation
+        maxTime += t;
+        printtime += t + printeach;
+        
+        fclose(prevsnapshotfilepointer);
+    }
     
     if (VERYVERBOSE == 1) {
         fprintf(veryverbosefilepointer, "Entered simulation run.\n");
@@ -92,9 +123,6 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
     //variables used to define death rates
     double const b_0 = 1.0;
     
-    //assignment of data to popArray for index, wis, and deathrate
-    InitializePopulationAbs(wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, initialPopSize, maxPopSize, wholepopulationgenomes, totalpopulationgenomelength, psumofdeathrates, psumofdeathratessquared, d_0);//sets up all data within the population for a run. As this initializes data I think it should be a separate function.
-
     if (VERYVERBOSE == 1) {
         fprintf(veryverbosefilepointer, "Population initialized.\n");
     }
@@ -128,13 +156,9 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
     double variancesum;
     
     bool birthhappens;
-    double t = 0.0;
-    double *pCurrenttime = &t;
     
     double parent1gamete[numberofchromosomes*chromosomesize], parent2gamete[numberofchromosomes*chromosomesize];
     
-    int printeach = 10;
-    int printtime = 0;
     double birthrate;
     
     double *arrayofbirthrates;
@@ -158,7 +182,6 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
         
         if(popsize >= (maxPopSize-1)){
         		fprintf(summarydatafilepointer, "Population achieved its maximum population size at time %f", t);
-//                 printf("entro \n");
                 break;
         }
         
@@ -172,20 +195,36 @@ double RunSimulationAbs(bool isabsolute, char* maxTimename, char* popsizename, c
             fflush(rawdatafilepointer);
             printtime += printeach;
         }        
+        
     }  
     //END OF SIMULATION FOR LOOP
     
     if (VERYVERBOSE == 1) {
         fprintf(veryverbosefilepointer, "Finished simulation with mean sb %f \n", Sb);
         fprintf(veryverbosefilepointer, "Time elapsed: %f\n", t);
-        fprintf(veryverbosefilepointer, "Final population size was: %d\n", popsize);
+        fprintf(veryverbosefilepointer, "Final population size was: %d\n\n", popsize);
     }
     
     
+    FILE *popsnapshotfilepointer;
+    
+    char* popsnapshotfilename = (char*)malloc(100);
+    strcpy(popsnapshotfilename, "popsnapshotfor_");
+    strcat(popsnapshotfilename, "Sb_");
+    strcat(popsnapshotfilename, Sbname);
+    strcat(popsnapshotfilename, "mub_");
+    strcat(popsnapshotfilename, mubname);
+    strcat(popsnapshotfilename, ".txt");
+    popsnapshotfilepointer = fopen(popsnapshotfilename, "w"); //opens the file to which to print summary data.
+    
+    WritePopSnapshot(wholepopulationgenomes, totalpopulationgenomelength, sumofdeathrates, sumofdeathratessquared, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationisfree, wholepopulationindex, maxPopSize, popsize, t, popsnapshotfilepointer);
+    
     fclose(rawdatafilepointer);
     fclose(summarydatafilepointer);
+    fclose(popsnapshotfilepointer);
     free(rawdatafilename);
     free(summarydatafilename);
+    free(popsnapshotfilename);
     
     free(logaveragefitnesseachNtimesteps);
     free(literallyjustlast200Ntimesteps);
@@ -256,7 +295,7 @@ bool discoverEvent(double deathRate, double birthRate) {
 bool PerformOneEventAbs(bool isabsolute, bool birthhappens, int maxPopSize, int *pPopSize, double *wholepopulationgenomes, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, bool *wholepopulationisfree, int *wholepopulationindex, long double *psumofdeathrates, long double *psumofdeathratessquared, double d_0, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution,  double* parent1gamete, double* parent2gamete, gsl_rng* randomnumbergeneratorforgamma, double r, double sdmin, FILE *miscfilepointer)
 {
     if(isabsolute == 0){
-        fprintf(miscfilepointer, "\n Trying to use PerformOneEventAbs within a non absolute fitness simulation. \n");
+        fprintf(miscfilepointer, "\nError: Trying to use PerformOneEventAbs within a non absolute fitness simulation.");
         exit(0);
     }
     
@@ -267,12 +306,12 @@ bool PerformOneEventAbs(bool isabsolute, bool birthhappens, int maxPopSize, int 
     int victim;
     
     if(*pPopSize < 2){
-        fprintf(miscfilepointer, "\n Trying to use PerformOneEventAbs with a population size lower than 2. \n");
+        fprintf(miscfilepointer, "\nError: Trying to use PerformOneEventAbs with a population size lower than 2.");
         exit(0);
     }
     
     if(*pPopSize >= maxPopSize && birthhappens){
-        fprintf(miscfilepointer, "\n Trying to use PerformOneEventAbs with a population size greater than maxPopSize. \n");
+        fprintf(miscfilepointer, "\nError:  Trying to use PerformOneEventAbs with a population size greater than maxPopSize.");
         exit(0);
     }
     
@@ -288,12 +327,11 @@ bool PerformOneEventAbs(bool isabsolute, bool birthhappens, int maxPopSize, int 
         currentparent2 = wholepopulationindex[randparent2];
         
         if(wholepopulationisfree[currentparent1] || wholepopulationisfree[currentparent2]){
-            fprintf(miscfilepointer, "\n Trying to give birth to a new individual using a parent that is not present in PerformOneEventAbs. \n");
+            fprintf(miscfilepointer, "\nError:  Trying to give birth to a new individual using a parent that is not present in PerformOneEventAbs.");
             exit(0);
         }
         
 
-//         printf("%f \n", deleteriousmutationrate);
         RecombineChromosomesIntoGamete(currentparent1, chromosomesize, numberofchromosomes, parent1gamete, wholepopulationgenomes, totalindividualgenomelength);
         nolethalmut = ProduceMutatedGamete(isabsolute, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, parent1gamete, randomnumbergeneratorforgamma, miscfilepointer);
         if(!nolethalmut)
@@ -313,12 +351,7 @@ bool PerformOneEventAbs(bool isabsolute, bool birthhappens, int maxPopSize, int 
 //         use of the fennwick tree to find the victim in the population, note that since fenwick tree stores all the population (non occupied spaces have a fitness of 0) there is not need to use the wholepopulationindex, fenwick search already gives you the space that the selected individual occupies.
     	victim = ChooseVictimWithTree(wholepopulationselectiontree, *pPopSize, maxPopSize, *psumofdeathrates, miscfilepointer);
         
-//         printf("%d\n", victim);
-//         
-//         for(i = 0; i < maxPopSize; i++)
-//             printf("%2d  ", wholepopulationisfree[i]);
-//         printf("\n");
-        
+
         PerformDeath(isabsolute, maxPopSize, pPopSize, victim, wholepopulationselectiontree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofloads, psumofdeathrates, psumofdeathratessquared, miscfilepointer);
     }
     
@@ -363,9 +396,79 @@ void InitializePopulationAbs(long double *wholepopulationselectiontree, long dou
     *psumofdeathratessquared = (long double) initialPopSize * pow(d_0, 2);
     
     for (i = 0; i < totalpopulationgenomelength; i++){
-        wholepopulationgenomes[i] = 0.0;
+        wholepopulationgenomes[i];
     }
     
+}
+
+//used to initializa a population using a file that stores all the important variables
+void InitializeWithSnapshotAbs(long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, int maxPopSize, double *wholepopulationgenomes, int totalpopulationgenomelength, long double *psumofdeathrates, long double *psumofdeathratessquared, int *pPopSize, double *pCurrenttime, FILE *prevsnapshotfilepointer, FILE *miscfilepointer)
+{
+    int i, j;
+
+    char strtemp[200];
+    
+    //gets the genomes of the whole population from the snapshot file
+    fscanf(prevsnapshotfilepointer, "%s" , strtemp);
+    if(strcmp(strtemp, "Genomes:")){
+        fprintf(miscfilepointer, "\nError: Corrupted snapshot file, headers does not incluide Genomes: check that the snapshot file is in the correct parameters folder");
+        exit(0);
+    }
+    for (i = 0; i < totalpopulationgenomelength; i++){
+        fscanf(prevsnapshotfilepointer, "%lf", &wholepopulationgenomes[i]);
+    }
+    
+    //gets the sum of death rates from the snapshot file
+    fscanf(prevsnapshotfilepointer, "%s" , strtemp);
+    if(strcmp(strtemp, "Sum_of_death_rates:")){
+        fprintf(miscfilepointer, "\nError: Corrupted snapshot file, headers does not incluide Sum_of_death_rates: check that the snapshot file is in the correct parameters folder or that there are no errors on the file");
+        exit(0);
+    }
+    fscanf(prevsnapshotfilepointer, "%Lf", psumofdeathrates);
+    
+    //gets the sum of death rates squared from the snapshot file
+    fscanf(prevsnapshotfilepointer, "%s" , strtemp);
+    fscanf(prevsnapshotfilepointer, "%Lf", psumofdeathratessquared);
+    
+    //gets the selection tree from the snapshot file
+    fscanf(prevsnapshotfilepointer, "%s" , strtemp);
+    for (i = 0; i < maxPopSize; i++){
+        fscanf(prevsnapshotfilepointer, "%Lf", &wholepopulationselectiontree[i]);
+    }
+    
+    //gets the selection tree from the snapshot file
+    fscanf(prevsnapshotfilepointer, "%s" , strtemp);
+    for (i = 0; i < maxPopSize; i++){
+        fscanf(prevsnapshotfilepointer, "%Lf", &wholepopulationdeathratesarray[i]);
+    }
+    
+    //since fscanf does not read bools, first store the value in an int
+    int tempspace;
+    //gets the free spaces in the population from the snapshot file
+    fscanf(prevsnapshotfilepointer, "%s" , strtemp);
+    for (i = 0; i < maxPopSize; i++){
+        fscanf(prevsnapshotfilepointer, "%d", &tempspace);
+        wholepopulationisfree[i] = tempspace;
+    }
+    
+    //gets the index array from the snapshot file
+    fscanf(prevsnapshotfilepointer, "%s" , strtemp);
+    for (i = 0; i < maxPopSize; i++){
+        fscanf(prevsnapshotfilepointer, "%d", &wholepopulationindex[i]);
+    }
+    
+    //gets the popsize from the snapshot file
+    fscanf(prevsnapshotfilepointer, "%s" , strtemp);
+    fscanf(prevsnapshotfilepointer, "%d", pPopSize);
+    
+    //gets the time from the snapshot file
+    fscanf(prevsnapshotfilepointer, "%s" , strtemp);
+    if(strcmp(strtemp, "Time:")){
+        fprintf(miscfilepointer, "\nError: Corrupted snapshot file, headers does not incluide Time: check that the snapshot file is in the correct parameters folder or that there are no errors on the file");
+        exit(0);
+    }
+    fscanf(prevsnapshotfilepointer, "%lf", pCurrenttime);
+   
 }
 
 int ChooseParent(int populationsize)
@@ -408,7 +511,7 @@ int findinindex(int *wholepopulationindex, int which, int tam, FILE *miscfilepoi
     }
     
     if(!placefound){
-        fprintf(miscfilepointer, "\n Array of indexes is corrupted in findinindex. \n");
+        fprintf(miscfilepointer, "\nError: Array of indexes is corrupted in findinindex. \n");
         exit(0);
     }
 }
@@ -437,4 +540,49 @@ double CalculateDeathRate(double *parent1gamete, double *parent2gamete, int tota
     }
     inddeathrate = d_0 + sdmin * (1 - pow(r, -currentlinkageblocksload))/log(r);
     return inddeathrate;
+}
+
+void WritePopSnapshot(double *wholepopulationgenomes, int totalpopulationgenomelength, long double sumofdeathrates, long double sumofdeathratessquared, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, bool *wholepopulationisfree, int *wholepopulationindex, int maxPopSize, int popsize, double t, FILE *popsnapshotfilepointer)
+{
+    int i;
+    
+    fprintf(popsnapshotfilepointer, "Genomes:\n");
+    for (i = 0; i < totalpopulationgenomelength; i++)
+        fprintf(popsnapshotfilepointer, "%lf\t", wholepopulationgenomes[i]);
+    fprintf(popsnapshotfilepointer, "\n");
+    
+    fprintf(popsnapshotfilepointer, "Sum_of_death_rates:\n");
+    fprintf(popsnapshotfilepointer, "%Lf", sumofdeathrates);
+    fprintf(popsnapshotfilepointer, "\n");
+    fprintf(popsnapshotfilepointer, "Sum_of_death_rates_squared:\n");
+    fprintf(popsnapshotfilepointer, "%Lf", sumofdeathratessquared);
+    fprintf(popsnapshotfilepointer, "\n");
+    
+    fprintf(popsnapshotfilepointer, "Selection_tree:\n");
+    for (i = 0; i < maxPopSize; i++)
+        fprintf(popsnapshotfilepointer, "%Lf\t", wholepopulationselectiontree[i]);
+    fprintf(popsnapshotfilepointer, "\n");
+    
+    fprintf(popsnapshotfilepointer, "Deaths_array:\n");
+    for (i = 0; i < maxPopSize; i++)
+        fprintf(popsnapshotfilepointer, "%Lf\t", wholepopulationdeathratesarray[i]);
+    fprintf(popsnapshotfilepointer, "\n");
+    
+    fprintf(popsnapshotfilepointer, "Pop_free_spaces:\n");
+    for (i = 0; i < maxPopSize; i++)
+        fprintf(popsnapshotfilepointer, "%i\t", wholepopulationisfree[i]);
+    fprintf(popsnapshotfilepointer, "\n");
+    
+    fprintf(popsnapshotfilepointer, "Pop_index:\n");
+    for (i = 0; i < maxPopSize; i++)
+        fprintf(popsnapshotfilepointer, "%i\t", wholepopulationindex[i]);
+    fprintf(popsnapshotfilepointer, "\n");
+    
+    fprintf(popsnapshotfilepointer, "Popsize:\n");
+    fprintf(popsnapshotfilepointer, "%i", popsize);
+    fprintf(popsnapshotfilepointer, "\n");
+    
+    fprintf(popsnapshotfilepointer, "Time:\n");
+    fprintf(popsnapshotfilepointer, "%lf", t);
+    fprintf(popsnapshotfilepointer, "\n");
 }

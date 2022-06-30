@@ -25,8 +25,8 @@
 
 int main(int argc, char *argv[]) {
 
-    if (argc != 19) {
-        printf("[Error]; Wrong number of arguments in program. It should be timeSteps; initialPopsize; genome-wide deleterious mutation rate; chromosomesize; numberofchromosomes; beneficial/deleterious mutation ratio; Sb; point, exponential or unifrom distribution; root or single; slope; seed; MaxPopSize; relative or absolute; d_0; epistasis r; sdmin; without modular epistasis or with it; elements per linkage block \n");
+    if (argc != 21) {
+        printf("[Error]; Wrong number of arguments in program. It should be timeSteps; initialPopsize; genome-wide deleterious mutation rate; chromosomesize; numberofchromosomes; beneficial/deleterious mutation ratio; Sb; point, exponential or unifrom distribution; root or single; slope; seed; MaxPopSize; relative or absolute; d_0; epistasis r; sdmin; without modular epistasis or with it; elements per linkage block; snapshot; snapshot file name \n");
         return -1;
     }
     //declare the file pointers for the files used for printing across the program
@@ -126,6 +126,9 @@ int main(int argc, char *argv[]) {
     //the selection coefficient of a beneficial mutation at minimum death rate (i.e. max birth rate). so far we use the arbitrary value 0.01 
     double sdmin = atof(argv[16]);
     
+    //Number of elements per linkage block
+    int elementsperlb = atoi(argv[18]);
+    
     //Indicate whether epistasis is modular or not. 0 for non modular epistasis and 1 for modular epistasis. 
     int nonmodormod = atoi(argv[17]);
     bool ismodular;
@@ -134,14 +137,31 @@ int main(int argc, char *argv[]) {
     }
     else if(nonmodormod == 1){
         ismodular = true;
+        if(elementsperlb == 0){
+            printf("[Error] 18th argument (elements per linkage block) must be other than 0 when 17th argument (modular epistasis) is 1 \n");
+            return -1;
+        }
     }
     else{
         printf("[Error] 17th argument (non modular epistasis or modular epistasis) must be 0 or 1 \n");
         return -1;
     }
     
-    //Number of elements per linkage block
-    int elementsperlb = atoi(argv[18]);
+    int snapshot = atoi(argv[19]);
+    bool issnapshot;
+    if(snapshot == 0){
+        issnapshot = false;
+    }
+    else if(snapshot == 1){
+        issnapshot = true;
+    }
+    else{
+        printf("[Error] 19th argument (there is not or there is previous snapshot) must be 0 or 1 \n");
+        return -1;
+    }
+    
+    char* prevsnapshotfilename = (char*)malloc(sizeof(char) * 2000);
+    strcpy(prevsnapshotfilename, argv[20]);
     
     pcg32_srandom(randomnumberseed, randomnumberseed); // seeds the random number generator.
     gsl_rng * randomnumbergeneratorforgamma = gsl_rng_alloc(gsl_rng_mt19937);
@@ -149,16 +169,21 @@ int main(int argc, char *argv[]) {
     //it's a bit inelegant to have two different RNGs, which could be solved by using a different algorithm 
     //for choosing variates from a gamma distribution, instead of using the free one from gsl.
     
-    char * directoryname = MakeDirectoryName(argv[1], argv[2], delmutname, argv[4], argv[5], benmutname, bendistname, argv[11], argv[12], isabsolute, isabsolutename, argv[14], argv[15], argv[16], ismodular, argv[18]);// this will create the directory name pointer using input parameter values
+    char* directoryname = MakeDirectoryName(argv[2], delmutname, argv[4], argv[5], benmutname, bendistname, argv[11], argv[12], isabsolute, isabsolutename, argv[14], argv[15], argv[16], ismodular, argv[18]);// this will create the directory name pointer using input parameter values
     
     mkdir(directoryname, 0777);//create the directory with the directory name pointer
     chdir(directoryname);//move into the created directory
     
-    verbosefilepointer = fopen("verbose.txt", "w");	//opens the file to which to print verbose data.
-    veryverbosefilepointer = fopen("veryverbose.txt", "w"); //opens the file to which to print very verbose data.
-    miscfilepointer = fopen("miscellaneous.txt", "w"); //opens the file to which to print miscellaneous data.
+    if(!issnapshot){
+        verbosefilepointer = fopen("verbose.txt", "w");	//opens the file to which to print verbose data.
+        veryverbosefilepointer = fopen("veryverbose.txt", "w"); //opens the file to which to print very verbose data.
+        miscfilepointer = fopen("miscellaneous.txt", "w"); //opens the file to which to print miscellaneous data.
+    }else{
+        verbosefilepointer = fopen("verbose.txt", "a");	//opens the file to which to print verbose data.
+        veryverbosefilepointer = fopen("veryverbose.txt", "a"); //opens the file to which to print very verbose data.
+        miscfilepointer = fopen("miscellaneous.txt", "a"); //opens the file to which to print miscellaneous data.
+    }
     
-   
     if (typeofrun == 0) {
         
         char * finaldatafilename = MakeFinalDataFileName(typeofrunname, benmutname, argv[10], argv[11]);//create the final data file name using the input parameter values
@@ -189,21 +214,23 @@ int main(int argc, char *argv[]) {
         }
         
         else{
-            RunSimulationAbs(isabsolute, argv[1], argv[2], delmutname, argv[4], argv[5], benmutname, argv[7], typeofrun, Nxtimesteps, popsize, maxPopSize, d_0, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, randomnumbergeneratorforgamma, r, sdmin, miscfilepointer, veryverbosefilepointer);
+            RunSimulationAbs(issnapshot, prevsnapshotfilename, isabsolute, argv[1], argv[2], delmutname, argv[4], argv[5], benmutname, argv[7], typeofrun, Nxtimesteps, popsize, maxPopSize, d_0, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, randomnumbergeneratorforgamma, r, sdmin, miscfilepointer, veryverbosefilepointer);
         }
         
     } else{
         //One day maybe I'll have more types of runs.
-        fprintf(miscfilepointer, "That type of run is not currently supported.");
+        fprintf(miscfilepointer, "\nError: That type of run is not currently supported.");
         return -1;
     }
     
+
     free(directoryname);
     free(bendistname);
     free(typeofrunname);
     free(delmutname);
     free(benmutname);
     free(isabsolutename);
+    free(prevsnapshotfilename);
     
     fclose(verbosefilepointer);
     fclose(veryverbosefilepointer);
@@ -680,7 +707,7 @@ double BisectionMethodToFindSbWithZeroSlope(bool isabsolute, double * Sb1, doubl
     return 0.0;
     
 }
-char * MakeDirectoryName(char * timeSteps, char * popsize, char * delmut, char * chromosomesize, char * numberofchromosomes, char * benmut, char * bendist, char * randomnumberseed, char * maxPopSize, bool isabsolute, char * isabsolutename, char * d_0, char * r, char * sdmin, bool ismodular, char *elementsperlb) 
+char * MakeDirectoryName(char * popsize, char * delmut, char * chromosomesize, char * numberofchromosomes, char * benmut, char * bendist, char * randomnumberseed, char * maxPopSize, bool isabsolute, char * isabsolutename, char * d_0, char * r, char * sdmin, bool ismodular, char *elementsperlb) 
 {
 	
 	char * directoryname = (char *) malloc(200);
@@ -713,8 +740,6 @@ char * MakeDirectoryName(char * timeSteps, char * popsize, char * delmut, char *
 	strcat(directoryname, numberofchromosomes);
     strcat(directoryname, "L_");
 	strcat(directoryname, chromosomesize);
-    strcat(directoryname, "totalt_");
-	strcat(directoryname, timeSteps);
 	strcat(directoryname, "seed_");
 	strcat(directoryname, randomnumberseed);
 	
