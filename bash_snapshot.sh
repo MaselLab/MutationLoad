@@ -1,6 +1,6 @@
 #!/bin/bash
 
-timeSteps=10
+timeSteps=5700
 initialPopsize=20000
 mud=0.6
 chromosomesize=50
@@ -20,7 +20,7 @@ d0=0.2
 r=0.8
 sdmin=0.01
 #0 for runs without modular epistasis; 1 for runs with modular epistasis
-modularepis=1
+modularepis=0
 elementsperl=1
 
 
@@ -50,10 +50,10 @@ mub=$(printf "%.4f" $mub)
 #creates 2 strings; directory refers to the folder where data for the specified parameters will be stored; file is the snapshot of the simulation at its end.
 if [ $modularepis -eq 0 ]
 then
-	directory="datafor_"$fitnessstring"d0_"$d0"r_"$r"sdmin_"$sdmin"K_"$K"mud_"$mud$bendiststring"mub_"$mub"popsize_"$initialPopsize"chromosomes_"$numberofchromosomes"L_"$chromosomesize"totalt_"$timeSteps"seed_"$seed"/"
+	directory="datafor_"$fitnessstring"d0_"$d0"r_"$r"sdmin_"$sdmin"K_"$K"mud_"$mud$bendiststring"mub_"$mub"popsize_"$initialPopsize"chromosomes_"$numberofchromosomes"L_"$chromosomesize"seed_"$seed"/"
 elif [ $modularepis -eq 1 ]
 then
-	directory="datafor_"$fitnessstring"elementsperlb_"$elementsperl"d0_"$d0"r_"$r"sdmin_"$sdmin"K_"$K"mud_"$mud$bendiststring"mub_"$mub"popsize_"$initialPopsize"chromosomes_"$numberofchromosomes"L_"$chromosomesize"totalt_"$timeSteps"seed_"$seed"/"
+	directory="datafor_"$fitnessstring"elementsperlb_"$elementsperl"d0_"$d0"r_"$r"sdmin_"$sdmin"K_"$K"mud_"$mud$bendiststring"mub_"$mub"popsize_"$initialPopsize"chromosomes_"$numberofchromosomes"L_"$chromosomesize"seed_"$seed"/"
 fi
 
 file1='popsnapshotfor_Sb_'$sb'mub_'$mub".txt"
