@@ -104,7 +104,7 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isabso
             exit(0);
         }
         
-        InitializeWithSnapshotAbs(wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationindex,wholepopulationisfree, maxPopSize, wholepopulationgenomes, totalpopulationgenomelength, psumofdeathrates, psumofdeathratessquared, pPopSize, pCurrenttime, prevsnapshotfilepointer, verbosefilepointer);
+        InitializeWithSnapshotAbs(wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationindex,wholepopulationisfree, maxPopSize, wholepopulationgenomes, totalpopulationgenomelength, psumofdeathrates, psumofdeathratessquared, pPopSize, pCurrenttime, prevsnapshotfilepointer, miscfilepointer);
         
         if (VERYVERBOSE == 1) {
             fprintf(veryverbosefilepointer, "Started population with snapshot file.\n");
@@ -217,7 +217,7 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isabso
     strcat(popsnapshotfilename, ".txt");
     popsnapshotfilepointer = fopen(popsnapshotfilename, "w"); //opens the file to which to print summary data.
     
-    WritePopSnapshot(wholepopulationgenomes, totalpopulationgenomelength, sumofdeathrates, sumofdeathratessquared, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationisfree, wholepopulationindex, maxPopSize, popsize, t, popsnapshotfilepointer, miscfilepointer);
+    WritePopSnapshot(wholepopulationgenomes, totalpopulationgenomelength, sumofdeathrates, sumofdeathratessquared, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationisfree, wholepopulationindex, maxPopSize, popsize, t, popsnapshotfilepointer);
     
     fclose(rawdatafilepointer);
     fclose(summarydatafilepointer);
