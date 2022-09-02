@@ -18,6 +18,10 @@
 #include "relative_functions.h"
 #include "global_vars.h"
 #include "main.h"
+#include <tskit.h>
+#include <tskit/tables.h>
+#include <kastore.h>
+#include <tskit/core.h>
 
 //fitness
 void UpdateLast200NTimeSteps(double *last200Ntimesteps, double newNtimesteps);
@@ -41,16 +45,20 @@ int SampleFromPoisson(float poissonmean);
 
 //Gametes.
 //UH change to two recombination sites.
-void RecombineChromosomesIntoGamete(int persontorecombine, int chromosomesize, int numberofchromosomes, double *gamete, double *populationgenomes, int totalindividualgenomelength);
-bool ProduceMutatedGamete(bool isabsolute, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double *gamete, gsl_rng * randomnumbergeneratorforgamma, FILE *miscfilepointer);
-int DetermineNumberOfMutations(int chromosomesize, int numberofchromosomes, double mutationrate);
+void RecombineChromosomesIntoGamete(int tskitstatus, bool ismodular, int elementsperlb, int isburninphaseover, tsk_table_collection_t * treesequencetablecollection, tsk_id_t * wholepopulationnodesarray, tsk_id_t * childnode, int totaltimesteps, double * pCurrenttime, int persontorecombine, int chromosomesize, int numberofchromosomes, double *gamete, double *wholepopulationgenomes, int totalindividualgenomelength);
+bool ProduceMutatedGamete(int tskitstatus, int isburninphaseover,tsk_table_collection_t *treesequencetablecollection, tsk_id_t * wholepopulationnodesarray, tsk_id_t * wholepopulationsitesarray, tsk_id_t * childnode, int totaltimesteps, double * pCurrenttime, int parent, bool isabsolute, int individualgenomelength, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double Sd, int deleteriousdistribution, double *gamete, gsl_rng * randomnumbergeneratorforgamma, FILE *miscfilepointer);
+int DetermineNumberOfMutations(double mutationrate);
+int DetermineMutationSite(int totalgametelength);
 
 //root simulations. UH might move them to shared with flags and remove files pointers (they are declared globally)
-int BracketZeroForSb(bool isabsoulte, double *Sb1, double *Sb2, char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double slopeforcontourline, int beneficialdistribution, gsl_rng * randomnumbergeneratorforgamma, FILE *verbosefilepointer, FILE *miscfilepointer, FILE *veryverbosefilepointer);
-double BisectionMethodToFindSbWithZeroSlope(bool isabsoulte, double * Sb1, double * Sb2, char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double slopeforcontourline, int beneficialdistribution, gsl_rng * randomnumbergeneratorforgamma, FILE *miscfilepointer, FILE *verbosefilepointer, FILE *finaldatafilepointer, FILE *veryverbosefilepointer);
-//make directory name and final data file name functions. GOAL is to increase modularity in program
-char * MakeDirectoryName(char *, char *, char *, char *, char *, char *, char *, char *);
-char * MakeFinalDataFileName(char *, char *, char *, char *);
+int BracketZeroForSb(int tskitstatus, bool isabsolute, bool ismodular, int elementsperlb, double *Sb1, double *Sb2, char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double slopeforcontourline, int beneficialdistribution, double Sd, int deleteriousdistribution, gsl_rng * randomnumbergeneratorforgamma, FILE *verbosefilepointer, FILE *miscfilepointer, FILE *veryverbosefilepointer, int rawdatafilesize);
+double BisectionMethodToFindSbWithZeroSlope(int tskitstatus, bool isabsolute, bool ismodular, int elementsperlb, double * Sb1, double * Sb2, char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double slopeforcontourline, int beneficialdistribution, double Sd, int deleteriousdistribution, gsl_rng * randomnumbergeneratorforgamma, FILE *miscfilepointer, FILE *verbosefilepointer, FILE *finaldatafilepointer, FILE *veryverbosefilepointer, int rawdatafilesize);
+//make directory name and final data file name function. GOAL is to increase modularity in program
+char * MakeDirectoryName(char * tskitstatus, char* deldist, char * isabsolutename, bool isabsolute, char * bendist, char * benmut, char * numberofchromosomes, char * chromosomesize, char * popsize, char * delmut, char * d_0, char * randomnumberseed, char * maxPopSize, char * r, char * sdmin, bool ismodular, char *elementsperlb);
+char * MakeFinalDataFileName(char * typeofrun, char * benmut, char * slopeforcontourline, char * randomnumberseed);
+char * MakeRawDataFileName(char * maxTimename, char * popsizename, char * delmutratename);
+char * MakeSummaryDataFileName(char * mubname, char * Sbname);
+char * MakePopSnapshotFileName(char * mubname, char * Sbname);
 
 #endif // MAIN_H_INCLUDED
 

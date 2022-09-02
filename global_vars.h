@@ -9,5 +9,10 @@
 #define LSB(i) ((i) & -(i)) //isolates least significant single bit for fenwick tree
 #define PI 3.141592654
 
+#define check_tsk_error(val)                                                            \
+    if (val < 0) {                                                                      \
+        errx(EXIT_FAILURE, "line %d: %s", __LINE__, tsk_strerror(val));                 \
+    }//error checking for tree sequence recording
+
 #endif // GLOBAL_VARS_H_INCLUDED
 

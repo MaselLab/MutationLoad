@@ -16,17 +16,29 @@
 #include "absolute_functions.h"
 #include "sharedfunc_flag.h"
 #include "main.h"
+#include <tskit.h>
+#include <tskit/tables.h>
+#include <kastore.h>
+#include <tskit/core.h>
 
-void MutateGamete(bool isabsolute, int chromosomesize, int numberofchromosomes, double *gamete, double mutationeffectsize)
+void MutateGamete(int tskitstatus, int isburninphaseover,  tsk_table_collection_t * treesequencetablecollection, tsk_id_t * wholepopulationsitesarray, tsk_id_t childnode, int totaltimesteps, double * pCurrenttime, bool isabsolute, int totalindividualgenomelength, double *gamete, double mutationeffectsize)
 {
-    int randomchromosometomutate = pcg32_boundedrand(numberofchromosomes); //if we decide to include heterogenous rates of recombination/mutation, both of these will need to be replaced by a function that weights each linkage block's probability of mutating.
-    int randomblocktomutate = pcg32_boundedrand(chromosomesize);
-    int mutatedsite = randomchromosometomutate*chromosomesize + randomblocktomutate;
+    tsk_id_t idofnewmutation;
+    
+    int mutatedsite = DetermineMutationSite(totalindividualgenomelength/2);
     if(isabsolute)
         gamete[mutatedsite] += (mutationeffectsize);
     else
         gamete[mutatedsite] += log(1 + mutationeffectsize);
-
+    char derivedstate[12];
+    sprintf(derivedstate, "%.11f", mutationeffectsize);
+    
+    if (tskitstatus > 0){
+        if (isburninphaseover != 0){
+            idofnewmutation = tsk_mutation_table_add_row(&treesequencetablecollection->mutations, wholepopulationsitesarray[mutatedsite], childnode, TSK_NULL, ((double) totaltimesteps - *pCurrenttime), derivedstate, 12, NULL, 0);
+            check_tsk_error(idofnewmutation);
+        }
+    }
 }
 
 double PerformDeath(bool isabsolute, int maxPopSize, int *pPopSize, int victim, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates, long double *psumofdeathratessquared, FILE *miscfilepointer)
@@ -60,7 +72,7 @@ double PerformDeath(bool isabsolute, int maxPopSize, int *pPopSize, int victim, 
     Fen_set(wholepopulationselectiontree, maxPopSize, 0.0, victim);
 }
 
-void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete, int maxPopSize, int *pPopSize, int birthplace, double *wholepopulationgenomes, int totalindividualgenomelength, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates, long double *psumofdeathratessquared, double d_0, double r, double sdmin, FILE *miscfilepointer)
+void PerformBirth(int tskitstatus, int isburninphaseover, bool ismodular, int elementsperlb, tsk_table_collection_t * treesequencetablecollection, tsk_id_t * wholepopulationnodesarray, tsk_id_t childnode1, tsk_id_t childnode2, bool isabsolute, double *parent1gamete, double *parent2gamete, int maxPopSize, int *pPopSize, int birthplace, double *wholepopulationgenomes, int totalindividualgenomelength, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates, long double *psumofdeathratessquared, double d_0, double r, double sdmin, FILE *miscfilepointer)
 {
     int i;
     
@@ -85,7 +97,7 @@ void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete,
             exit(0);
         }
         
-        inddeathrate = (long double) CalculateDeathRate(parent1gamete, parent2gamete, totalindividualgenomelength, d_0, r, sdmin);
+        inddeathrate = (long double) CalculateDeathRate(ismodular, elementsperlb, parent1gamete, parent2gamete, totalindividualgenomelength, d_0, r, sdmin);
         
         if(inddeathrate < 0.0){
             fprintf(miscfilepointer, "\n The individual death rate of a new born is less than 0.0 (he is even more than immortal). \n");
@@ -97,8 +109,8 @@ void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete,
     }
     
     for (i = 0; i < (totalindividualgenomelength/2); i++) {
-            wholepopulationgenomes[birthplace*totalindividualgenomelength + i] = parent1gamete[i];
-            wholepopulationgenomes[birthplace*totalindividualgenomelength + totalindividualgenomelength/2 + i] = parent2gamete[i];
+        wholepopulationgenomes[birthplace*totalindividualgenomelength + i] = parent1gamete[i];
+        wholepopulationgenomes[birthplace*totalindividualgenomelength + totalindividualgenomelength/2 + i] = parent2gamete[i];
     }
         
     if(isabsolute){
@@ -116,5 +128,10 @@ void PerformBirth(bool isabsolute, double *parent1gamete, double *parent2gamete,
         
         *psumofloads += newwi;
     }
-    
+    if (tskitstatus > 0){
+        if (isburninphaseover !=0){
+            wholepopulationnodesarray[birthplace*2] = childnode1;
+            wholepopulationnodesarray[birthplace*2 + 1] = childnode2;
+        }      
+    }
 }

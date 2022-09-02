@@ -1,0 +1,154 @@
+#######set preferred theme########
+theme_Publication <- function(base_size=14, base_family="Cambria") {
+  library(grid)
+  library(ggthemes)
+  (theme_foundation(base_size=base_size, base_family=base_family)
+    + theme(plot.title = element_text(face = "bold",
+                                      size = rel(1.2), hjust = 0.5),
+            text = element_text(),
+            panel.background = element_rect(colour = NA),
+            plot.background = element_rect(colour = NA),
+            panel.border = element_rect(colour = NA),
+            axis.title = element_text(face = "bold",size = rel(1)),
+            axis.title.y = element_text(angle=90,vjust =2),
+            axis.title.x = element_text(vjust = -0.2),
+            axis.text = element_text(), 
+            axis.line = element_line(colour="black"),
+            axis.ticks = element_line(),
+            panel.grid.major = element_line(colour="#f0f0f0"),
+            panel.grid.minor = element_blank(),
+            legend.key = element_rect(colour = NA),
+            legend.position = "bottom",
+            legend.direction = "horizontal",
+            legend.key.size= unit(0.2, "cm"),
+            legend.spacing = unit(0, "cm"),
+            legend.title = element_text(face="italic"),
+            plot.margin=unit(c(10,5,5,5),"mm"),
+            strip.background=element_rect(colour="#f0f0f0",fill="#f0f0f0"),
+            strip.text = element_text(face="bold")
+    ))
+  
+}
+
+scale_fill_Publication <- function(...){
+  library(scales)
+  discrete_scale("fill","Publication",manual_pal(values = c("#386cb0","#fdb462","#7fc97f","#ef3b2c","#662506","#a6cee3","#fb9a99","#984ea3","#ffff33")), ...)
+  
+}
+
+scale_colour_Publication <- function(...){
+  library(scales)
+  discrete_scale("colour","Publication",manual_pal(values = c("#386cb0","#fdb462","#7fc97f","#ef3b2c","#662506","#a6cee3","#fb9a99","#984ea3","#ffff33")), ...)
+  
+}
+
+library(ggplot2)
+library(gridExtra)
+library(ggpubr)
+library(ggridges)
+library(plyr)
+library(corrplot)
+theme_set(theme_Publication())
+##################################################
+#d=0.5
+#pop size
+#full simulation
+tiff("popsize_popsize_0.5.tiff", units="in", width=8, height=5, res=300)
+p <- ggplot(data=totaldatas, aes(x=Time, y=log(Pop_size), group=sbgroups))
+p <- p+geom_line(aes(color=sbgroups))
+p <- p+labs(x="Time", y="Population size")+theme_Publication()
+p
+dev.off()
+
+#mean death rate or fitness
+tiff("popsize_mean_0.5.tiff", units="in", width=5, height=5, res=300)
+p1 <- ggplot(data=totaldatas, aes(x=Time, y=Mean_death_rate, group=sbgroups))
+p1 <- p1+geom_line(aes(color=sbgroups))
+p1 <- p1+labs(x="Time", y="Average death rate/max\nbirth rate")+theme_Publication()
+p1
+dev.off()
+
+#variance death rate or fitness
+tiff("popsize_variance_0.5.tiff", units="in", width=5, height=5, res=300)
+p2 <- ggplot(data=totaldatas, aes(x=Time, y=Variance_death_rate, group=sbgroups))
+p2 <- p2+geom_line(aes(color=sbgroups))
+p2 <- p2+labs(x="Time", y="Variance in death rate/max\nbirth rate")+theme_Publication()
+p2
+dev.off()
+
+#full simulation, both pop size and fitness
+p_arranged <- ggarrange(p1, p2,labels = c("B","C"), ncol = 2, nrow = 1, legend = "none")
+tiff("deathrate_0.5.tiff", units="in", width=10, height=7, res=300)
+ggarrange(p, p_arranged,labels = c("A","",""),ncol = 1, nrow = 2, legend = "bottom", common.legend = TRUE)
+dev.off()
+
+#d=0.2
+tiff("popsize_popsize_0.2.tiff", units="in", width=5, height=5, res=300)
+p <- ggplot(data=totaldatas, aes(x=Time, y=Pop_size, group=sbgroups))
+p <- p+geom_line(aes(color=sbgroups))
+p <- p+labs(x="Time", y="Population size")+theme_Publication()
+p
+dev.off()
+
+#mean death rate or fitness
+tiff("popsize_mean_0.2.tiff", units="in", width=5, height=5, res=300)
+p1 <- ggplot(data=totaldatas, aes(x=Time, y=Mean_death_rate, group=sbgroups))
+p1 <- p1+geom_line(aes(color=sbgroups))
+p1 <- p1+labs(x="Time", y="Average death rate/max\nbirth rate")+theme_Publication()
+p1
+dev.off()
+
+#variance death rate or fitness
+tiff("popsize_variance_0.2.tiff", units="in", width=5, height=5, res=300)
+p2 <- ggplot(data=totaldatas, aes(x=Time, y=Variance_death_rate, group=sbgroups))
+p2 <- p2+geom_line(aes(color=sbgroups))
+p2 <- p2+labs(x="Time", y="Variance in death rate/max\nbirth rate")+theme_Publication()
+p2
+dev.off()
+
+#full simulation, both pop size and fitness
+p_arranged <- ggarrange(p1, p2,labels = c("B","C"), ncol = 2, nrow = 1, legend = "none")
+tiff("deathrate_0.2.tiff", units="in", width=10, height=7, res=300)
+ggarrange(p, p_arranged,labels = c("A","",""),ncol = 1, nrow = 2, legend = "bottom", common.legend = TRUE)
+dev.off()
+###################################expansive plots###########################
+tiff("popsize_time_0.5.tiff", units="in", width=8, height=5, res=300)
+p <- ggplot(data=totaldatas, aes(x=Time, y=Pop.size, group=sbgroups))
+p <- p+geom_line(aes(color=sbgroups))
+p <- p+geom_rect(aes(xmin= -50, xmax = 2000, ymin = 0, ymax = 10500),
+                 fill = "transparent", color = "red", size =.5)
+p <- p+geom_rect(aes(xmin= 2050, xmax = 7500, ymin = 0, ymax = 10500),
+                 fill = "transparent", color = "red", size =.5)
+p <- p+geom_rect(aes(xmin= 7550, xmax = 10000, ymin = 0, ymax = 10500),
+                 fill = "transparent", color = "red", size =.5)
+p <- p+annotate("text", x = ((-50+2000)/2), y=10000, label = "A")
+p <- p+annotate("text", x = ((2050+7500)/2), y=10000, label = "B")
+p <- p+annotate("text", x = ((7550+10000)/2), y=10000, label = "C")
+p <- p+labs(x="Time", y="Population size")+theme_Publication()
+p
+dev.off()
+
+#first stage: demographic expansion then decline
+p_1 <- ggplot(data=totaldatas[which(totaldatas$Time <= 2000),],
+              aes(x=Time, y=Pop.size, group=sbgroups))
+p_1 <- p_1+geom_line(aes(color=sbgroups))
+p_1 <- p_1+labs(x="Time", y="Population size")+theme_Publication()
+p_1
+#second stage: evolution
+p_2 <- ggplot(data=totaldatas[which(totaldatas$Time > 2000 & totaldatas$Time <= 7500),],
+              aes(x=Time, y=Pop.size, group=sbgroups))
+p_2 <- p_2+geom_line(aes(color=sbgroups))
+p_2 <- p_2+labs(x="Time", y="Population size")+theme_Publication()
+p_2
+#third stage: collapse or stability
+p_3 <- ggplot(data=totaldatas[which(totaldatas$Time > 7501),],
+              aes(x=Time, y=Pop.size, group=sbgroups))
+p_3 <- p_3+geom_line(aes(color=sbgroups))
+p_3 <- p_3+labs(x="Time", y="Population size")+theme_Publication()
+p_3
+
+p_arranged <- ggarrange(p_1, p_2,p_3,labels = c("A","B","C"),ncol = 3, nrow = 1, legend = "none")
+#all plots together
+tiff("popsize_0.5_stages.tiff", units="in", width=10, height=6, res=300)
+ggarrange(p, p_arranged,ncol = 1, nrow = 2, legend = "bottom", common.legend = TRUE)
+dev.off()
