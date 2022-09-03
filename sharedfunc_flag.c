@@ -30,7 +30,7 @@ void MutateGamete(int tskitstatus, int isburninphaseover,  tsk_table_collection_
         gamete[mutatedsite] += (mutationeffectsize);
     else
         gamete[mutatedsite] += log(1 + mutationeffectsize);
-    char derivedstate[12];
+    char derivedstate[400];
     sprintf(derivedstate, "%.11f", mutationeffectsize);
     
     if (tskitstatus > 0){
