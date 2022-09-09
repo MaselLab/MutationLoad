@@ -39,30 +39,37 @@ int main(int argc, char *argv[]) {
     FILE *finaldatafilepointer;
     FILE *veryverbosefilepointer;
     
-    //number of time steps which crudely translate to generations. So far, 1000 is the value used
-    int Nxtimesteps = atoi(argv[1]);
-    //initial population size
-    int popsize = atoi(argv[2]);
-    //deleterious mutation rate; remember that this is the genome-wide mutation rate
-    double deleteriousmutationrate = atof(argv[3]);
-    //size of a single chromosome, i.e. number of blocks within a single chromosome. so far, we use 50 blocks
-    int chromosomesize = atoi(argv[4]);
-    //number of chromosomes; remember that this is total number of chromosomes, not ploidy -- all individuals will be diploid; to mimic a human genome, we use 23 chromosomes
-    int numberofchromosomes = atoi(argv[5]); //
-    //given that we don't have an exact idea what the beneficial mutation rate is in humans, we use instead a beneficial/deleterious mutation ratio.
-    double bentodel = atof(argv[6]);
+    int Nxtimesteps, popsize, chromosomesize, numberofchromosomes, beneficialdistribution, typeofrun, randomnumberseed, maxPopSize, relorabs, tskitstatus, nonmodormod, elementsperlb, snapshot, deleteriousdistribution, rawdatafilesize;
+    double deleteriousmutationrate, bentodelmutrate, Sbtemp, slopeforcontourline, d_0, r, sdmin, SdtoSbratio;
+    char *Nxtimestepsname, *popsizename, *deleteriousmutationratename, *chromosomesizename, *numberofchromosomesname, *slopeforcontourlinename, *randomnumberseedname, *maxPopSizename, *d_0name, *rname, *sdminname, *elementsperlbname, *prevsnapshotfilename, *SdtoSbrationame;
+    Nxtimestepsname = (char *)malloc(30);
+    popsizename = (char *)malloc(30);
+    deleteriousmutationratename = (char *)malloc(30);
+    chromosomesizename = (char *)malloc(30);
+    numberofchromosomesname = (char *)malloc(30);
+    slopeforcontourlinename = (char *)malloc(30);
+    randomnumberseedname = (char *)malloc(30);
+    maxPopSizename = (char *)malloc(30);
+    d_0name = (char *)malloc(30);
+    rname = (char *)malloc(30);
+    sdminname = (char *)malloc(30);
+    elementsperlbname = (char *)malloc(30);
+    prevsnapshotfilename = (char *)malloc(2000);
+    SdtoSbrationame = (char *)malloc(30);
     
-    char *delmutname = (char *) malloc(30);//create a pointer for the deleterious mutation rate
-    sprintf(delmutname, "%1.1f", deleteriousmutationrate);
+    int wrong_args;
+    wrong_args = AssignArgumentstoVar(argv, &Nxtimesteps, Nxtimestepsname, &popsize, popsizename, &deleteriousmutationrate, deleteriousmutationratename, &chromosomesize, chromosomesizename, &numberofchromosomes, numberofchromosomesname, &bentodelmutrate, &Sbtemp, &beneficialdistribution, &typeofrun, &slopeforcontourline, slopeforcontourlinename, &randomnumberseed, randomnumberseedname, &maxPopSize, maxPopSizename, &relorabs, &d_0, d_0name, &r, rname, &sdmin, sdminname, &tskitstatus, &nonmodormod, &elementsperlb, elementsperlbname, &snapshot, prevsnapshotfilename, &SdtoSbratio, SdtoSbrationame, &deleteriousdistribution, &rawdatafilesize);
+    
+    if(wrong_args == -1)
+        return -1;
+
+    
     //calculate the beneficial mutation rate from the inputted ratio
-    double beneficialmutationrate = bentodel*deleteriousmutationrate;
-    printf("%f \n", beneficialmutationrate);
+    double beneficialmutationrate = bentodelmutrate*deleteriousmutationrate;
     
     char *benmutname = (char *) malloc(30);//create a pointer for the beneficial mutation rate
     sprintf(benmutname, "%1.4f", beneficialmutationrate);
     
-    //0 for point; 1 for exponential; 2 for unifrom
-    int beneficialdistribution = atoi(argv[8]);
     char *bendistname = (char *) malloc(30);
     if(beneficialdistribution == 0)
         strncpy(bendistname, "point", sizeof("point"));
@@ -70,32 +77,13 @@ int main(int argc, char *argv[]) {
         strncpy(bendistname, "exponential", sizeof("exponential"));
     else if(beneficialdistribution == 2)
         strncpy(bendistname, "uniform", sizeof("uniform"));
-    else
-        strncpy(bendistname, "NA", sizeof("NA"));
     
-    //0 is root; 1 is single
-    int typeofrun = atoi(argv[9]);
     char *typeofrunname = (char *) malloc(30);
     if(typeofrun == 0)
         strncpy(typeofrunname, "root", sizeof("root"));
     else if(typeofrun == 1)
         strncpy(typeofrunname, "single", sizeof("single"));
-    else
-        strncpy(typeofrunname, "NA", sizeof("NA"));
     
-    //the slope for the contour line; so far it is used in the relative scheme
-    double slopeforcontourline = atof(argv[10]);
-    // the seed for the random number generators used in this program *don't forget to be consistent with the seed*
-    int randomnumberseed = atoi(argv[11]);
-    //the maximum population size K or carrying capacity. so far, we used 20000 as a value for K.
-    int maxPopSize = atoi(argv[12]);
-    if(maxPopSize < popsize){
-        printf("[Error]maxPopSize is smaller than initial popsize \n");
-        return -1;
-    }
-    
-    //0 for relative simulation; 1 for absolute
-    int relorabs = atoi(argv[13]);
     bool isabsolute;
     char *isabsolutename = (char *) malloc(30);
     if(relorabs == 0){
@@ -105,10 +93,6 @@ int main(int argc, char *argv[]) {
     else if(relorabs == 1){
         isabsolute = true;
         strncpy(isabsolutename, "absolute", sizeof("absolute"));
-    }
-    else{
-        printf("[Error] 13th argument (relative or absolute scheme) must be 0 or 1 \n");
-        return -1;
     }
     
     //I have two parameters for Sb for the type of run that needs to have bracketed values of Sb.
@@ -121,7 +105,7 @@ int main(int argc, char *argv[]) {
     
     if(!isabsolute){
         //For relative runs sb is assigned from the arguments
-        Sb2 = atof(argv[7]);
+        Sb2 = Sbtemp;
         Sb1 = 0.0;
     }
     
@@ -130,44 +114,14 @@ int main(int argc, char *argv[]) {
         Sb2 = 1.0;
         Sb1 = 0.0;
     }
-    
-    //given that we don't have an exact idea what the mean effect of beneficial mutations are in humans and absolute runs, we use instead a beneficial/deleterious mutation effect ratio. sdmin then scales these parameters
-    double SdtoSbratio = atof(argv[22]);
+
     double Sd = Sb2*SdtoSbratio;
-    
-    //DFE of deleterious mutations. 0 for point; 1 for exponential
-    int deleteriousdistribution = atoi(argv[23]);
+
     char *deldistname = (char *) malloc(30);
     if(deleteriousdistribution == 0)
         strncpy(deldistname, "point", sizeof("point"));
     else if(deleteriousdistribution == 1)
         strncpy(deldistname, "exponential", sizeof("exponential"));
-    else {
-        printf("[Error] type of distribution for deleterious effect sizes not recognized.");
-        exit(0);
-    }
-    
-    //the initial death rate; so far, we test with two values: 0.5 and 0.2
-    double d_0 = atof(argv[14]);
-    if (d_0 >= 1 || d_0 <= 0){
-        printf("[Error] 14th argument (initial death rate d0) should vary between 0 and 1 \n");
-        return -1;
-    }   
-    //the epistasis variable R; R varies between 0 and 1, 1 representing no epistasis and 0 is full epistasis
-    double r = atof(argv[15]);
-    if (r < 0 || r > 1){
-        printf("[Error] 15th argument (epistasis degree R) must be between 0 and 1 \n");
-        return -1;
-    } 
-    //the selection coefficient of a beneficial mutation at minimum death rate (i.e. max birth rate). so far we use the arbitrary value 0.01 
-    double sdmin = atof(argv[16]);
-    
-    //status of tskit API in program, value of 0 tree sequencing is OFF, value of 1 tree sequencing is ON fully, and value of 2 tree sequencing is on after burn-in is completed.
-    int tskitstatus = atoi(argv[17]);
-    if (tskitstatus > 2){
-        printf("[Error] 17th argument (tree sequencing API status) must be either 0 for OFF, 1 for ON, 2 for ON after burn-in \n");
-        return -1;
-    }
     
     char *tskitstatusname = (char *) malloc(30);
     if(tskitstatus == 0){
@@ -179,12 +133,7 @@ int main(int argc, char *argv[]) {
     else if(tskitstatus == 2){
         strncpy(tskitstatusname, "ON_BURNIN", sizeof("ON_BURNIN"));
     }
-    else{
-        printf("[Error] 17th argument (tree sequencing API status) must be either 0 for OFF, 1 for ON, 2 for ON after burn-in \n");
-        return -1;
-    }
-    //Indicate whether epistasis is modular or not. 0 for non modular epistasis and 1 for modular epistasis. 
-    int nonmodormod = atoi(argv[18]);
+
     bool ismodular;
     if(nonmodormod == 0){
         ismodular = false;
@@ -192,40 +141,13 @@ int main(int argc, char *argv[]) {
     else if(nonmodormod == 1){
         ismodular = true;
     }
-    else{
-        printf("[Error] 18th argument (non modular or modular epistasis) must be 0 or 1 \n");
-        return -1;
-    }
-    //Number of elements per linkage block
-    int elementsperlb = atoi(argv[19]);
-    //check that modular elements per linkage block is different than 0 when modular epistasis is used
-    if(nonmodormod == 1 && elementsperlb == 0){
-            printf("[Error] 19th argument (elements per linkage block) must be other than 0 when 17th argument (modular epistasis) is 1 \n");
-            return -1;
-        }
     
-    //input for snapshot implementation
-    int snapshot = atoi(argv[20]);
     bool issnapshot;
     if(snapshot == 0){
         issnapshot = false;
     }
     else if(snapshot == 1){
         issnapshot = true;
-    }
-    else{
-        printf("[Error] 20th argument (is there or not a previous snapshot) must be 0 or 1 \n");
-        return -1;
-    }
-    //declaring and setting the file name of the previous snapshot
-    char* prevsnapshotfilename = (char*)malloc(sizeof(char) * 2000);
-    strcpy(prevsnapshotfilename, argv[21]);
-    
-    //input the requested size of the raw data file which determines the sampling rate of datapoints
-    int rawdatafilesize = atoi(argv[24]);
-    if (rawdatafilesize == 0 || rawdatafilesize > Nxtimesteps){
-        printf("[Error] 22nd argument (size of raw data file) cannot be 0 or larger than # of generations \n");
-        return -1;
     }
     
     pcg32_srandom(randomnumberseed, randomnumberseed); // seeds the random number generator.
@@ -234,7 +156,7 @@ int main(int argc, char *argv[]) {
     //it's a bit inelegant to have two different RNGs, which could be solved by using a different algorithm 
     //for choosing variates from a gamma distribution, instead of using the free one from gsl.
     
-    char * directoryname = MakeDirectoryName(tskitstatusname, deldistname, isabsolutename, isabsolute, bendistname, benmutname, argv[5], argv[4], argv[2], delmutname, argv[14], argv[11], argv[12], argv[15], argv[16], ismodular, argv[19]);// this will create the directory name pointer using input parameter values
+    char * directoryname = MakeDirectoryName(tskitstatusname, deldistname, isabsolutename, isabsolute, bendistname, benmutname, numberofchromosomesname, chromosomesizename, popsizename, deleteriousmutationratename, d_0name, randomnumberseedname, maxPopSizename, rname, sdminname, ismodular, elementsperlbname);// this will create the directory name pointer using input parameter values
     
     mkdir(directoryname, 0777);//create the directory with the directory name pointer
     chdir(directoryname);//move into the created directory
@@ -251,7 +173,7 @@ int main(int argc, char *argv[]) {
     }
     
     //create and open the final data file name using the input parameter values
-    char * finaldatafilename = MakeFinalDataFileName(typeofrunname, benmutname, argv[10], argv[11]);
+    char * finaldatafilename = MakeFinalDataFileName(typeofrunname, benmutname, slopeforcontourlinename, randomnumberseedname);
     finaldatafilepointer = fopen(finaldatafilename, "w");
     
    //START OF RUNS
@@ -267,20 +189,20 @@ int main(int argc, char *argv[]) {
         double sbrequiredforzeroslopeoffitness;
         fprintf(miscfilepointer, "Beginning bracketing function.");
         fflush(miscfilepointer);
-        BracketZeroForSb(tskitstatus, isabsolute, ismodular, elementsperlb, pSb1, pSb2, argv[1], argv[2], delmutname, argv[4], argv[5], benmutname, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, slopeforcontourline, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, verbosefilepointer, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
+        BracketZeroForSb(tskitstatus, isabsolute, ismodular, elementsperlb, pSb1, pSb2, Nxtimestepsname, popsizename, deleteriousmutationratename, chromosomesizename, numberofchromosomesname, benmutname, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, slopeforcontourline, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, verbosefilepointer, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
         fprintf(miscfilepointer, "Finished bracketing function.");
         fflush(miscfilepointer);
-        sbrequiredforzeroslopeoffitness = BisectionMethodToFindSbWithZeroSlope(tskitstatus, isabsolute, ismodular, elementsperlb, pSb1, pSb2, argv[1], argv[2], delmutname, argv[4], argv[5], benmutname, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, slopeforcontourline, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, miscfilepointer, verbosefilepointer, finaldatafilepointer, veryverbosefilepointer, rawdatafilesize);
+        sbrequiredforzeroslopeoffitness = BisectionMethodToFindSbWithZeroSlope(tskitstatus, isabsolute, ismodular, elementsperlb, pSb1, pSb2, Nxtimestepsname, popsizename, deleteriousmutationratename, chromosomesizename, numberofchromosomesname, benmutname, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, slopeforcontourline, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, miscfilepointer, verbosefilepointer, finaldatafilepointer, veryverbosefilepointer, rawdatafilesize);
         fprintf(finaldatafilepointer, "The value of Sb for which the slope of log fitness is zero with mub of %.10f is %.10f", beneficialmutationrate, sbrequiredforzeroslopeoffitness);
     
     } else if (typeofrun == 1) {
         if(isabsolute == 0){
             //This type of run just simulates a single population with the input parameters.
-            RunSimulationRel(tskitstatus, isabsolute, ismodular, elementsperlb, argv[1], argv[2], delmutname, argv[4], argv[5], benmutname, argv[7], typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
+            RunSimulationRel(tskitstatus, isabsolute, ismodular, elementsperlb, Nxtimestepsname, popsizename, deleteriousmutationratename, chromosomesizename, numberofchromosomesname, benmutname, argv[7], typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
         }
         
         else{
-            RunSimulationAbs(issnapshot, prevsnapshotfilename, tskitstatus, ismodular, elementsperlb, isabsolute, argv[22], argv[1], argv[2], delmutname, benmutname, argv[7], typeofrun, Nxtimesteps, popsize, maxPopSize, d_0, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, r, sdmin, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
+            RunSimulationAbs(issnapshot, prevsnapshotfilename, tskitstatus, ismodular, elementsperlb, isabsolute, SdtoSbrationame, Nxtimestepsname, popsizename, deleteriousmutationratename, benmutname, argv[7], typeofrun, Nxtimesteps, popsize, maxPopSize, d_0, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, r, sdmin, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
         }
         
     } else{
@@ -293,7 +215,7 @@ int main(int argc, char *argv[]) {
     free(finaldatafilename);
     free(bendistname);
     free(typeofrunname);
-    free(delmutname);
+    free(deleteriousmutationratename);
     free(benmutname);
     free(deldistname);
     free(isabsolutename);
@@ -717,7 +639,7 @@ int DetermineMutationSite(int totalgametelength)
 //The following function is heavily modified from Numerical Recipes in C, Second Edition.
 //For large population sizes, populations with mean Sb > 0 may actually have a more negative fitness slope than mean Sb = 0.
 //
-int BracketZeroForSb(int tskitstatus, bool isabsolute, bool ismodular, int elementsperlb, double *Sb1, double *Sb2, char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double slopeforcontourline, int beneficialdistribution, double Sd, int deleteriousdistribution, gsl_rng * randomnumbergeneratorforgamma, FILE *verbosefilepointer, FILE *miscfilepointer, FILE *veryverbosefilepointer, int rawdatafilesize) {
+int BracketZeroForSb(int tskitstatus, bool isabsolute, bool ismodular, int elementsperlb, double *Sb1, double *Sb2, char *Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double slopeforcontourline, int beneficialdistribution, double Sd, int deleteriousdistribution, gsl_rng * randomnumbergeneratorforgamma, FILE *verbosefilepointer, FILE *miscfilepointer, FILE *veryverbosefilepointer, int rawdatafilesize) {
     int i, numberoftries;
     numberoftries = 10;
     float factor = 0.01;
@@ -937,4 +859,148 @@ char * MakePopSnapshotFileName(char * mubname, char * Sbname)
     strcat(popsnapshotfilename, ".txt");
     
     return popsnapshotfilename;
+}
+
+int AssignArgumentstoVar(char **argv, int *Nxtimesteps, char *Nxtimestepsname, int *popsize, char *popsizename, double *deleteriousmutationrate, char *deleteriousmutationratename, int *chromosomesize, char *chromosomesizename, int *numberofchromosomes, char *numberofchromosomesname, double *bentodelmutrate, double *Sbtemp, int *beneficialdistribution, int *typeofrun, double *slopeforcontourline, char *slopeforcontourlinename, int *randomnumberseed, char *randomnumberseedname, int *maxPopSize, char *maxPopSizename, int *relorabs, double *d_0, char *d_0name, double *r, char *rname, double *sdmin, char *sdminname, int *tskitstatus, int *nonmodormod, int *elementsperlb, char *elementsperlbname, int *snapshot, char *prevsnapshotfilename, double *SdtoSbratio, char *SdtoSbrationame, int *deleteriousdistribution, int *rawdatafilesize)
+{
+    //cualarg is used for simplification in future modifications at the order of the arguments in the code
+    int cualarg;
+    cualarg=1;
+    //number of time steps that the simulation last.
+    *Nxtimesteps = atoi(argv[cualarg]);
+    strcpy(Nxtimestepsname, argv[1]);
+    //initial population size
+    cualarg=2;
+    *popsize = atoi(argv[cualarg]);
+    strcpy(popsizename, argv[cualarg]);
+    //deleterious mutation rate; remember that this is the genome-wide mutation rate
+    cualarg=3;
+    *deleteriousmutationrate = atof(argv[cualarg]);
+    strcpy(deleteriousmutationratename, argv[cualarg]);
+    //size of a single chromosome, i.e. number of blocks within a single chromosome. so far, we use 50 blocks
+    cualarg=4;
+    *chromosomesize = atoi(argv[cualarg]);
+    strcpy(chromosomesizename, argv[cualarg]);
+    //number of chromosomes; remember that this is total number of chromosomes, not ploidy -- all individuals will be diploid; to mimic a human genome, we use 23 chromosomes
+    cualarg=5;
+    *numberofchromosomes = atoi(argv[cualarg]);
+    strcpy(numberofchromosomesname, argv[cualarg]);
+    //given that we don't have an exact idea what the beneficial mutation rate is in humans, we use instead a beneficial/deleterious mutation ratio.
+    cualarg=6;
+    *bentodelmutrate = atof(argv[cualarg]);
+    //Mean effect of a beneficial mutation in relative runs. For absolute runs Sb is set to 1.0 in the main function
+    cualarg=7;
+    *Sbtemp = atof(argv[cualarg]);
+    //0 for point; 1 for exponential; 2 for unifrom
+    cualarg=8;
+    *beneficialdistribution = atoi(argv[cualarg]);
+    //0 is root; 1 is single
+    cualarg=9;
+    *typeofrun = atoi(argv[cualarg]);
+    //the slope for the contour line; so far it is used in the relative scheme
+    cualarg=10;
+    *slopeforcontourline = atof(argv[cualarg]);
+    strcpy(slopeforcontourlinename, argv[cualarg]);
+    // the seed for the random number generators used in this program *don't forget to be consistent with the seed*
+    cualarg=11;
+    *randomnumberseed = atoi(argv[cualarg]);
+    strcpy(randomnumberseedname, argv[cualarg]);
+    //the maximum population size K or carrying capacity. so far, we used 20000 as a value for K.
+    cualarg=12;
+    *maxPopSize = atoi(argv[cualarg]);
+    strcpy(maxPopSizename, argv[cualarg]);
+    //0 for relative simulation; 1 for absolute
+    cualarg=13;
+    *relorabs = atoi(argv[cualarg]);
+    //the initial death rate; so far, we test with two values: 0.5 and 0.2
+    cualarg=14;
+    *d_0 = atof(argv[cualarg]);
+    strcpy(d_0name, argv[cualarg]);
+    //the epistasis variable R; R varies between 0 and 1, 1 representing no epistasis and 0 is full epistasis
+    cualarg=15;
+    *r = atof(argv[cualarg]);
+    strcpy(rname, argv[cualarg]);
+    //the selection coefficient of a beneficial mutation at minimum death rate (i.e. max birth rate). so far we use the arbitrary value 0.01 
+    cualarg=16;
+    *sdmin = atof(argv[cualarg]);
+    strcpy(sdminname, argv[cualarg]);
+    //status of tskit API in program, value of 0 tree sequencing is OFF, value of 1 tree sequencing is ON fully, and value of 2 tree sequencing is on after burn-in is completed.
+    cualarg=17;
+    *tskitstatus = atoi(argv[cualarg]);
+    //Indicate whether epistasis is modular or not. 0 for non modular epistasis and 1 for modular epistasis. 
+    cualarg=18;
+    *nonmodormod = atoi(argv[cualarg]);
+    //Number of elements per linkage block
+    cualarg=19;
+    *elementsperlb = atoi(argv[cualarg]);
+    strcpy(elementsperlbname, argv[cualarg]);
+    //input for snapshot implementation
+    cualarg=20;
+    *snapshot = atoi(argv[cualarg]);
+    //File name of the previous snapshot
+    cualarg=21;
+    strcpy(prevsnapshotfilename, argv[cualarg]);
+    //given that we don't have an exact idea what the mean effect of beneficial mutations are in humans and absolute runs, we use instead a beneficial/deleterious mutation effect ratio. sdmin then scales these parameters
+    cualarg=22;
+    *SdtoSbratio = atof(argv[cualarg]);
+    strcpy(SdtoSbrationame, argv[cualarg]);
+    //DFE of deleterious mutations. 0 for point; 1 for exponential
+    cualarg=23;
+    *deleteriousdistribution = atoi(argv[cualarg]);
+    //input the requested size of the raw data file which determines the sampling rate of datapoints
+    cualarg=24;
+    *rawdatafilesize = atoi(argv[cualarg]);
+    
+    
+    if(*maxPopSize < *popsize){
+        printf("[Error]maxPopSize is smaller than initial popsize \n");
+        return -1;
+    }
+    if (*beneficialdistribution > 2){
+        printf("[Error] 8th argument (beneficial distribution) must be 0, 1 or 2 \n");
+        return -1;
+    }
+    if (*typeofrun > 2){
+        printf("[Error] 9th argument (type of run) must be 0 or 1 \n");
+        return -1;
+    }
+    if (*relorabs > 1){
+        printf("[Error] 13th argument (relative or absolute scheme) must be 0 or 1 \n");
+        return -1;
+    }
+    if (*d_0 >= 1 || *d_0 <= 0){
+        printf("[Error] 14th argument (initial death rate d0) should vary between 0 and 1 \n");
+        return -1;
+    }   
+    if (*r < 0 || *r > 1){
+        printf("[Error] 15th argument (epistasis degree R) must be between 0 and 1 \n");
+        return -1;
+    } 
+    if (*tskitstatus > 2){
+        printf("[Error] 17th argument (tree sequencing API status) must be either 0 for OFF, 1 for ON, 2 for ON after burn-in \n");
+        return -1;
+    }
+    if (*deleteriousdistribution > 1){
+        printf("[Error] 23th argument (deleterious distribution) must be 0 or 1 \n");
+        return -1;
+    }
+    if (*nonmodormod > 1){
+        printf("[Error] 18th argument (non modular or modular epistasis) must be 0 or 1 \n");
+        return -1;
+    }
+    //check that modular elements per linkage block is different than 0 when modular epistasis is used
+    if(*nonmodormod == 1 && *elementsperlb == 0){
+        printf("[Error] 19th argument (elements per linkage block) must be other than 0 when 17th argument (modular epistasis) is 1 \n");
+        return -1;
+    }
+    if (*snapshot > 1){
+        printf("[Error] 20th argument (is there or not a previous snapshot) must be 0 or 1 \n");
+        return -1;
+    }
+    if (*rawdatafilesize == 0 || *rawdatafilesize > *Nxtimesteps){
+        printf("[Error] 22nd argument (size of raw data file) cannot be 0 or larger than # of generations \n");
+        return -1;
+    }
+    
+    return 1;
 }

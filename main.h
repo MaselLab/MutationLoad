@@ -59,7 +59,7 @@ char * MakeFinalDataFileName(char * typeofrun, char * benmut, char * slopeforcon
 char * MakeRawDataFileName(char * maxTimename, char * popsizename, char * delmutratename);
 char * MakeSummaryDataFileName(char * mubname, char * Sbname);
 char * MakePopSnapshotFileName(char * mubname, char * Sbname);
-
+int AssignArgumentstoVar(char **argv, int *Nxtimesteps, char *Nxtimestepsname, int *popsize, char *popsizename, double *deleteriousmutationrate, char *deleteriousmutationratename, int *chromosomesize, char *chromosomesizename, int *numberofchromosomes, char *numberofchromosomesname, double *bentodelmutrate, double *Sbtemp, int *beneficialdistribution, int *typeofrun, double *slopeforcontourline, char *slopeforcontourlinename, int *randomnumberseed, char *randomnumberseedname, int *maxPopSize, char *maxPopSizename, int *relorabs, double *d_0, char *d_0name, double *r, char *rname, double *sdmin, char *sdminname, int *tskitstatus, int *nonmodormod, int *elementsperlb, char *elementsperlbname, int *snapshot, char *prevsnapshotfilename, double *SdtoSbratio, char *SdtoSbrationame, int *deleteriousdistribution, int *rawdatafilesize);
 #endif // MAIN_H_INCLUDED
 
 
