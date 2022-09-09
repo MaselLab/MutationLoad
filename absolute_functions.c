@@ -37,16 +37,18 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, int tskitst
     FILE *mutationfilepointer;
     int i, j, k, w;
 
-    char* rawdatafilename =  MakeRawDataFileName(maxTimename, popsizename, delmutratename);
+    char* rawdatafilename =  MakeRawDataFileName(mubname, Sbname);
 
     char* summarydatafilename = MakeSummaryDataFileName(mubname, Sbname);
     
     summarydatafilepointer = fopen(summarydatafilename, "w"); //opens the file to which to print summary data.
     
-    nodefilepointer = fopen("nodetable.txt", "w");
-    edgefilepointer = fopen("edgetable.txt", "w");
-    sitefilepointer = fopen("sitetable.txt", "w");
-    mutationfilepointer = fopen("mutationtable.txt", "w");
+    if (tskitstatus > 0){
+        nodefilepointer = fopen("nodetable.txt", "w");
+        edgefilepointer = fopen("edgetable.txt", "w");
+        sitefilepointer = fopen("sitetable.txt", "w");
+        mutationfilepointer = fopen("mutationtable.txt", "w");
+    }
     
     int totaltimesteps = maxTime;
     int popsize = initialPopSize;
@@ -337,10 +339,12 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, int tskitst
     
     fclose(rawdatafilepointer);
     fclose(summarydatafilepointer);
-    fclose(nodefilepointer);
-    fclose(edgefilepointer);
-    fclose(sitefilepointer);
-    fclose(mutationfilepointer);
+    if (tskitstatus > 0){
+        fclose(nodefilepointer);
+        fclose(edgefilepointer);
+        fclose(sitefilepointer);
+        fclose(mutationfilepointer);
+    }
     fclose(popsnapshotfilepointer);
     
     free(popsnapshotfilename);
