@@ -59,41 +59,26 @@ int main(int argc, char *argv[]) {
     
     int wrong_args;
     wrong_args = AssignArgumentstoVar(argv, &Nxtimesteps, Nxtimestepsname, &popsize, popsizename, &deleteriousmutationrate, deleteriousmutationratename, &chromosomesize, chromosomesizename, &numberofchromosomes, numberofchromosomesname, &bentodelmutrate, &Sbtemp, &beneficialdistribution, &typeofrun, &slopeforcontourline, slopeforcontourlinename, &randomnumberseed, randomnumberseedname, &maxPopSize, maxPopSizename, &relorabs, &d_0, d_0name, &r, rname, &sdmin, sdminname, &tskitstatus, &nonmodormod, &elementsperlb, elementsperlbname, &snapshot, prevsnapshotfilename, &SdtoSbratio, SdtoSbrationame, &deleteriousdistribution, &rawdatafilesize);
-    
     if(wrong_args == -1)
         return -1;
 
-    
-    //calculate the beneficial mutation rate from the inputted ratio
-    double beneficialmutationrate = bentodelmutrate*deleteriousmutationrate;
-    
-    char *benmutname = (char *) malloc(30);//create a pointer for the beneficial mutation rate
-    sprintf(benmutname, "%1.4f", beneficialmutationrate);
-    
-    char *bendistname = (char *) malloc(30);
-    if(beneficialdistribution == 0)
-        strncpy(bendistname, "point", sizeof("point"));
-    else if(beneficialdistribution == 1)
-        strncpy(bendistname, "exponential", sizeof("exponential"));
-    else if(beneficialdistribution == 2)
-        strncpy(bendistname, "uniform", sizeof("uniform"));
-    
-    char *typeofrunname = (char *) malloc(30);
-    if(typeofrun == 0)
-        strncpy(typeofrunname, "root", sizeof("root"));
-    else if(typeofrun == 1)
-        strncpy(typeofrunname, "single", sizeof("single"));
-    
     bool isabsolute;
-    char *isabsolutename = (char *) malloc(30);
-    if(relorabs == 0){
+    if(relorabs == 0)
         isabsolute = false;
-        strncpy(isabsolutename, "relative", sizeof("relative"));
-    }
-    else if(relorabs == 1){
+    else if(relorabs == 1)
         isabsolute = true;
-        strncpy(isabsolutename, "absolute", sizeof("absolute"));
-    }
+    
+    bool ismodular;
+    if(nonmodormod == 0)
+        ismodular = false;
+    else if(nonmodormod == 1)
+        ismodular = true;
+    
+    bool issnapshot;
+    if(snapshot == 0)
+        issnapshot = false;
+    else if(snapshot == 1)
+        issnapshot = true;
     
     //I have two parameters for Sb for the type of run that needs to have bracketed values of Sb.
     //In the case with just a single simulation being run, Sb2 here will be the value of Sb used.
@@ -103,52 +88,28 @@ int main(int argc, char *argv[]) {
     double Sb2;
     double *pSb2 = &Sb2;
     
-    if(!isabsolute){
-        //For relative runs sb is assigned from the arguments
+    Sb1 = 0.0;
+    if(!isabsolute)
         Sb2 = Sbtemp;
-        Sb1 = 0.0;
-    }
-    
     if(isabsolute){
         //For absolute runs mean sb is set to 1. Beneficial DFE has a mean 1.0
         Sb2 = 1.0;
-        Sb1 = 0.0;
     }
 
+    //calculate the beneficial mutation rate from the inputted ratio
+    double beneficialmutationrate = bentodelmutrate*deleteriousmutationrate;
     double Sd = Sb2*SdtoSbratio;
-
-    char *deldistname = (char *) malloc(30);
-    if(deleteriousdistribution == 0)
-        strncpy(deldistname, "point", sizeof("point"));
-    else if(deleteriousdistribution == 1)
-        strncpy(deldistname, "exponential", sizeof("exponential"));
     
-    char *tskitstatusname = (char *) malloc(30);
-    if(tskitstatus == 0){
-        strncpy(tskitstatusname, "OFF", sizeof("OFF"));
-    }
-    else if(tskitstatus == 1){
-        strncpy(tskitstatusname, "ON", sizeof("ON"));
-    }
-    else if(tskitstatus == 2){
-        strncpy(tskitstatusname, "ON_BURNIN", sizeof("ON_BURNIN"));
-    }
-
-    bool ismodular;
-    if(nonmodormod == 0){
-        ismodular = false;
-    }
-    else if(nonmodormod == 1){
-        ismodular = true;
-    }
+    char *beneficialmutationratename, *bendistname, *deldistname, *typeofrunname, *tskitstatusname, *Sb2name, *isabsolutename;
+    beneficialmutationratename = (char *) malloc(30);
+    bendistname = (char *) malloc(30);
+    deldistname = (char *) malloc(30);
+    typeofrunname = (char *) malloc(30);
+    tskitstatusname = (char *) malloc(30);
+    Sb2name = (char *) malloc(30);
+    isabsolutename = (char *) malloc(30);
     
-    bool issnapshot;
-    if(snapshot == 0){
-        issnapshot = false;
-    }
-    else if(snapshot == 1){
-        issnapshot = true;
-    }
+    AssignStringNames(beneficialmutationratename, beneficialmutationrate, bendistname, beneficialdistribution, deldistname, deleteriousdistribution, typeofrunname, typeofrun, tskitstatusname, tskitstatus, Sb2name, Sb2, isabsolutename, isabsolute);
     
     pcg32_srandom(randomnumberseed, randomnumberseed); // seeds the random number generator.
     gsl_rng * randomnumbergeneratorforgamma = gsl_rng_alloc(gsl_rng_mt19937);
@@ -156,7 +117,7 @@ int main(int argc, char *argv[]) {
     //it's a bit inelegant to have two different RNGs, which could be solved by using a different algorithm 
     //for choosing variates from a gamma distribution, instead of using the free one from gsl.
     
-    char * directoryname = MakeDirectoryName(tskitstatusname, deldistname, isabsolutename, isabsolute, bendistname, benmutname, numberofchromosomesname, chromosomesizename, popsizename, deleteriousmutationratename, d_0name, randomnumberseedname, maxPopSizename, rname, sdminname, ismodular, elementsperlbname);// this will create the directory name pointer using input parameter values
+    char * directoryname = MakeDirectoryName(tskitstatusname, deldistname, isabsolutename, isabsolute, bendistname, beneficialmutationratename, numberofchromosomesname, chromosomesizename, popsizename, deleteriousmutationratename, d_0name, randomnumberseedname, maxPopSizename, rname, sdminname, ismodular, elementsperlbname);// this will create the directory name pointer using input parameter values
     
     mkdir(directoryname, 0777);//create the directory with the directory name pointer
     chdir(directoryname);//move into the created directory
@@ -172,13 +133,13 @@ int main(int argc, char *argv[]) {
         miscfilepointer = fopen("miscellaneous.txt", "a");
     }
     
-    //create and open the final data file name using the input parameter values
-    char * finaldatafilename = MakeFinalDataFileName(typeofrunname, benmutname, slopeforcontourlinename, randomnumberseedname);
-    finaldatafilepointer = fopen(finaldatafilename, "w");
     
    //START OF RUNS
     if (typeofrun == 0) {
         
+        //create and open the final data file name using the input parameter values
+        char * finaldatafilename = MakeFinalDataFileName(typeofrunname, beneficialmutationratename, slopeforcontourlinename, randomnumberseedname);
+        finaldatafilepointer = fopen(finaldatafilename, "w");
         /*This type of run finds the Sb value for the given set of parameters
          that produces a population whose fitness stays almost exactly stable.
          It does this by finding values of Sb that lead to populations definitely
@@ -189,20 +150,24 @@ int main(int argc, char *argv[]) {
         double sbrequiredforzeroslopeoffitness;
         fprintf(miscfilepointer, "Beginning bracketing function.");
         fflush(miscfilepointer);
-        BracketZeroForSb(tskitstatus, isabsolute, ismodular, elementsperlb, pSb1, pSb2, Nxtimestepsname, popsizename, deleteriousmutationratename, chromosomesizename, numberofchromosomesname, benmutname, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, slopeforcontourline, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, verbosefilepointer, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
+        BracketZeroForSb(tskitstatus, isabsolute, ismodular, elementsperlb, pSb1, pSb2, Nxtimestepsname, popsizename, deleteriousmutationratename, chromosomesizename, numberofchromosomesname, beneficialmutationratename, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, slopeforcontourline, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, verbosefilepointer, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
         fprintf(miscfilepointer, "Finished bracketing function.");
         fflush(miscfilepointer);
-        sbrequiredforzeroslopeoffitness = BisectionMethodToFindSbWithZeroSlope(tskitstatus, isabsolute, ismodular, elementsperlb, pSb1, pSb2, Nxtimestepsname, popsizename, deleteriousmutationratename, chromosomesizename, numberofchromosomesname, benmutname, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, slopeforcontourline, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, miscfilepointer, verbosefilepointer, finaldatafilepointer, veryverbosefilepointer, rawdatafilesize);
+        sbrequiredforzeroslopeoffitness = BisectionMethodToFindSbWithZeroSlope(tskitstatus, isabsolute, ismodular, elementsperlb, pSb1, pSb2, Nxtimestepsname, popsizename, deleteriousmutationratename, chromosomesizename, numberofchromosomesname, beneficialmutationratename, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, slopeforcontourline, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, miscfilepointer, verbosefilepointer, finaldatafilepointer, veryverbosefilepointer, rawdatafilesize);
         fprintf(finaldatafilepointer, "The value of Sb for which the slope of log fitness is zero with mub of %.10f is %.10f", beneficialmutationrate, sbrequiredforzeroslopeoffitness);
+        
+        
+        free(finaldatafilename);
+        fclose(finaldatafilepointer);
     
     } else if (typeofrun == 1) {
         if(isabsolute == 0){
             //This type of run just simulates a single population with the input parameters.
-            RunSimulationRel(tskitstatus, isabsolute, ismodular, elementsperlb, Nxtimestepsname, popsizename, deleteriousmutationratename, chromosomesizename, numberofchromosomesname, benmutname, argv[7], typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
+            RunSimulationRel(tskitstatus, isabsolute, ismodular, elementsperlb, Nxtimestepsname, popsizename, deleteriousmutationratename, chromosomesizename, numberofchromosomesname, beneficialmutationratename, Sb2name, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
         }
         
         else{
-            RunSimulationAbs(issnapshot, prevsnapshotfilename, tskitstatus, ismodular, elementsperlb, isabsolute, SdtoSbrationame, Nxtimestepsname, popsizename, deleteriousmutationratename, benmutname, argv[7], typeofrun, Nxtimesteps, popsize, maxPopSize, d_0, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, r, sdmin, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
+            RunSimulationAbs(issnapshot, prevsnapshotfilename, tskitstatus, ismodular, elementsperlb, isabsolute, SdtoSbrationame, Nxtimestepsname, popsizename, deleteriousmutationratename, beneficialmutationratename, Sb2name, typeofrun, Nxtimesteps, popsize, maxPopSize, d_0, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, r, sdmin, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
         }
         
     } else{
@@ -210,22 +175,35 @@ int main(int argc, char *argv[]) {
         fprintf(miscfilepointer, "That type of run is not currently supported.");
         return -1;
     }
-    
-    free(directoryname);
-    free(finaldatafilename);
-    free(bendistname);
-    free(typeofrunname);
-    free(deleteriousmutationratename);
-    free(benmutname);
-    free(deldistname);
-    free(isabsolutename);
-    free(prevsnapshotfilename);
-    free(tskitstatusname);
-    
+
+    fclose(miscfilepointer); 
     fclose(verbosefilepointer);
     fclose(veryverbosefilepointer);
-    fclose(miscfilepointer); 
-    fclose(finaldatafilepointer);
+    
+    free(directoryname);
+    
+    free(Nxtimestepsname);
+    free(popsizename);
+    free(deleteriousmutationratename);
+    free(chromosomesizename);
+    free(numberofchromosomesname);
+    free(slopeforcontourlinename);
+    free(randomnumberseedname);
+    free(maxPopSizename);
+    free(d_0name);
+    free(rname);
+    free(sdminname);
+    free(elementsperlbname);
+    free(prevsnapshotfilename);
+    free(SdtoSbrationame);
+    
+    free(beneficialmutationratename);
+    free(bendistname);
+    free(deldistname);
+    free(typeofrunname);
+    free(tskitstatusname);
+    free(Sb2name);
+    free(isabsolutename);
     
     gsl_rng_free(randomnumbergeneratorforgamma);
     
@@ -765,10 +743,10 @@ char * MakeDirectoryName(char * tskitstatus, char* deldist, char * isabsolutenam
 	char * directoryname = (char *) malloc(400);
 	strcpy(directoryname, "datafor_");
 	strcat(directoryname, isabsolutename);
-    strcat(directoryname, "_tskitstatus_");
+    strcat(directoryname, "_tskit_");
 	strcat(directoryname, tskitstatus);
         if(ismodular){
-            strcat(directoryname, "_elementsperlb_");
+            strcat(directoryname, "_m_");
             strcat(directoryname, elementsperlb);
         }
         if(isabsolute){
@@ -818,17 +796,15 @@ char * MakeFinalDataFileName(char * typeofrun, char * benmut, char * slopeforcon
     return finaldatafilename;
 }
 
-char * MakeRawDataFileName(char * maxTimename, char * popsizename, char * delmutratename) 
+char * MakeRawDataFileName(char * mubname, char * Sbname) 
 {
 	
     char * rawdatafilename = (char *) malloc(200);
     strcpy(rawdatafilename, "rawdatafor_"); //starting the string that will be the name of the data file.
-    strcat(rawdatafilename, "maxTime_"); //for adding values of generations to the data name.
-    strcat(rawdatafilename, maxTimename);
-    strcat(rawdatafilename, "_initialPopSize_"); //for adding values of starting population sizes to the data name.
-    strcat(rawdatafilename, popsizename);
-    strcat(rawdatafilename, "_mutrate_"); //for adding values of mutation rate to the data name (remember that mutation rate is currently the per-genome).
-    strcat(rawdatafilename, delmutratename);
+    strcat(rawdatafilename, "Sb_");
+    strcat(rawdatafilename, Sbname);
+    strcat(rawdatafilename, "_mub_");
+    strcat(rawdatafilename, mubname);
     strcat(rawdatafilename, ".txt");
     
     return rawdatafilename;
@@ -1003,4 +979,50 @@ int AssignArgumentstoVar(char **argv, int *Nxtimesteps, char *Nxtimestepsname, i
     }
     
     return 1;
+}
+
+void AssignStringNames(char *beneficialmutationratename, double beneficialmutationrate, char *bendistname, int beneficialdistribution, char *deldistname, int deleteriousdistribution, char *typeofrunname, int typeofrun, char *tskitstatusname, int tskitstatus, char* Sb2name, double Sb2, char *isabsolutename, bool isabsolute)
+{
+    //pointer for the beneficial mutation rate name
+    sprintf(beneficialmutationratename, "%1.4f", beneficialmutationrate);
+
+    //pointer for the beneficial distribution name
+    if(beneficialdistribution == 0)
+        strncpy(bendistname, "point", sizeof("point"));
+    else if(beneficialdistribution == 1)
+        strncpy(bendistname, "exponential", sizeof("exponential"));
+    else if(beneficialdistribution == 2)
+        strncpy(bendistname, "uniform", sizeof("uniform"));
+    
+    //pointer for the deleterious distribution name
+    if(deleteriousdistribution == 0)
+        strncpy(deldistname, "point", sizeof("point"));
+    else if(deleteriousdistribution == 1)
+        strncpy(deldistname, "exponential", sizeof("exponential"));
+    
+    //pointer for type of run name
+    if(typeofrun == 0)
+        strncpy(typeofrunname, "root", sizeof("root"));
+    else if(typeofrun == 1)
+        strncpy(typeofrunname, "single", sizeof("single"));
+    
+    //pointer for tskitstatus name
+    if(tskitstatus == 0){
+        strncpy(tskitstatusname, "OFF", sizeof("OFF"));
+    }
+    else if(tskitstatus == 1){
+        strncpy(tskitstatusname, "ON", sizeof("ON"));
+    }
+    else if(tskitstatus == 2){
+        strncpy(tskitstatusname, "ON_BURNIN", sizeof("ON_BURNIN"));
+    }
+    
+    //pointer for Sb name
+    sprintf(Sb2name, "%1.4f", Sb2);
+    
+    //pointer for isabsolutename
+    if(isabsolute)
+        strncpy(isabsolutename, "absolute", sizeof("absolute"));
+    else
+        strncpy(isabsolutename, "relative", sizeof("relative"));
 }
