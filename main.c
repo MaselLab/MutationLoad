@@ -61,7 +61,11 @@ int main(int argc, char *argv[]) {
     wrong_args = AssignArgumentstoVar(argv, &Nxtimesteps, Nxtimestepsname, &popsize, popsizename, &deleteriousmutationrate, deleteriousmutationratename, &chromosomesize, chromosomesizename, &numberofchromosomes, numberofchromosomesname, &bentodelmutrate, &Sbtemp, &beneficialdistribution, &typeofrun, &slopeforcontourline, slopeforcontourlinename, &randomnumberseed, randomnumberseedname, &maxPopSize, maxPopSizename, &relorabs, &d_0, d_0name, &r, rname, &sdmin, sdminname, &tskitstatus, &nonmodormod, &elementsperlb, elementsperlbname, &snapshot, prevsnapshotfilename, &SdtoSbratio, SdtoSbrationame, &deleteriousdistribution, &rawdatafilesize);
     if(wrong_args == -1)
         return -1;
+<<<<<<< HEAD
+    
+=======
 
+>>>>>>> parent of 8c3267e (changed the list of parameters so they are the ones needed for mutaway)
     bool isabsolute;
     if(relorabs == 0)
         isabsolute = false;
@@ -167,7 +171,7 @@ int main(int argc, char *argv[]) {
         }
         
         else{
-            RunSimulationAbs(issnapshot, prevsnapshotfilename, tskitstatus, ismodular, elementsperlb, isabsolute, SdtoSbrationame, Nxtimestepsname, popsizename, deleteriousmutationratename, beneficialmutationratename, Sb2name, typeofrun, Nxtimesteps, popsize, maxPopSize, d_0, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, r, sdmin, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
+            RunSimulationAbs(issnapshot, prevsnapshotfilename, beneficialmutationratename, Sb2name, tskitstatus, ismodular, elementsperlb, isabsolute, Nxtimesteps, popsize, K, chromosomesize, numberofchromosomes, deleteriousmutationrate, Sd, deleteriousdistribution, beneficialmutationrate, Sb2, beneficialdistribution, r, i_init, s, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
         }
         
     } else{

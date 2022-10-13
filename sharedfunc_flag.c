@@ -72,7 +72,7 @@ double PerformDeath(bool isabsolute, int maxPopSize, int *pPopSize, int victim, 
     Fen_set(wholepopulationselectiontree, maxPopSize, 0.0, victim);
 }
 
-void PerformBirth(int tskitstatus, int isburninphaseover, bool ismodular, int elementsperlb, tsk_table_collection_t * treesequencetablecollection, tsk_id_t * wholepopulationnodesarray, tsk_id_t childnode1, tsk_id_t childnode2, bool isabsolute, double *parent1gamete, double *parent2gamete, int maxPopSize, int *pPopSize, int birthplace, double *wholepopulationgenomes, int totalindividualgenomelength, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates, long double *psumofdeathratessquared, double d_0, double r, double sdmin, FILE *miscfilepointer)
+void PerformBirth(int tskitstatus, int isburninphaseover, bool ismodular, int elementsperlb, tsk_table_collection_t * treesequencetablecollection, tsk_id_t * wholepopulationnodesarray, tsk_id_t childnode1, tsk_id_t childnode2, bool isabsolute, double *parent1gamete, double *parent2gamete, int maxPopSize, int *pPopSize, int birthplace, double *wholepopulationgenomes, int totalindividualgenomelength, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates, long double *psumofdeathratessquared, double b_0, double r,  int i_init, double s, FILE *miscfilepointer)
 {
     int i;
     
@@ -97,7 +97,7 @@ void PerformBirth(int tskitstatus, int isburninphaseover, bool ismodular, int el
             exit(0);
         }
         
-        inddeathrate = (long double) CalculateDeathRate(ismodular, elementsperlb, parent1gamete, parent2gamete, totalindividualgenomelength, d_0, r, sdmin);
+        inddeathrate = (long double) CalculateDeathRate(ismodular, elementsperlb, parent1gamete, parent2gamete, totalindividualgenomelength, b_0, r, i_init, s);
         
         if(inddeathrate < 0.0){
             fprintf(miscfilepointer, "\n The individual death rate of a new born is less than 0.0 (he is even more than immortal). \n");
