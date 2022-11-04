@@ -20,7 +20,7 @@
 #include <kastore.h>
 #include <tskit/core.h>
 
-double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, int tskitstatus, bool ismodular, int elementsperlb, bool isabsolute, char* SdtoSbrationame, char* maxTimename, char* popsizename, char* delmutratename, char* mubname, char* Sbname, int typeofrun, int maxTime, int initialPopSize, int maxPopSize, double d_0, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double Sd, int deleteriousdistribution, gsl_rng* randomnumbergeneratorforgamma, double r, double sdmin, FILE *miscfilepointer, FILE *veryverbosefilepointer, int rawdatafilesize)
+double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredinmaxpopsize, int redinmaxpopsize, char* mubname, char* Sbname, int tskitstatus, bool ismodular, int elementsperlb, bool isabsolute, int maxTime, int initialPopSize, int K, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double Sd, int deleteriousdistribution, double beneficialmutationrate, double Sb, int beneficialdistribution, double r, int i_init, double s, gsl_rng* randomnumbergeneratorforgamma, FILE *miscfilepointer, FILE *veryverbosefilepointer, int rawdatafilesize)
 {
 
     if(!isabsolute){
@@ -37,7 +37,7 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, int tskitst
     FILE *mutationfilepointer;
     int i, j, k, w;
 
-    char* rawdatafilename =  MakeRawDataFileName(maxTimename, popsizename, delmutratename);
+    char* rawdatafilename =  MakeRawDataFileName(mubname, Sbname);
 
     char* summarydatafilename = MakeSummaryDataFileName(mubname, Sbname);
     
@@ -48,6 +48,28 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, int tskitst
     sitefilepointer = fopen("sitetable.txt", "w");
     mutationfilepointer = fopen("mutationtable.txt", "w");
     
+    int kappa;
+    if(r == 1.0){
+        kappa = K/(s*i_init);
+    }
+    else{
+        if(deleteriousdistribution == 0){
+            kappa = (1-r)*K/(s);
+        }
+        else if(deleteriousdistribution == 1){
+            kappa = -(log(r)*K)/(s);
+        }
+    }
+    int maxPopSize = kappa;
+	//variables used to define birth rate
+	double const b_0 = 1.0;
+	double birthrate;
+
+    double *arrayofbirthrates;
+	arrayofbirthrates = malloc(sizeof(double)*maxPopSize);
+
+    calcRateofBirths(arrayofbirthrates, maxPopSize, kappa, b_0);
+
     int totaltimesteps = maxTime;
     int popsize = initialPopSize;
     int *pPopSize;
@@ -92,7 +114,7 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, int tskitst
     check_tsk_error(returnvaluefortskfunctions);
     
     tsk_id_t *wholepopulationnodesarray;
-    if (tskitstatus > 0){
+    if (tskitstatus != 0){
         wholepopulationnodesarray = malloc(sizeof(tsk_id_t) * 2 * maxPopSize);
     }
     //The extant nodes need to have explicit identification in order to add edges between parents and children nodes.
@@ -117,19 +139,25 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, int tskitst
     int *wholepopulationindex;
     wholepopulationindex = malloc(sizeof(int) * maxPopSize);
     
-    //variables used to define death rates
-    double const b_0 = 1.0;
-    
     if (VERYVERBOSE == 1) {
         fprintf(veryverbosefilepointer, "Entered simulation run.\n");
     }
     
     int simplifyat = 0;
-    int simplifyeach = 1000;
+    int simplifyeach = 500;
     int printeach = maxTime/rawdatafilesize;
     int printtime = 0;
-    
-    int updatesumofdeathrateseach = 10000;
+    int genafterburnin = 15*initialPopSize;
+    double redtime = (double)genafterburnin;
+    double redtimeeach = (double)genafterburnin/(double)redinmaxpopsize;
+
+    if (tskitstatus == 2)
+    {
+       printtime = genafterburnin;
+       simplifyat = genafterburnin;
+    }
+
+    int updatesumofdeathrateseach = 1000;
     int updatesumtime = 0;
 
     //assignment of data to popArray for index, wis, and deathrate
@@ -141,7 +169,7 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, int tskitst
         popsize = initialPopSize;
         t = 0.0;
         //assignment of data to popArray for index, wis, and deathrate
-        InitializePopulationAbs(tskitstatus, &treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, initialPopSize, maxPopSize, totaltimesteps, wholepopulationgenomes, totalpopulationgenomelength, psumofdeathrates, psumofdeathratessquared, d_0);//sets up all data within the population for a run. As this initializes data I think it should be a separate function.
+        InitializePopulationAbs(tskitstatus, &treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, initialPopSize, maxPopSize, totaltimesteps, deleteriousdistribution, wholepopulationgenomes, totalpopulationgenomelength, psumofdeathrates, psumofdeathratessquared, b_0, r, i_init, s);//sets up all data within the population for a run. As this initializes data I think it should be a separate function.
     }else{
         rawdatafilepointer = fopen(rawdatafilename, "a");
         summarydatafilepointer = fopen(summarydatafilename, "a"); //opens the file to which to print summary data.
@@ -160,7 +188,9 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, int tskitst
         //the previous simulation time had to be added to the max time of the simulation
         maxTime += t;
         printtime += t + printeach;
-        
+        updatesumtime += t + updatesumofdeathrateseach;
+	    redtime += t + redtimeeach;
+
         fclose(prevsnapshotfilepointer);
     }
 
@@ -200,15 +230,22 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, int tskitst
     double arbitrarynumber = (-1.0 * 0.007 / maxPopSize); //using a number somewhere close to the mean of the DFE for deleterious mutations.
     double slopeoflogfitness;    
     double variancesum;
-    
     bool birthhappens;
+    
+    //variables used for limiting printing of popsize based on lines
+    int N = 0;
+    int linesize = 200;
+	int index = 0;
+	int upperlimit = 0;
+    int lowerlimit = maxPopSize;
 
-    double birthrate;
-    
-    double *arrayofbirthrates;
-    arrayofbirthrates = malloc(sizeof(double)*maxPopSize);
-    
-    calcRateofBirths(arrayofbirthrates, maxPopSize, b_0);
+    int *arrayofpopsizes;
+	arrayofpopsizes = malloc(sizeof(int)*maxPopSize);
+
+    for(i = 0; i < maxPopSize; i++){
+        arrayofpopsizes[i] = N;
+        N += linesize;
+    }
     
     if (VERYVERBOSE == 1) {
         fprintf(veryverbosefilepointer, "Variables initialized, preparing to begin simulation.\n");
@@ -220,36 +257,75 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, int tskitst
         
         if(popsize < 3){
         	fprintf(summarydatafilepointer, "Population died during run at time %f", t);
+            birthrate = arrayofbirthrates[popsize];
+			fprintf(rawdatafilepointer, "%f\t%d\t%Lf\t%Lf\t%f\n", t, popsize, (sumofdeathrates/(double)popsize), ((sumofdeathratessquared/(double)popsize) - (long double) pow((sumofdeathrates/(double)popsize),2)), (birthrate/(double)popsize));
             break;
         }
         
         if(popsize >= (maxPopSize-1)){
-        	fprintf(summarydatafilepointer, "Population achieved its maximum population size at time %f", t);
+        	fprintf(summarydatafilepointer, "Population achieved its maximum population size at time %f", t); 
+            birthrate = arrayofbirthrates[popsize];
+			fprintf(rawdatafilepointer, "%f\t%d\t%Lf\t%Lf\t%f\n", t, popsize, (sumofdeathrates/(double)popsize), ((sumofdeathratessquared/(double)popsize) - (long double) pow((sumofdeathrates/(double)popsize),2)), (birthrate/(double)popsize));
             break;
         }
         
-        if(tskitstatus == 2 && (int)t > 15*popsize){
+        if(tskitstatus == 2 && t >= printtime){
             isburninphaseover = 1;
         }
 
+        if (isredinmaxpopsize && t >= redtime){
+		    K = --K;
+        	if(r == 1.0){
+        		kappa = K/(s*i_init);
+    		} else{
+			    if(deleteriousdistribution == 0){
+            		kappa = (1-r)*K/(s);
+        		} else if(deleteriousdistribution == 1){
+            		kappa = -(log(r)*K)/(s);
+        		}
+		}
+            calcRateofBirths(arrayofbirthrates, maxPopSize, kappa, b_0);
+		    redtime += redtimeeach;
+        }
+        
         birthhappens = monteCarloStep(arrayofbirthrates, popsize, pCurrenttime, sumofdeathrates);//This is the monte carlo step. This decides if a birth or a death event takes place by returning a 0 or 1
         
-        PerformOneEventAbs(tskitstatus, isburninphaseover, ismodular, elementsperlb, &treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, isabsolute, birthhappens, maxPopSize, pPopSize, totaltimesteps, pCurrenttime, wholepopulationgenomes, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationisfree, wholepopulationindex, psumofdeathrates,psumofdeathratessquared, d_0, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, deleteriousdistribution, parent1gamete, parent2gamete, randomnumbergeneratorforgamma, r, sdmin, miscfilepointer);
-        
-        if(t > printtime){
-            birthrate = arrayofbirthrates[popsize];
-            if (t > updatesumtime)
-            {
-                sumofdeathrates = Fen_sum(wholepopulationselectiontree, maxPopSize);
-                updatesumtime += updatesumofdeathrateseach;
+        PerformOneEventAbs(tskitstatus, isburninphaseover, ismodular, elementsperlb, &treesequencetablecollection,  wholepopulationnodesarray, wholepopulationsitesarray, pPopSize, pCurrenttime, wholepopulationgenomes, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationisfree, wholepopulationindex, psumofdeathrates, psumofdeathratessquared, parent1gamete, parent2gamete, totaltimesteps, isabsolute, birthhappens, maxPopSize, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, Sd, deleteriousdistribution, beneficialmutationrate, Sb, beneficialdistribution, b_0, r, i_init, s, randomnumbergeneratorforgamma, miscfilepointer);
+
+        if (tskitstatus == 2){
+            if (t >= printtime){
+                birthrate = arrayofbirthrates[popsize];
+                if (t > updatesumtime){
+                    sumofdeathrates = Fen_sum(wholepopulationselectiontree, maxPopSize);
+                    updatesumtime += updatesumofdeathrateseach;
+                }
+                if (popsize > upperlimit || popsize < lowerlimit){
+                    index = SearchforPopsize(arrayofpopsizes, maxPopSize, popsize);
+                    upperlimit = arrayofpopsizes[index];
+                    lowerlimit = arrayofpopsizes[index-1];
+                
+                    fprintf(rawdatafilepointer, "%f\t%d\t%Lf\t%Lf\t%f\n", t, (upperlimit+lowerlimit)/2, (sumofdeathrates/(double)popsize), ((sumofdeathratessquared/(double)popsize) - (long double) pow((sumofdeathrates/(double)popsize),2)), (birthrate/(double)popsize));
+                }
+                if((int)t % 1000 == 0){
+                    fflush(rawdatafilepointer);
+                }
             }
-            fprintf(rawdatafilepointer, "%f\t%d\t%Lf\t%Lf\t%f\n", t, popsize, (sumofdeathrates/(double)popsize), ((sumofdeathratessquared/(double)popsize) - (long double) pow((sumofdeathrates/(double)popsize),2)), (birthrate/(double)popsize));
-            if((int)t % 1000 == 0){
-                fflush(rawdatafilepointer);
-            }
-            printtime += printeach;
         }
-        if (tskitstatus > 0){
+        else{
+            if(t > printtime){
+                birthrate = arrayofbirthrates[popsize];
+                if (t > updatesumtime){
+                    sumofdeathrates = Fen_sum(wholepopulationselectiontree, maxPopSize);
+                    updatesumtime += updatesumofdeathrateseach;
+                }
+                fprintf(rawdatafilepointer, "%f\t%d\t%Lf\t%Lf\t%f\n", t, popsize, (sumofdeathrates/(double)popsize), ((sumofdeathratessquared/(double)popsize) - (long double) pow((sumofdeathrates/(double)popsize),2)), (birthrate/(double)popsize));
+                if((int)t % 1000 == 0){
+                    fflush(rawdatafilepointer);
+                }
+                printtime += printeach;
+            }
+        } 
+        if (tskitstatus != 0){
             if (isburninphaseover != 0){
                 if (t > simplifyat) {
                     returnvaluefortskfunctions = tsk_table_collection_sort(&treesequencetablecollection, NULL, 0);
@@ -271,7 +347,7 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, int tskitst
     //Tree sequence recording requires that tables are sorted on the back end,
     //so I sort once again here at the end to ensure that all tables are sorted before they're read to file.
     //This might be inefficient, I'm not sure.
-    if(tskitstatus > 0){
+    if(tskitstatus != 0){
         printf("Simplify at final generation %lld: (%lld nodes %lld edges)",
             (long long) t,
             (long long) tablepointer->nodes.num_rows,
@@ -347,6 +423,8 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, int tskitst
     free(rawdatafilename);
     free(summarydatafilename);
     
+	free(arrayofbirthrates);
+    free(arrayofpopsizes);
     free(logaveragefitnesseachNtimesteps);
     free(literallyjustlast200Ntimesteps);
     free(last200Ntimestepsvariance);
@@ -359,20 +437,30 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, int tskitst
     free(sortedwisarray);
     free(wholepopulationisfree);
     free(wholepopulationindex);
-    if (tskitstatus > 0){
+    if (tskitstatus != 0){
         free(wholepopulationnodesarray);
     }
+    
     tsk_table_collection_free(&treesequencetablecollection);
     
     return 0;     
 }
 
 //calculates every possible birth rate for every possible value of population size within range [0-MaxPopSize]
-void calcRateofBirths(double *arrayofbirthrates, int maxPopSize, double b_0) {
+void calcRateofBirths(double *arrayofbirthrates, int maxPopSize, int kappa, double b_0) {
     int i;
     for(i = 0; i < maxPopSize; i++){
-        arrayofbirthrates[i] = (b_0) * (double)i * (1 - ((double)i/(double)maxPopSize));
+        arrayofbirthrates[i] = (b_0) * (double)i * (1 - ((double)i/(double)kappa));
     }
+}
+
+//searches for where the current popsize is an array of offset lines to determine upper and lower limit. This function serves the module of limiting excessive printing.
+int SearchforPopsize(int *a, int n, int popsize) {
+    int i = 0;
+
+    while (i < n && a[i] < popsize) i++;
+
+    return i;
 }
 
 //returns output of either birth or death
@@ -417,7 +505,7 @@ bool discoverEvent(double deathRate, double birthRate) {
 }
 
 
-bool PerformOneEventAbs(int tskitstatus, int isburninphaseover, bool ismodular, int elementsperlb, tsk_table_collection_t *treesequencetablecollection, tsk_id_t * wholepopulationnodesarray, tsk_id_t * wholepopulationsitesarray, bool isabsolute, bool birthhappens, int maxPopSize, int *pPopSize, int totaltimesteps, double * pCurrenttime, double *wholepopulationgenomes, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, bool *wholepopulationisfree, int *wholepopulationindex, long double *psumofdeathrates, long double *psumofdeathratessquared, double d_0, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double Sd, int deleteriousdistribution, double* parent1gamete, double* parent2gamete, gsl_rng* randomnumbergeneratorforgamma, double r, double sdmin, FILE *miscfilepointer)
+bool PerformOneEventAbs(int tskitstatus, int isburninphaseover, bool ismodular, int elementsperlb, tsk_table_collection_t *treesequencetablecollection, tsk_id_t * wholepopulationnodesarray, tsk_id_t * wholepopulationsitesarray, int *pPopSize, double * pCurrenttime, double *wholepopulationgenomes, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, bool *wholepopulationisfree, int *wholepopulationindex, long double *psumofdeathrates, long double *psumofdeathratessquared, double* parent1gamete, double* parent2gamete, int totaltimesteps, bool isabsolute, bool birthhappens, int maxPopSize, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double Sd, int deleteriousdistribution, double beneficialmutationrate, double Sb, int beneficialdistribution,  double b_0, double r, int i_init, double s, gsl_rng* randomnumbergeneratorforgamma, FILE *miscfilepointer)
 {
     if(isabsolute == 0){
         fprintf(miscfilepointer, "\n Trying to use PerformOneEventAbs within a non absolute fitness simulation. \n");
@@ -468,7 +556,7 @@ bool PerformOneEventAbs(int tskitstatus, int isburninphaseover, bool ismodular, 
         if(!nolethalmut)
             return false;
         
-        PerformBirth(tskitstatus, isburninphaseover, ismodular, elementsperlb, treesequencetablecollection, wholepopulationnodesarray, childnode1, childnode2, isabsolute, parent1gamete, parent2gamete, maxPopSize, pPopSize, birthplace, wholepopulationgenomes, totalindividualgenomelength, wholepopulationselectiontree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofloads, psumofdeathrates, psumofdeathratessquared, d_0, r, sdmin, miscfilepointer);
+        PerformBirth(tskitstatus, isburninphaseover, ismodular, elementsperlb, treesequencetablecollection, wholepopulationnodesarray, childnode1, childnode2, isabsolute, parent1gamete, parent2gamete, maxPopSize, pPopSize, birthplace, wholepopulationgenomes, totalindividualgenomelength, deleteriousdistribution, wholepopulationselectiontree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofloads, psumofdeathrates, psumofdeathratessquared, b_0, r, i_init, s, miscfilepointer);
             }
      
     else{
@@ -489,16 +577,29 @@ bool PerformOneEventAbs(int tskitstatus, int isburninphaseover, bool ismodular, 
 }
 
 
-void InitializePopulationAbs(int tskitstatus, tsk_table_collection_t * treesequencetablecollection, tsk_id_t * wholepopulationnodesarray, tsk_id_t * wholepopulationsitesarray, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, int initialPopSize, int maxPopSize, int totaltimesteps, double *wholepopulationgenomes, int totalpopulationgenomelength, long double *psumofdeathrates, long double *psumofdeathratessquared, double d_0)
+void InitializePopulationAbs(int tskitstatus, tsk_table_collection_t * treesequencetablecollection, tsk_id_t * wholepopulationnodesarray, tsk_id_t * wholepopulationsitesarray, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, int initialPopSize, int maxPopSize, int totaltimesteps, int deleteriousdistribution, double *wholepopulationgenomes, int totalpopulationgenomelength, long double *psumofdeathrates, long double *psumofdeathratessquared, double b_0, double r, int i_init, double s)
 {    
     int i, j;
 
     double haploidgenomelength = (double) ((totalpopulationgenomelength / maxPopSize) / 2);
     
+    double starting_load;
+
+    if(r == 1.0){
+        starting_load = b_0 - s*i_init;
+    }
+    else{
+        if(deleteriousdistribution == 0){
+            starting_load = b_0 - s*(1 - pow(r, i_init))/(1-r);
+        }
+        else if(deleteriousdistribution == 1){
+            starting_load = b_0 - s*(pow(r, (i_init -1)) -1)/(log(r));
+        }
+    }
     for (i = 0; i < initialPopSize; i++) {
-        wholepopulationselectiontree[i] = d_0; //all individuals start with death rate d_0. Currently d_0 is set through the input parameters
+        wholepopulationselectiontree[i] = starting_load; //all individuals start with death rate d_0. Currently d_0 is set through the input parameters
         
-        wholepopulationdeathratesarray[i] = d_0;
+        wholepopulationdeathratesarray[i] = starting_load;
         
         wholepopulationindex[i] = i;
         
@@ -522,14 +623,14 @@ void InitializePopulationAbs(int tskitstatus, tsk_table_collection_t * treeseque
         }
     }
     
-    *psumofdeathrates = (long double) initialPopSize * d_0;
+    *psumofdeathrates = (long double) initialPopSize * starting_load;
     
-    *psumofdeathratessquared = (long double) initialPopSize * pow(d_0, 2);
+    *psumofdeathratessquared = (long double) initialPopSize * pow(starting_load, 2);
     
     for (i = 0; i < totalpopulationgenomelength; i++){
         wholepopulationgenomes[i] = 0.0;
     }
-    if (tskitstatus > 0){
+    if (tskitstatus != 0){
         treesequencetablecollection->sequence_length = haploidgenomelength;
     
     //The following lines initialize the node table for tree sequence recording.
@@ -674,7 +775,7 @@ void indexArrayFlipDeath(int *wholepopulationindex, int placeinindex, int popsiz
     wholepopulationindex[(popsize-1)] = indexvictim;
 }
 
-double CalculateDeathRate(bool ismodular, int elementsperlb, double *parent1gamete, double *parent2gamete, int totalindividualgenomelength, double d_0, double r, double sdmin)
+double CalculateDeathRate(bool ismodular, int elementsperlb, double *parent1gamete, double *parent2gamete, int totalindividualgenomelength, int deleteriousdistribution,double b_0, double r, int i_init, double s)
 {
     double inddeathrate = 0.0;
     double currentlinkageblocksload = 0.0;
@@ -690,27 +791,22 @@ double CalculateDeathRate(bool ismodular, int elementsperlb, double *parent1game
             currentlinkageblocksload += parent1gamete[i];
             currentlinkageblocksload += parent2gamete[i];
         }
-        inddeathrate = d_0 + sdmin * (1 - pow(r, -currentlinkageblocksload))/log(r);
+
+        if(r == 1.0){
+            inddeathrate = b_0 - s*(i_init - currentlinkageblocksload);
+        }   
+        else{
+            if(deleteriousdistribution == 0){
+                inddeathrate = b_0 - s*(1 - pow(r, (i_init -currentlinkageblocksload)))/(1-r);
+            }
+            else if(deleteriousdistribution == 1)
+                inddeathrate = b_0 - s*(pow(r, (i_init -currentlinkageblocksload -1)) -1)/(log(r));
+            }
     }
     else{
-        //for modular epistasis runs the totalindividualgenomelength is also divided by 2*elementsperblock
-        totallinkageblocks = totalindividualgenomelength/(2*elementsperlb);
-        for (m = 0; m < elementsperlb; m++)
-            currentlinkageblocksloadmod[m] = 0.0;
-        //for modular epistasis, mutations have an epistasis effect within elementsperlb. However, elementsperlb influences the organism multiplicatively
-        for (i = 0; i < totallinkageblocks; i++) {
-            for (m = 0; m < elementsperlb; m++){
-                currentlinkageblocksloadmod[m] += parent1gamete[i*elementsperlb + m];
-                currentlinkageblocksloadmod[m] += parent2gamete[i*elementsperlb + m];
-            }  
-        }
-        for (m = 0; m < elementsperlb; m++){
-            sumofloadmod += (1 - pow(r, -currentlinkageblocksloadmod[m]))/log(r);
-        }
-        
-        inddeathrate = d_0 + sdmin * sumofloadmod;       
+        printf("Error no code for CalculateDeathRate function with modularity yet");
+        exit(0);       
     }
-
     return inddeathrate;
 }
 

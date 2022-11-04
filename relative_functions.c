@@ -397,8 +397,6 @@ void PerformOneTimeStepRel(int tskitstatus, int isburninphaseover, bool ismodula
     bool isabsolute = 0;
     
     int currentparent1, currentparent2, currentvictim;
-    double r = 0.0;
-    double sdmin = 0.0;
 
     currentvictim = ChooseVictim(popsize);
     currentparent1 = ChooseParentWithTree(wholepopulationwistree, popsize, *psumofwis, miscfilepointer);
@@ -422,11 +420,12 @@ void PerformOneTimeStepRel(int tskitstatus, int isburninphaseover, bool ismodula
     int *wholepopulationindex;
     long double *wholepopulationdeathratesarray;
     int *pPopSize;
-    double d_0;
+	double b_0, r, s;
+	int i_init;
     
     PerformDeath(isabsolute, popsize, pPopSize, currentvictim, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, pInverseSumOfWissquared, miscfilepointer);
     
-    PerformBirth(tskitstatus, isburninphaseover, ismodular, elementsperlb, treesequencetablecollection, wholepopulationnodesarray, childnode1, childnode2, isabsolute, parent1gamete, parent2gamete, popsize, pPopSize, currentvictim, wholepopulationgenomes, totalindividualgenomelength, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, pInverseSumOfWissquared, d_0, r, sdmin, miscfilepointer);
+    PerformBirth(tskitstatus, isburninphaseover, ismodular, elementsperlb, treesequencetablecollection, wholepopulationnodesarray, childnode1, childnode2, isabsolute, parent1gamete, parent2gamete, popsize, pPopSize, currentvictim, wholepopulationgenomes, totalindividualgenomelength, deleteriousdistribution, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray,wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, pInverseSumOfWissquared, b_0, r, i_init, s, miscfilepointer);
     
 }
 
