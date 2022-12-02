@@ -795,8 +795,7 @@ double CalculateDeathRate(bool ismodular, int elementsperlb, double *parent1game
             currentlinkageblocksload += parent1gamete[i];
             currentlinkageblocksload += parent2gamete[i];
         }
-	//load is calculated as the number of mutations per individual. An heterozygous should have 1/2 mutation, and an homozygous 1 mutation. Thus we divide the sum of the load of the two sister chromosomes by 2
-	currentlinkageblocksload = currentlinkageblocksload/2;
+
         if(r == 1.0){
             inddeathrate = b_0 - s*(i_init - currentlinkageblocksload);
         }   
