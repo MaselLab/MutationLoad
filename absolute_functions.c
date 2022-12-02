@@ -714,6 +714,7 @@ double CalculateDeathRate(bool ismodular, int elementsperlb, double *parent1game
             currentlinkageblocksload += parent1gamete[i];
             currentlinkageblocksload += parent2gamete[i];
         }
+        currentlinkageblocksload = currentlinkageblocksload/2;
         if(r == 1.0)
             inddeathrate = b_0 - s*(i_init - currentlinkageblocksload);
         else
