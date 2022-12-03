@@ -5,7 +5,7 @@ INCLUDES = -I/home/ulises/gsl/include -I/home/ulises/tskit/c -I/home/ulises/tski
 CFLAGS = $(INCLUDES) -O3 -frounding-math
 
 mutationload: main.o dependencies/pcg_basic.o sharedfunc_flag.o relative_functions.o absolute_functions.o /home/ulises/tskit/c/tskit/tables.o /home/ulises/tskit/c/subprojects/kastore/kastore.o /home/ulises/tskit/c/tskit/core.o
-	$(CC) $(CFLAGS) -O3 -frounding-math pcg_basic.o main.o sharedfunc_flag.o relative_functions.o absolute_functions.o tables.o kastore.o core.o -lm -lgsl -lgslcblas -o mutationload
+	$(CC) $(CFLAGS) -O3 -frounding-math dependencies/pcg_basic.o main.o sharedfunc_flag.o relative_functions.o absolute_functions.o tables.o kastore.o core.o -lm -lgsl -lgslcblas -o mutationload
 
 main.o: main.c
 	$(CC) $(CFLAGS) -c main.c
