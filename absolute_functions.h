@@ -22,7 +22,9 @@
 #include <kastore.h>
 #include <tskit/core.h>
 
+
 double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredinmaxpopsize, int redinmaxpopsize, char* mubname, char* Sbname, int tskitstatus, bool ismodular, int elementsperlb, bool isabsolute, int maxTime, int initialPopSize, int K, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double Sd, int deleteriousdistribution, double beneficialmutationrate, double Sb, int beneficialdistribution, double r, int i_init, double s, gsl_rng* randomnumbergeneratorforgamma, FILE *miscfilepointer, FILE *veryverbosefilepointer, int rawdatafilesize);
+
 
 void calcRateofBirths(double *arrayofbirthrates, int maxPopSize, int kappa, double b_0);
 bool monteCarloStep(double *arrayofbirthrates, int popsize, double *pCurrentTime, double sumofdeathrates);
@@ -41,6 +43,7 @@ int ChooseVictimWithTree(long double *wholepopulationselectiontree, int popsiez,
 
 int findinindex(int *wholepopulationindex, int which, int tam, FILE *miscfilepointer);
 void indexArrayFlipDeath(int *wholepopulationindex, int placeinindex, int popsize);
+
 
 double CalculateDeathRate(bool ismodular, int elementsperlb, double *parent1gamete, double *parent2gamete, int totalindividualgenomelength, int deleteriousdistribution, double b_0, double r, int i_init, double s);
 
