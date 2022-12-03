@@ -420,12 +420,14 @@ void PerformOneTimeStepRel(int tskitstatus, int isburninphaseover, bool ismodula
     int *wholepopulationindex;
     long double *wholepopulationdeathratesarray;
     int *pPopSize;
-    double b_0, r, s;
-    int i_init;
+
+	  double b_0, r, s;
+	  int i_init;
     
     PerformDeath(isabsolute, popsize, pPopSize, currentvictim, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, pInverseSumOfWissquared, miscfilepointer);
     
-    PerformBirth(tskitstatus, isburninphaseover, ismodular, elementsperlb, treesequencetablecollection, wholepopulationnodesarray, childnode1, childnode2, isabsolute, parent1gamete, parent2gamete, popsize, pPopSize, currentvictim, wholepopulationgenomes, totalindividualgenomelength, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, pInverseSumOfWissquared, b_0, r, i_init, s, miscfilepointer);
+    PerformBirth(tskitstatus, isburninphaseover, ismodular, elementsperlb, treesequencetablecollection, wholepopulationnodesarray, childnode1, childnode2, isabsolute, parent1gamete, parent2gamete, popsize, pPopSize, currentvictim, wholepopulationgenomes, totalindividualgenomelength, deleteriousdistribution, wholepopulationwistree, wholepopulationwisarray, wholepopulationdeathratesarray,wholepopulationindex, wholepopulationisfree, psumofwis, pInverseSumOfWis, pInverseSumOfWissquared, b_0, r, i_init, s, miscfilepointer);
+
     
 }
 
