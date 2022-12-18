@@ -303,7 +303,6 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredi
 
         if (t > updatesumtime){
             sumofdeathrates = Fen_sum(wholepopulationselectiontree, maxPopSize);
-            sumofdeathratessquared = pow(sumofdeathrates, 2);
             updatesumtime += updatesumofdeathrateseach;
         }
               

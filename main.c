@@ -319,6 +319,16 @@ double CalculateSlopeOfLogFitness(int endofsimulation, int endofburninphase, dou
  This project is licensed under the GNU General Public License version 3.0, 
  which is compatible with the CC-BY-SA license of Wikipedia text.*/
 
+//Returns sum of first i elements in the tree, 0 through i-1.
+long double Fen_sum_squared(long double *tree, int i)
+{
+    long double sum = 0;
+    while (i) {
+        sum += pow(tree[i-1], 2);
+        i -= LSB(i);
+    }
+    return sum;
+}
 
 //Returns sum of first i elements in the tree, 0 through i-1.
 long double Fen_sum(long double *tree, int i)
