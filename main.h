@@ -32,6 +32,7 @@ long double FindFittestWi(long double *wisarray, int popsize);
 double CalculateSlopeOfLogFitness(int endofsimulation, int endofburninphase, double *logaveragefitnesseachgeneration);
 
 //Fenwick trees
+long double Fen_sum_squared(long double *tree, int i);
 long double Fen_sum(long double *tree, int i);
 void Fen_add(long double *tree, int numberofelementsintree, long double amounttoadd, int i);
 long double Fen_range(long double *tree, int i, int j);
