@@ -19,9 +19,9 @@
 #include <tskit/tables.h>
 #include <kastore.h>
 #include <tskit/core.h>
+#include <tskit/trees.h>
 
-
-double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredinmaxpopsize, int redinmaxpopsize, char* mubname, char* Sbname, int tskitstatus, bool ismodular, int elementsperlb, bool isabsolute, int maxTime, int initialPopSize, int K, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double Sd, int deleteriousdistribution, double beneficialmutationrate, double Sb, int beneficialdistribution, double r, int i_init, double s, gsl_rng* randomnumbergeneratorforgamma, FILE *miscfilepointer, FILE *veryverbosefilepointer, int rawdatafilesize)
+double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredinmaxpopsize, char *redinmaxpopsizename, double redinmaxpopsize, char* mubname, char* Sbname, int tskitstatus, bool ismodular, int elementsperlb, bool isabsolute, int maxTime, int initialPopSize, int K, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double Sd, int deleteriousdistribution, double beneficialmutationrate, double Sb, int beneficialdistribution, double r, int i_init, double s, gsl_rng* randomnumbergeneratorforgamma, FILE *miscfilepointer, FILE *veryverbosefilepointer, int rawdatafilesize, bool iscalcfixation)
 {
 
     if(!isabsolute){
@@ -36,21 +36,26 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredi
     FILE *edgefilepointer;
     FILE *sitefilepointer;
     FILE *mutationfilepointer;
+    FILE *tskitdatafilepointer;
     int i, j, k, w;
 
-    char* rawdatafilename =  MakeRawDataFileName(mubname, Sbname);
+    char* rawdatafilename =  MakeRawDataFileName(mubname, Sbname, isredinmaxpopsize, redinmaxpopsizename);
 
     char* summarydatafilename = MakeSummaryDataFileName(mubname, Sbname);
     
     summarydatafilepointer = fopen(summarydatafilename, "w"); //opens the file to which to print summary data.
     
-    if (tskitstatus > 0){
-        nodefilepointer = fopen("nodetable.txt", "w");
-        edgefilepointer = fopen("edgetable.txt", "w");
-        sitefilepointer = fopen("sitetable.txt", "w");
-        mutationfilepointer = fopen("mutationtable.txt", "w");
+    nodefilepointer = fopen("nodetable.txt", "w");
+    edgefilepointer = fopen("edgetable.txt", "w");
+    sitefilepointer = fopen("sitetable.txt", "w");
+    mutationfilepointer = fopen("mutationtable.txt", "w");
+    
+    if (iscalcfixation)
+    {
+        tskitdatafilepointer = fopen("tskitdata.txt", "w"); //opens the file to which to print fixed mutaiton data.
+        fprintf(tskitdatafilepointer, "Mutation\tTime_app\tTime_fix\n");
     }
-
+    
     int kappa;
     if(r == 1.0){
         kappa = K/(s*i_init);
@@ -73,12 +78,36 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredi
 
     calcRateofBirths(arrayofbirthrates, maxPopSize, kappa, b_0);
 
+    int simplifyat = 0;
+    int genafterburnin = 50000;
+    int simplifyeach = 2000;
+    int printeach = maxTime/rawdatafilesize;
+    int printtime = 0;
+    double redtime = 55000;
+    double redtimeeach = redinmaxpopsize;
+    if (tskitstatus == 2)
+    {
+        printtime = genafterburnin;
+        if (iscalcfixation)
+        {
+            simplifyat = genafterburnin + 3000;
+            simplifyeach = 3000;
+        }else{
+            simplifyat = genafterburnin;
+        }
+    }
+
+    int updatesumofdeathrateseach = 1000;
+    int updatesumtime = 0;
+    
     int totaltimesteps = maxTime;
     int popsize = initialPopSize;
     int *pPopSize;
     pPopSize = &popsize;
+    
     double t = 0.0;
     double *pCurrenttime = &t;
+    
     double *wholepopulationgenomes;
     int totalpopulationgenomelength;
     int totalindividualgenomelength;
@@ -102,10 +131,16 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredi
 
     long double sumofdeathrates;
     long double sumofdeathratessquared;
+    long double sumofload;
+    long double sumofloadsquared;
     long double *psumofdeathrates;
     psumofdeathrates = &sumofdeathrates;
     long double *psumofdeathratessquared;
     psumofdeathratessquared = &sumofdeathratessquared;
+    long double *psumofload;
+    psumofload = &sumofload;
+    long double *psumofloadsquared;
+    psumofloadsquared = &sumofloadsquared;
     long double *wholepopulationselectiontree;
     wholepopulationselectiontree = malloc(sizeof(long double) * maxPopSize);
     
@@ -145,37 +180,17 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredi
     if (VERYVERBOSE == 1) {
         fprintf(veryverbosefilepointer, "Entered simulation run.\n");
     }
-    
-    int simplifyat = 0;
-    int simplifyeach = 500;
-    int printeach = maxTime/rawdatafilesize;
-    int printtime = 0;
-
-    int genafterburnin = 15*initialPopSize;
-    double redtime = (double)genafterburnin;
-    double redtimeeach = (double)genafterburnin/(double)redinmaxpopsize;
-
-    if (tskitstatus == 2)
-    {
-       printtime = genafterburnin;
-       simplifyat = genafterburnin;
-    }
-
-    int updatesumofdeathrateseach = 1000;
-    int updatesumtime = 0;
 
     //assignment of data to popArray for index, wis, and deathrate
     if(!issnapshot){
         rawdatafilepointer = fopen(rawdatafilename, "w"); //opens the file to which to print data to be plotted.
-        fprintf(rawdatafilepointer, "Time\tPop_size\tMean_death_rate\tVariance_death_rate\tMean_birth_rate\n");
+        fprintf(rawdatafilepointer, "Time\tPop_size\tMean_death_rate\tVar_death_rate\tMean_birth_rate\tMean_load\tVar_load\n");
         
         summarydatafilepointer = fopen(summarydatafilename, "w"); //opens the file to which to print summary data.
         popsize = initialPopSize;
         t = 0.0;
         //assignment of data to popArray for index, wis, and deathrate
-
-        InitializePopulationAbs(tskitstatus, &treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, initialPopSize, maxPopSize, totaltimesteps, deleteriousdistribution, wholepopulationgenomes, totalpopulationgenomelength, psumofdeathrates, psumofdeathratessquared, b_0, r, i_init, s);//sets up all data within the population for a run. As this initializes data I think it should be a separate function.
-
+        InitializePopulationAbs(tskitstatus, &treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, initialPopSize, maxPopSize, totaltimesteps, deleteriousdistribution, wholepopulationgenomes, totalpopulationgenomelength, psumofdeathrates, psumofdeathratessquared, psumofload, psumofloadsquared, b_0, r, i_init, s);//sets up all data within the population for a run. As this initializes data I think it should be a separate function.
     }else{
         rawdatafilepointer = fopen(rawdatafilename, "a");
         summarydatafilepointer = fopen(summarydatafilename, "a"); //opens the file to which to print summary data.
@@ -186,7 +201,7 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredi
             exit(0);
         }
         
-        InitializeWithSnapshotAbs(wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, maxPopSize, wholepopulationgenomes, totalpopulationgenomelength, psumofdeathrates, psumofdeathratessquared, pPopSize, pCurrenttime, prevsnapshotfilepointer, miscfilepointer);
+        InitializeWithSnapshotAbs(wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, maxPopSize, wholepopulationgenomes, totalpopulationgenomelength, psumofdeathrates, psumofdeathratessquared, psumofload, psumofloadsquared, pPopSize, pCurrenttime, prevsnapshotfilepointer, miscfilepointer);
         
         if (VERYVERBOSE == 1) {
             fprintf(veryverbosefilepointer, "Started population with snapshot file.\n");
@@ -195,9 +210,7 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredi
         maxTime += t;
         printtime += t + printeach;
         updatesumtime += t + updatesumofdeathrateseach;
-
- 
-	    redtime += t + redtimeeach;
+	    redtime += t + redinmaxpopsize;
 
         fclose(prevsnapshotfilepointer);
     }
@@ -262,22 +275,21 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredi
     //BEGIN THE SIMULATION FOR LOOP
     
     while (t < maxTime) {
-        
         if(popsize < 3){
         	fprintf(summarydatafilepointer, "Population died during run at time %f", t);
             birthrate = arrayofbirthrates[popsize];
-			fprintf(rawdatafilepointer, "%f\t%d\t%Lf\t%Lf\t%f\n", t, popsize, (sumofdeathrates/(double)popsize), ((sumofdeathratessquared/(double)popsize) - (long double) pow((sumofdeathrates/(double)popsize),2)), (birthrate/(double)popsize));
+			fprintf(rawdatafilepointer, "%f\t%d\t%Lf\t%Lf\t%f\n", t, popsize, (sumofdeathrates/(double)popsize), ((sumofdeathratessquared/(double)popsize) - (long double) pow((sumofdeathrates/(double)popsize),2)), (birthrate/(double)popsize), (sumofload/(double)popsize), ((sumofloadsquared/(double)popsize) - (long double) pow((sumofloadsquared/(double)popsize),2)));
             break;
         }
         
         if(popsize >= (maxPopSize-1)){
         	fprintf(summarydatafilepointer, "Population achieved its maximum population size at time %f", t); 
             birthrate = arrayofbirthrates[popsize];
-			fprintf(rawdatafilepointer, "%f\t%d\t%Lf\t%Lf\t%f\n", t, popsize, (sumofdeathrates/(double)popsize), ((sumofdeathratessquared/(double)popsize) - (long double) pow((sumofdeathrates/(double)popsize),2)), (birthrate/(double)popsize));
+			fprintf(rawdatafilepointer, "%f\t%d\t%Lf\t%Lf\t%f\n", t, popsize, (sumofdeathrates/(double)popsize), ((sumofdeathratessquared/(double)popsize) - (long double) pow((sumofdeathrates/(double)popsize),2)), (birthrate/(double)popsize), (sumofload/(double)popsize), ((sumofloadsquared/(double)popsize) - (long double) pow((sumofloadsquared/(double)popsize),2)));
             break;
         }
         
-        if(tskitstatus == 2 && t >= printtime){
+        if(tskitstatus == 2 && t >= genafterburnin){
             isburninphaseover = 1;
         }
 
@@ -293,59 +305,209 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredi
         		}
 		}
             calcRateofBirths(arrayofbirthrates, maxPopSize, kappa, b_0);
-		    redtime += redtimeeach;
+		    redtime += redinmaxpopsize;
         }
         
-
         birthhappens = monteCarloStep(arrayofbirthrates, popsize, pCurrenttime, sumofdeathrates);//This is the monte carlo step. This decides if a birth or a death event takes place by returning a 0 or 1
         
-        PerformOneEventAbs(tskitstatus, isburninphaseover, ismodular, elementsperlb, &treesequencetablecollection,  wholepopulationnodesarray, wholepopulationsitesarray, pPopSize, pCurrenttime, wholepopulationgenomes, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationisfree, wholepopulationindex, psumofdeathrates, psumofdeathratessquared, parent1gamete, parent2gamete, totaltimesteps, isabsolute, birthhappens, maxPopSize, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, Sd, deleteriousdistribution, beneficialmutationrate, Sb, beneficialdistribution, b_0, r, i_init, s, randomnumbergeneratorforgamma, miscfilepointer);
+        PerformOneEventAbs(tskitstatus, isburninphaseover, ismodular, elementsperlb, &treesequencetablecollection,  wholepopulationnodesarray, wholepopulationsitesarray, pPopSize, pCurrenttime, wholepopulationgenomes, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationisfree, wholepopulationindex, psumofdeathrates, psumofdeathratessquared, psumofload, psumofloadsquared, parent1gamete, parent2gamete, totaltimesteps, isabsolute, birthhappens, maxPopSize, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, Sd, deleteriousdistribution, beneficialmutationrate, Sb, beneficialdistribution, b_0, r, i_init, s, randomnumbergeneratorforgamma, miscfilepointer);
 
-        if (t > updatesumtime){
-            sumofdeathrates = Fen_sum(wholepopulationselectiontree, maxPopSize);
-            updatesumtime += updatesumofdeathrateseach;
-        }
-              
         if (tskitstatus == 2){
-            if (t >= printtime){
-                birthrate = arrayofbirthrates[popsize];
-                if (popsize > upperlimit || popsize < lowerlimit){
-                    index = SearchforPopsize(arrayofpopsizes, maxPopSize, popsize);
-                    upperlimit = arrayofpopsizes[index];
-                    lowerlimit = arrayofpopsizes[index-1];
-                
-                    fprintf(rawdatafilepointer, "%f\t%d\t%Lf\t%Lf\t%f\n", t, (upperlimit+lowerlimit)/2, (sumofdeathrates/(double)popsize), ((sumofdeathratessquared/(double)popsize) - (long double) pow((sumofdeathrates/(double)popsize),2)), (birthrate/(double)popsize));
+            if (isburninphaseover != 0){
+                //This SECTION covers the search for fixed mutations and their time of fixation
+                if (iscalcfixation)
+                {
+                    if (t > simplifyat)
+                    {
+                        //sort the table
+                        returnvaluefortskfunctions = tsk_table_collection_sort(&treesequencetablecollection, NULL, 0);
+                        check_tsk_error(returnvaluefortskfunctions);
+                        fprintf(miscfilepointer, "\n tree sequence table collection sorted. \n");
+                        fflush(miscfilepointer);
+                        //reindex the table
+                        returnvaluefortskfunctions = tsk_table_collection_build_index(&treesequencetablecollection, 0);
+                        check_tsk_error(returnvaluefortskfunctions);
+                        fprintf(miscfilepointer, "\n tree sequence table collection index built. \n");
+                        fflush(miscfilepointer);
+                        tsk_table_collection_print_state(&treesequencetablecollection, miscfilepointer);
+                        //change sample status of nodes alive in the population
+                        for (k = 0; k < (2*maxPopSize); k++) {
+                            tablepointer->nodes.flags[wholepopulationnodesarray[k]] = TSK_NODE_IS_SAMPLE;
+                        }
+                        //create tree sequence object
+                        tsk_treeseq_t treesequence;
+                        returnvaluefortskfunctions = tsk_treeseq_init(&treesequence, &treesequencetablecollection, 0);
+                        check_tsk_error(returnvaluefortskfunctions);
+                        fprintf(miscfilepointer, "\n tree sequence object initialized. \n");
+                        fflush(miscfilepointer);
+                        fprintf(miscfilepointer, "\n sample number %lld. \n", (long long) tsk_treeseq_get_num_samples(&treesequence));
+                        //create tree object
+                        tsk_tree_t tree;
+                        int ret;
+                        //initialize a tree object
+                        ret = tsk_tree_init(&tree, &treesequence, 0);
+                        check_tsk_error(ret);
+                        fprintf(miscfilepointer, "\n tree object initialized. \n");
+                        fflush(miscfilepointer);
+
+                        for (ret= tsk_tree_first(&tree); ret == TSK_TREE_OK; ret = tsk_tree_next(&tree))
+                        {
+                            fprintf(miscfilepointer, "\n analyzing tree \n");
+                            fflush(miscfilepointer);
+                            fprintf(miscfilepointer, "\n (within tree) number of roots of tree %lld is %lld. \n", (long long) tree.index,  (long long) tsk_tree_get_num_roots(&tree));
+                            fflush(miscfilepointer);
+                            //operation on a tree is to find the MRCA of the sample and then all the nodes between the MRCA and the root
+                            FindFixedMutations(&tree, tskitdatafilepointer, miscfilepointer);
+                            fprintf(miscfilepointer, "\n analyzing next tree \n");
+                            fflush(miscfilepointer);
+                        }
+                        check_tsk_error(ret);
+                        fprintf(miscfilepointer, "\n tree sequence analysis completed. \n");
+                        fflush(miscfilepointer);
+                        tsk_tree_free(&tree);
+                        tsk_treeseq_free(&treesequence);
+                        
+                        //sort the table
+                        returnvaluefortskfunctions = tsk_table_collection_sort(&treesequencetablecollection, NULL, 0);
+                        check_tsk_error(returnvaluefortskfunctions);
+                        //simplify after finishing the fixation part
+                        returnvaluefortskfunctions = tsk_table_collection_simplify(&treesequencetablecollection, wholepopulationnodesarray, (2*maxPopSize), 0, NULL);
+                        check_tsk_error(returnvaluefortskfunctions);
+ 
+                        for (k = 0; k < (2*maxPopSize); k++) {
+                            wholepopulationnodesarray[k] = k;
+                        }
+
+                        simplifyat += simplifyeach;
+                    }
                 }
-                if((int)t % 1000 == 0){
-                    fflush(rawdatafilepointer);
+                //printing section
+                if (t > printtime){
+                    birthrate = arrayofbirthrates[popsize];
+                    if (t > updatesumtime){
+                        sumofdeathrates = Fen_sum(wholepopulationselectiontree, maxPopSize);
+                        updatesumtime += updatesumofdeathrateseach;
+                    }
+                    if (popsize > upperlimit || popsize < lowerlimit){
+                        index = SearchforPopsize(arrayofpopsizes, maxPopSize, popsize);
+                        upperlimit = arrayofpopsizes[index];
+                        lowerlimit = arrayofpopsizes[index-1];
+                
+                        fprintf(rawdatafilepointer, "%f\t%d\t%Lf\t%Lf\t%f\t%Lf\t%Lf\n", t, (upperlimit+lowerlimit)/2, (sumofdeathrates/(double)popsize), ((sumofdeathratessquared/(double)popsize) - (long double) pow((sumofdeathrates/(double)popsize),2)), (birthrate/(double)popsize), (sumofload/(double)popsize));
+                    }
+                    if((int)t % 1000 == 0){
+                        fflush(rawdatafilepointer);
+                    }
                 }
             }
-        }
-        else{
+        } else if (tskitstatus == 1){
+            if (isburninphaseover != 0){
+                //This SECTION covers the search for fixed mutations and their time of fixation
+                if (iscalcfixation)
+                {
+                    if (t > simplifyat)
+                    {
+                        //sort the table
+                        returnvaluefortskfunctions = tsk_table_collection_sort(&treesequencetablecollection, NULL, 0);
+                        check_tsk_error(returnvaluefortskfunctions);
+                        fprintf(miscfilepointer, "\n tree sequence table collection sorted. \n");
+                        fflush(miscfilepointer);
+                        //reindex the table
+                        returnvaluefortskfunctions = tsk_table_collection_build_index(&treesequencetablecollection, 0);
+                        check_tsk_error(returnvaluefortskfunctions);
+                        fprintf(miscfilepointer, "\n tree sequence table collection index built. \n");
+                        fflush(miscfilepointer);
+                        tsk_table_collection_print_state(&treesequencetablecollection, miscfilepointer);
+                        //change sample status of nodes alive in the population
+                        for (k = 0; k < (2*maxPopSize); k++) {
+                            tablepointer->nodes.flags[wholepopulationnodesarray[k]] = TSK_NODE_IS_SAMPLE;
+                        }
+                        //create tree sequence object
+                        tsk_treeseq_t treesequence;
+                        returnvaluefortskfunctions = tsk_treeseq_init(&treesequence, &treesequencetablecollection, 0);
+                        check_tsk_error(returnvaluefortskfunctions);
+                        fprintf(miscfilepointer, "\n tree sequence object initialized. \n");
+                        fflush(miscfilepointer);
+                        fprintf(miscfilepointer, "\n sample number %lld. \n", (long long) tsk_treeseq_get_num_samples(&treesequence));
+                        //create tree object
+                        tsk_tree_t tree;
+                        int ret;
+                        //initialize a tree object
+                        ret = tsk_tree_init(&tree, &treesequence, 0);
+                        check_tsk_error(ret);
+                        fprintf(miscfilepointer, "\n tree object initialized. \n");
+                        fflush(miscfilepointer);
+
+                        for (ret= tsk_tree_first(&tree); ret == TSK_TREE_OK; ret = tsk_tree_next(&tree))
+                        {
+                            fprintf(miscfilepointer, "\n analyzing tree \n");
+                            fflush(miscfilepointer);
+                            fprintf(miscfilepointer, "\n (within tree) number of roots of tree %lld is %lld. \n", (long long) tree.index,  (long long) tsk_tree_get_num_roots(&tree));
+                            fflush(miscfilepointer);
+                            //operation on a tree is to find the MRCA of the sample and then all the nodes between the MRCA and the root
+                            FindFixedMutations(&tree, tskitdatafilepointer, miscfilepointer);
+                            fprintf(miscfilepointer, "\n moving to next tree \n");
+                            fflush(miscfilepointer);
+                        }
+                        fprintf(miscfilepointer, "\n tree sequence analysis completed. \n");
+                        fflush(miscfilepointer);
+                        tsk_tree_free(&tree);
+                        tsk_treeseq_free(&treesequence);
+
+                        //sort the table
+                        returnvaluefortskfunctions = tsk_table_collection_sort(&treesequencetablecollection, NULL, 0);
+                        check_tsk_error(returnvaluefortskfunctions);
+                        //simplify after finishing the fixation part
+                        returnvaluefortskfunctions = tsk_table_collection_simplify(&treesequencetablecollection, wholepopulationnodesarray, (2*maxPopSize), 0, NULL);
+                        check_tsk_error(returnvaluefortskfunctions);
+
+                        for (k = 0; k < (2*maxPopSize); k++) {
+                            wholepopulationnodesarray[k] = k;
+                        }
+
+                        simplifyat += simplifyeach;
+                    }
+                } else{
+                    if (t > simplifyat) {
+                        returnvaluefortskfunctions = tsk_table_collection_sort(&treesequencetablecollection, NULL, 0);
+                        check_tsk_error(returnvaluefortskfunctions);
+            
+                        returnvaluefortskfunctions = tsk_table_collection_simplify(&treesequencetablecollection, wholepopulationnodesarray, (2*maxPopSize), 0, NULL);
+                        check_tsk_error(returnvaluefortskfunctions);
+
+                        for (k = 0; k < (2*maxPopSize); k++) {
+                            wholepopulationnodesarray[k] = k;
+                        }
+                        simplifyat += simplifyeach;
+                    }
+                }
+            }
+            //printing section
             if(t > printtime){
                 birthrate = arrayofbirthrates[popsize];
-                fprintf(rawdatafilepointer, "%f\t%d\t%Lf\t%Lf\t%f\n", t, popsize, (sumofdeathrates/(double)popsize), ((sumofdeathratessquared/(double)popsize) - (long double) pow((sumofdeathrates/(double)popsize),2)), (birthrate/(double)popsize));
+                if (t > updatesumtime){
+                    sumofdeathrates = Fen_sum(wholepopulationselectiontree, maxPopSize);
+                    updatesumtime += updatesumofdeathrateseach;
+                }
+                fprintf(rawdatafilepointer, "%f\t%d\t%Lf\t%Lf\t%f\t%Lf\t%Lf\n", t, popsize, (sumofdeathrates/(double)popsize), ((sumofdeathratessquared/(double)popsize) - (long double) pow((sumofdeathrates/(double)popsize),2)), (birthrate/(double)popsize), (sumofload/(double)popsize));
                 if((int)t % 1000 == 0){
                     fflush(rawdatafilepointer);
                 }
                 printtime += printeach;
             }
-        } 
-        if (tskitstatus != 0){
-            if (isburninphaseover != 0){
-                if (t > simplifyat) {
-                    returnvaluefortskfunctions = tsk_table_collection_sort(&treesequencetablecollection, NULL, 0);
-                    check_tsk_error(returnvaluefortskfunctions);
-            
-                    returnvaluefortskfunctions = tsk_table_collection_simplify(&treesequencetablecollection, wholepopulationnodesarray, (2*maxPopSize), 0, NULL);
-                    check_tsk_error(returnvaluefortskfunctions);
-
-                    for (k = 0; k < (2*maxPopSize); k++) {
-                        wholepopulationnodesarray[k] = k;
-                    }
-                    simplifyat += simplifyeach;
+        } else{
+            if(t > printtime){
+                birthrate = arrayofbirthrates[popsize];
+                if (t > updatesumtime){
+                    sumofdeathrates = Fen_sum(wholepopulationselectiontree, maxPopSize);
+                    updatesumtime += updatesumofdeathrateseach;
                 }
-            } 
+                fprintf(rawdatafilepointer, "%f\t%d\t%Lf\t%Lf\t%f\t%Lf\t%Lf\n", t, popsize, (sumofdeathrates/(double)popsize), ((sumofdeathratessquared/(double)popsize) - (long double) pow((sumofdeathrates/(double)popsize),2)), (birthrate/(double)popsize), (sumofload/(double)popsize));
+                if((int)t % 1000 == 0){
+                    fflush(rawdatafilepointer);
+                }
+                printtime += printeach;
+            }
         }
     }
     
@@ -354,15 +516,16 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredi
     //so I sort once again here at the end to ensure that all tables are sorted before they're read to file.
     //This might be inefficient, I'm not sure.
     if(tskitstatus != 0){
-        printf("Simplify at final generation %lld: (%lld nodes %lld edges)",
+        printf("Sort at final generation %lld: (%lld nodes %lld edges)",
             (long long) t,
             (long long) tablepointer->nodes.num_rows,
             (long long) tablepointer->edges.num_rows);
         returnvaluefortskfunctions = tsk_table_collection_sort(&treesequencetablecollection, NULL, 0);
         check_tsk_error(returnvaluefortskfunctions);
-    
+
         returnvaluefortskfunctions = tsk_table_collection_simplify(&treesequencetablecollection, wholepopulationnodesarray, (2*maxPopSize), 0, NULL);
         check_tsk_error(returnvaluefortskfunctions);
+    
         printf(" -> (%lld nodes %lld edges)\n",
                 (long long) tablepointer->nodes.num_rows,
                 (long long) tablepointer->edges.num_rows);
@@ -415,21 +578,21 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredi
     char* popsnapshotfilename = MakePopSnapshotFileName(mubname, Sbname);
     popsnapshotfilepointer = fopen(popsnapshotfilename, "w"); //opens the file to which to print summary data.
     
-    WritePopSnapshot(wholepopulationgenomes, totalpopulationgenomelength, sumofdeathrates, sumofdeathratessquared, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationisfree, wholepopulationindex, maxPopSize, popsize, t, popsnapshotfilepointer);
+    WritePopSnapshot(wholepopulationgenomes, totalpopulationgenomelength, sumofdeathrates, sumofdeathratessquared, sumofload, sumofloadsquared, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationisfree, wholepopulationindex, maxPopSize, popsize, t, popsnapshotfilepointer);
     
     fclose(rawdatafilepointer);
     fclose(summarydatafilepointer);
+    fclose(nodefilepointer);
+    fclose(edgefilepointer);
+    fclose(sitefilepointer);
+    fclose(mutationfilepointer);
     fclose(popsnapshotfilepointer);
-    if (tskitstatus > 0){
-        fclose(nodefilepointer);
-        fclose(edgefilepointer);
-        fclose(sitefilepointer);
-        fclose(mutationfilepointer);
-        free(wholepopulationnodesarray);
+
+    if (iscalcfixation)
+    {
+        fclose(tskitdatafilepointer);
     }
-    tsk_table_collection_free(&treesequencetablecollection);
     
-    free(arrayofbirthrates);
     
     free(popsnapshotfilename);
     free(rawdatafilename);
@@ -449,7 +612,6 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredi
     free(sortedwisarray);
     free(wholepopulationisfree);
     free(wholepopulationindex);
-
     if (tskitstatus != 0){
         free(wholepopulationnodesarray);
     }
@@ -517,7 +679,8 @@ bool discoverEvent(double deathRate, double birthRate) {
 
 }
 
-bool PerformOneEventAbs(int tskitstatus, int isburninphaseover, bool ismodular, int elementsperlb, tsk_table_collection_t *treesequencetablecollection, tsk_id_t * wholepopulationnodesarray, tsk_id_t * wholepopulationsitesarray, int *pPopSize, double * pCurrenttime, double *wholepopulationgenomes, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, bool *wholepopulationisfree, int *wholepopulationindex, long double *psumofdeathrates, long double *psumofdeathratessquared, double* parent1gamete, double* parent2gamete, int totaltimesteps, bool isabsolute, bool birthhappens, int maxPopSize, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double Sd, int deleteriousdistribution, double beneficialmutationrate, double Sb, int beneficialdistribution,  double b_0, double r, int i_init, double s, gsl_rng* randomnumbergeneratorforgamma, FILE *miscfilepointer)
+
+bool PerformOneEventAbs(int tskitstatus, int isburninphaseover, bool ismodular, int elementsperlb, tsk_table_collection_t *treesequencetablecollection, tsk_id_t * wholepopulationnodesarray, tsk_id_t * wholepopulationsitesarray, int *pPopSize, double * pCurrenttime, double *wholepopulationgenomes, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, bool *wholepopulationisfree, int *wholepopulationindex, long double *psumofdeathrates, long double *psumofdeathratessquared, long double *psumofload, long double *psumofloadsquared, double* parent1gamete, double* parent2gamete, int totaltimesteps, bool isabsolute, bool birthhappens, int maxPopSize, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double Sd, int deleteriousdistribution, double beneficialmutationrate, double Sb, int beneficialdistribution,  double b_0, double r, int i_init, double s, gsl_rng* randomnumbergeneratorforgamma, FILE *miscfilepointer)
 {
     if(isabsolute == 0){
         fprintf(miscfilepointer, "\n Trying to use PerformOneEventAbs within a non absolute fitness simulation. \n");
@@ -558,19 +721,20 @@ bool PerformOneEventAbs(int tskitstatus, int isburninphaseover, bool ismodular, 
         
         tsk_id_t childnode1, childnode2;
         
-        RecombineChromosomesIntoGamete(tskitstatus, ismodular, elementsperlb, isburninphaseover, treesequencetablecollection, wholepopulationnodesarray, &childnode1, totaltimesteps, pCurrenttime, currentparent1, chromosomesize, numberofchromosomes, parent1gamete, wholepopulationgenomes, totalindividualgenomelength);
-        nolethalmut = ProduceMutatedGamete(tskitstatus, isburninphaseover, treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, &childnode1, totaltimesteps, pCurrenttime, currentparent1, isabsolute, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, deleteriousdistribution, parent1gamete, randomnumbergeneratorforgamma, miscfilepointer);
+        double currenttime;
+
+        RecombineChromosomesIntoGamete(isabsolute, tskitstatus, ismodular, elementsperlb, isburninphaseover, treesequencetablecollection, wholepopulationnodesarray, &childnode1, totaltimesteps, currenttime, currentparent1, chromosomesize, numberofchromosomes, parent1gamete, wholepopulationgenomes, totalindividualgenomelength);
+        nolethalmut = ProduceMutatedGamete(tskitstatus, isburninphaseover, treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, &childnode1, totaltimesteps, currenttime, currentparent1, isabsolute, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, deleteriousdistribution, parent1gamete, randomnumbergeneratorforgamma, miscfilepointer);
         if(!nolethalmut)
             return false;
         
-        RecombineChromosomesIntoGamete(tskitstatus, ismodular, elementsperlb, isburninphaseover, treesequencetablecollection, wholepopulationnodesarray, &childnode2, totaltimesteps, pCurrenttime, currentparent2, chromosomesize, numberofchromosomes, parent2gamete, wholepopulationgenomes, totalindividualgenomelength);
-        nolethalmut = ProduceMutatedGamete(tskitstatus, isburninphaseover, treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, &childnode2, totaltimesteps, pCurrenttime, currentparent2, isabsolute, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, deleteriousdistribution, parent2gamete, randomnumbergeneratorforgamma, miscfilepointer);
+        RecombineChromosomesIntoGamete(isabsolute, tskitstatus, ismodular, elementsperlb, isburninphaseover, treesequencetablecollection, wholepopulationnodesarray, &childnode2, totaltimesteps, currenttime, currentparent2, chromosomesize, numberofchromosomes, parent2gamete, wholepopulationgenomes, totalindividualgenomelength);
+        nolethalmut = ProduceMutatedGamete(tskitstatus, isburninphaseover, treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, &childnode2, totaltimesteps, currenttime, currentparent2, isabsolute, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, deleteriousdistribution, parent2gamete, randomnumbergeneratorforgamma, miscfilepointer);
         if(!nolethalmut)
             return false;
- 
-       
-        PerformBirth(tskitstatus, isburninphaseover, ismodular, elementsperlb, treesequencetablecollection, wholepopulationnodesarray, childnode1, childnode2, isabsolute, parent1gamete, parent2gamete, maxPopSize, pPopSize, birthplace, wholepopulationgenomes, totalindividualgenomelength, deleteriousdistribution, wholepopulationselectiontree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofloads, psumofdeathrates, psumofdeathratessquared, b_0, r, i_init, s, miscfilepointer);
-    }
+        
+        PerformBirth(tskitstatus, isburninphaseover, ismodular, elementsperlb, treesequencetablecollection, wholepopulationnodesarray, childnode1, childnode2, isabsolute, parent1gamete, parent2gamete, maxPopSize, pPopSize, birthplace, wholepopulationgenomes, totalindividualgenomelength, deleteriousdistribution, wholepopulationselectiontree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofloads, psumofdeathrates, psumofdeathratessquared, b_0, r, i_init, s, psumofload, psumofloadsquared, miscfilepointer);
+            }
      
     else{
 //         use of the fennwick tree to find the victim in the population, note that since fenwick tree stores all the population (non occupied spaces have a fitness of 0) there is not need to use the wholepopulationindex, fenwick search already gives you the space that the selected individual occupies.
@@ -582,15 +746,15 @@ bool PerformOneEventAbs(int tskitstatus, int isburninphaseover, bool ismodular, 
 //             printf("%2d  ", wholepopulationisfree[i]);
 //         printf("\n");
         
-        PerformDeath(isabsolute, maxPopSize, pPopSize, victim, wholepopulationselectiontree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofloads, psumofdeathrates,psumofdeathratessquared, miscfilepointer);
+        PerformDeath(isabsolute, tskitstatus, isburninphaseover, maxPopSize, pPopSize, victim, deleteriousdistribution, wholepopulationselectiontree, wholepopulationwisarray, wholepopulationdeathratesarray, wholepopulationindex, wholepopulationisfree, psumofloads, psumofdeathrates,psumofdeathratessquared, b_0, r, i_init, s, psumofload, psumofloadsquared, wholepopulationnodesarray, miscfilepointer);
     }
     
     return true;
 
 }
 
-void InitializePopulationAbs(int tskitstatus, tsk_table_collection_t * treesequencetablecollection, tsk_id_t * wholepopulationnodesarray, tsk_id_t * wholepopulationsitesarray, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, int initialPopSize, int maxPopSize, int totaltimesteps, int deleteriousdistribution, double *wholepopulationgenomes, int totalpopulationgenomelength, long double *psumofdeathrates, long double *psumofdeathratessquared, double b_0, double r, int i_init, double s)
 
+void InitializePopulationAbs(int tskitstatus, tsk_table_collection_t * treesequencetablecollection, tsk_id_t * wholepopulationnodesarray, tsk_id_t * wholepopulationsitesarray, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, int initialPopSize, int maxPopSize, int totaltimesteps, int deleteriousdistribution, double *wholepopulationgenomes, int totalpopulationgenomelength, long double *psumofdeathrates, long double *psumofdeathratessquared, long double *psumofload, long double *psumofloadsquared, double b_0, double r, int i_init, double s)
 {    
     int i, j;
 
@@ -619,7 +783,6 @@ void InitializePopulationAbs(int tskitstatus, tsk_table_collection_t * treeseque
         wholepopulationisfree[i] = false;
     }
     
-    
     for (i = initialPopSize; i < maxPopSize; i++) {
         wholepopulationselectiontree[i] = 0.0;
         
@@ -637,6 +800,10 @@ void InitializePopulationAbs(int tskitstatus, tsk_table_collection_t * treeseque
         }
     }
     
+    *psumofload = (long double) initialPopSize * i_init;
+
+    *psumofloadsquared = (long double) initialPopSize * pow(i_init, 2); 
+
     *psumofdeathrates = (long double) initialPopSize * starting_load;
     
     *psumofdeathratessquared = (long double) initialPopSize * pow(starting_load, 2);
@@ -647,14 +814,14 @@ void InitializePopulationAbs(int tskitstatus, tsk_table_collection_t * treeseque
     if (tskitstatus != 0){
         treesequencetablecollection->sequence_length = haploidgenomelength;
     
-        //The following lines initialize the node table for tree sequence recording.
-        //Note that nodes here are single sets of chromosomes, so the 2x popsize here assumes diploidy.
+    //The following lines initialize the node table for tree sequence recording.
+    //Note that nodes here are single sets of chromosomes, so the 2x popsize here assumes diploidy.
         for (i = 0; i < (2 * maxPopSize); i++) {
             wholepopulationnodesarray[i] = tsk_node_table_add_row(&treesequencetablecollection->nodes, 0, totaltimesteps, TSK_NULL, TSK_NULL, NULL, 0);
             check_tsk_error(wholepopulationnodesarray[i]);
         }
     
-        //The following lines add a site to the tree sequence recording site table corresponding to each linkage block, with ancestral state of 0.
+    //The following lines add a site to the tree sequence recording site table corresponding to each linkage block, with ancestral state of 0.
         for (i = 0; i < haploidgenomelength; i++) {
             wholepopulationsitesarray[i] = tsk_site_table_add_row(&treesequencetablecollection->sites, i, "0.0000000000", 12, NULL, 0);
             check_tsk_error(wholepopulationsitesarray[i]);
@@ -663,7 +830,7 @@ void InitializePopulationAbs(int tskitstatus, tsk_table_collection_t * treeseque
 }
 
 //used to initialize a population using a file that stores all the important variables
-void InitializeWithSnapshotAbs(long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, int maxPopSize, double *wholepopulationgenomes, int totalpopulationgenomelength, long double *psumofdeathrates, long double *psumofdeathratessquared, int *pPopSize, double *pCurrenttime, FILE *prevsnapshotfilepointer, FILE *miscfilepointer)
+void InitializeWithSnapshotAbs(long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, int maxPopSize, double *wholepopulationgenomes, int totalpopulationgenomelength, long double *psumofdeathrates, long double *psumofdeathratessquared, long double *psumofload, long double *psumofloadsquared, int *pPopSize, double *pCurrenttime, FILE *prevsnapshotfilepointer, FILE *miscfilepointer)
 {
     int i, j;
 
@@ -690,6 +857,14 @@ void InitializeWithSnapshotAbs(long double *wholepopulationselectiontree, long d
     //gets the sum of death rates squared from the snapshot file
     fscanf(prevsnapshotfilepointer, "%s" , strtemp);
     fscanf(prevsnapshotfilepointer, "%Lf", psumofdeathratessquared);
+
+    //gets the sum of load from the snapshot file
+    fscanf(prevsnapshotfilepointer, "%s" , strtemp);
+    fscanf(prevsnapshotfilepointer, "%Lf", psumofload);
+    
+    //gets the sum of load sqaured from the snapshot file
+    fscanf(prevsnapshotfilepointer, "%s" , strtemp);
+    fscanf(prevsnapshotfilepointer, "%Lf", psumofloadsquared);
     
     //gets the selection tree from the snapshot file
     fscanf(prevsnapshotfilepointer, "%s" , strtemp);
@@ -798,7 +973,7 @@ double CalculateDeathRate(bool ismodular, int elementsperlb, double *parent1game
     int totallinkageblocks;
     int i, m;
 
-    if (ismodular == 0){
+    if (!ismodular){
         //since the load is calculated per gamete, the total number of linkages blocks is half the total genome length of an ind
         totallinkageblocks = totalindividualgenomelength/2;
         for (i = 0; i < totallinkageblocks; i++) {
@@ -807,7 +982,7 @@ double CalculateDeathRate(bool ismodular, int elementsperlb, double *parent1game
         }
 
 	//load is calculated as the number of mutations per individual. An heterozygous should have 1/2 mutation, and an homozygous 1 mutation. Thus we divide the sum of the load of the two sister chromosomes by 2
-	currentlinkageblocksload = currentlinkageblocksload/2;
+	currentlinkageblocksload = currentlinkageblocksload/2; 
         if(r == 1.0){
             inddeathrate = b_0 - s*(i_init - currentlinkageblocksload);
         }   
@@ -826,7 +1001,152 @@ double CalculateDeathRate(bool ismodular, int elementsperlb, double *parent1game
     return inddeathrate;
 }
 
-void WritePopSnapshot(double *wholepopulationgenomes, int totalpopulationgenomelength, long double sumofdeathrates, long double sumofdeathratessquared, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, bool *wholepopulationisfree, int *wholepopulationindex, int maxPopSize, int popsize, double t, FILE *popsnapshotfilepointer)
+void FindFixedMutations(const tsk_tree_t *tree, FILE *tskitdatafilepointer, FILE *miscfilepointer)
+{
+    const tsk_id_t *parent = tree->parent;
+    //find sample IDs
+    const tsk_id_t *samples = tsk_treeseq_get_samples(tree->tree_sequence);
+    tsk_size_t num_samples = tsk_treeseq_get_num_samples(tree->tree_sequence);
+    fprintf(miscfilepointer, "\n (within tree) number of roots of tree is %d. \n", tsk_treeseq_get_num_samples(tree->tree_sequence));
+    fflush(miscfilepointer);
+    //find MRCA of sample
+    tsk_id_t mrca;
+    tsk_id_t u, v; 
+    tsk_size_t j;
+    int ret, numnodes;
+    int numroots = tsk_tree_get_num_roots(tree);
+    fprintf(miscfilepointer, "\n (within tree) number of roots of tree is %d. \n", tsk_tree_get_num_roots(tree));
+    fflush(miscfilepointer);
+    
+    mrca = samples[0];
+    fprintf(miscfilepointer, "\n (within tree) MRCA loop start. \n");
+    fflush(miscfilepointer);
+    //Loop through the sample and find the pairwise MRCA until finding the MRCA of all the sample
+    
+    for (j = 1; j < num_samples; j++) {   
+        ret = tsk_tree_get_mrca(tree, mrca, samples[j], &mrca);
+        check_tsk_error(ret);
+        if (mrca == TSK_NULL || mrca == samples[j])
+            break;
+    }
+
+    fprintf(miscfilepointer, "\n (within tree) MRCA %lld found. \n", mrca);
+    fflush(miscfilepointer);
+    //Find all nodes from MRCA to root
+    tsk_id_t *nodes = malloc(tsk_tree_get_size_bound(tree) * sizeof(*nodes));
+    if (nodes == NULL) {
+        errx(EXIT_FAILURE, "Out of memory");
+    }
+    
+    ret = tsk_tree_get_depth(tree, mrca, &numnodes);
+    check_tsk_error(ret);
+    fprintf(miscfilepointer, "\n (within tree) Depth calculated. \n");
+    fflush(miscfilepointer);
+
+    for (int i = 0; i < numnodes+1; i++)
+    { 
+        nodes[i] = mrca;
+        mrca = parent[mrca];
+    }
+    fprintf(miscfilepointer, "\n (within tree) all nodes between MRCA and root found. \n");
+    fflush(miscfilepointer);
+    //Find and print mutations and time of appearance occuring at each node
+    const tsk_id_t *mutation_nodes = tree->tree_sequence->tables->mutations.node;
+    const tsk_id_t *sites = tree->tree_sequence->tables->mutations.site;
+    if (mutation_nodes == NULL) {
+        errx(EXIT_FAILURE, "Out of memory 2");
+    }
+
+    double fixationtime;
+    fprintf(miscfilepointer, "\n (within tree) starting fixation time calculation. \n");
+    fflush(miscfilepointer);
+    for(j = 0; j < numnodes+1; j++)
+    {
+        for(int k = 0; k < tree->tree_sequence->tables->mutations.num_rows; k++)
+        {
+            while (sites[k] == tree->index)
+            {
+                if(nodes[j] == mutation_nodes[k])
+                {
+                    fixationtime = FindFixationTime(tree, tree->tree_sequence->tables->mutations.time[k]);
+                    fprintf(tskitdatafilepointer, "%.12s\t%f\t%f\n", (tree->tree_sequence->tables->mutations.derived_state + k*12), tree->tree_sequence->tables->mutations.time[k], fixationtime);
+                    fflush(tskitdatafilepointer);
+                }
+            } 
+        }
+    }
+    fprintf(miscfilepointer, "\n (within tree) fixation time calculation finished. \n");
+    fflush(miscfilepointer);
+    free(nodes);
+}
+
+double FindFixationTime(const tsk_tree_t *tree, double timeappearance)
+{
+    int ret;
+    tsk_size_t num_nodes, k;
+    const double *node_time = tree->tree_sequence->tables->nodes.time;
+    tsk_node_t node;
+    tsk_id_t leaf;
+    tsk_edge_t edge;
+    double ret_tbl;
+    double x;
+
+    for (k = 0; k < tree->tree_sequence->tables->nodes.num_rows; k++) {
+        while (node_time[k] >= timeappearance)
+        {
+            if (node_time[k] == timeappearance)
+            {
+                ret = tsk_treeseq_get_node(tree->tree_sequence, k, &node);
+                check_tsk_error(ret);
+
+                FindDeepestNode(tree, node.id, &leaf);
+                ret_tbl = node_time[k] - node_time[leaf];
+            
+                if(ret_tbl > x)
+                    x = ret_tbl;
+            }
+        }  
+    }
+
+    for (k = tree->tree_sequence->tables->edges.num_rows; k > 0 ; k--)
+    {
+        ret = tsk_treeseq_get_edge(tree->tree_sequence, k, &edge);
+        check_tsk_error(ret);
+
+        if (node_time[edge.parent] > timeappearance)
+        {
+            FindDeepestNode(tree, node.id, &leaf);
+                ret_tbl = node_time[k] - node_time[leaf];
+            
+                if(ret_tbl > x)
+                    x = ret_tbl;
+        }
+    }
+    return x;
+}
+
+// Recursive function to find the deepest node in the tree
+void FindDeepestNodeHelper(const tsk_tree_t *tree, tsk_id_t node, int level, int* deepestLevel, tsk_id_t* deepestNode) {
+    if (node == TSK_NULL) {
+        return;
+    }
+    if (level > *deepestLevel) {
+        *deepestLevel = level;
+        *deepestNode = node;
+    }
+    FindDeepestNodeHelper(tree, tree->left_child[node], level + 1, deepestLevel, deepestNode);
+    FindDeepestNodeHelper(tree, tree->right_child[node], level + 1, deepestLevel, deepestNode);
+}
+
+// Function to find the deepest node in the tree
+void FindDeepestNode(const tsk_tree_t *tree, tsk_id_t root, tsk_id_t* leaf) {
+    int deepestLevel = -1;
+    tsk_id_t deepestNode = TSK_NULL;
+    FindDeepestNodeHelper(tree, root, 0, &deepestLevel, &deepestNode);
+    *leaf = deepestNode;
+}
+
+void WritePopSnapshot(double *wholepopulationgenomes, int totalpopulationgenomelength, long double sumofdeathrates, long double sumofdeathratessquared, long double sumofload, long double sumofloadsquared, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, bool *wholepopulationisfree, int *wholepopulationindex, int maxPopSize, int popsize, double t, FILE *popsnapshotfilepointer)
 {
     int i;
     
@@ -840,6 +1160,12 @@ void WritePopSnapshot(double *wholepopulationgenomes, int totalpopulationgenomel
     fprintf(popsnapshotfilepointer, "\n");
     fprintf(popsnapshotfilepointer, "Sum_of_death_rates_squared:\n");
     fprintf(popsnapshotfilepointer, "%Lf", sumofdeathratessquared);
+    fprintf(popsnapshotfilepointer, "\n");
+    fprintf(popsnapshotfilepointer, "Sum_of_load:\n");
+    fprintf(popsnapshotfilepointer, "%Lf", sumofload);
+    fprintf(popsnapshotfilepointer, "\n");
+    fprintf(popsnapshotfilepointer, "Sum_of_load_squared:\n");
+    fprintf(popsnapshotfilepointer, "%Lf", sumofloadsquared);
     fprintf(popsnapshotfilepointer, "\n");
     
     fprintf(popsnapshotfilepointer, "Selection_tree:\n");

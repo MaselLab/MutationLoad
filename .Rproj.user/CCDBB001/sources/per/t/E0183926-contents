@@ -1,0 +1,193 @@
+cal_flux_alg <- function(popsizedata, mutfixdat) {
+  if (class(popsizedata) != "data.frame" | class(popsizedata) != "data.frame") {
+    print("ERROR: both datasets need to be of dataframe type") # check that both arguments are dataframes
+  } else{
+    dat <- popsizedata[,c(1,2)] #we need first two columns, Time and Pop size
+    mut_dat <- mutfixdat[order(-mutfixdat$T_appear),] # mutation table ordered by time of appearance
+    colnames(dat)[1] <- "t_start" #renaming column
+    #creating a column with t_end
+    dat[,3] <- c(dat[2:nrow(dat) ,1], dat[(nrow(dat)),1]+1)
+    #dat[nrow(dat), 3] <- as.numeric(maxTime) #last entry is the maxTime or last time before end of population
+    colnames(dat)[3] <- "t_end" #renaming column
+    #turning time into format matching mutations, i.e. 
+    #the smaller the number the closer to the present
+    dat$t_start <- dat$t_end[nrow(dat)] - dat$t_start
+    dat$t_end <- dat$t_end[nrow(dat)] - dat$t_end
+    #dataframe with popsizes and three rows for del flux, ben flux, and fit flux
+    popsizes <- sort(unique(dat[,2]))
+    df <- as.data.frame(matrix(ncol=length(popsizes), nrow = 2))
+    colnames(df) <- as.character(popsizes)
+    df_del <- as.data.frame(matrix(ncol=length(popsizes), nrow = nrow(dat)))
+    df_ben <- as.data.frame(matrix(ncol=length(popsizes), nrow = nrow(dat)))
+    colnames(df_del) <- as.character(popsizes)
+    colnames(df_ben) <- as.character(popsizes)
+    for (i in 1:nrow(dat)) {
+      t_start <- dat[i, 1]
+      t_end <- dat[i, 3]
+      n <- 1
+      #loop until find the right mutation to start from
+      while(t_start < mut_dat$T_fix[n] && n != nrow(mut_dat)) {
+        n= n+1
+      } 
+      m <- n
+      flux_del_i <- 0
+      flux_ben_i <- 0
+      while(mut_dat$T_appear[m] > t_end && m <= nrow(mut_dat)) {
+        if (mut_dat$T_fix[m] < t_start) {
+          t1 <- ifelse(mut_dat$T_appear[m] < t_start, mut_dat$T_appear[m], t_start)
+          t2 <- ifelse(mut_dat$T_fix[m] < t_end, mut_dat$T_fix[m], t_end)
+          #calculating fluxes
+          if(mut_dat$mutation[m] > 0){
+            flux_del_i <- flux_del_i + (t1-t2/mut_dat$T_until_fix[m])*mut_dat$mutation[m]
+          } else if(mut_dat$mutation[m] < 0){
+            flux_ben_i <- flux_ben_i + (t1-t2/mut_dat$T_until_fix[m])*mut_dat$mutation[m]
+          }
+          #calculating mean s
+          mean_d_rate <- popsizedata[i, 3]
+          i_init <- 400
+          b0 <- 1
+          R <- 0.98
+          s <- 0.01
+          R_load <- (1+log(R)*(1-mean_d_rate))/s
+          mean_load <- i_init - 1 -log(R_load, base = R)
+          load_low <- mean_load - (mut_dat[m,1]/2)
+          load_high <- mean_load + (mut_dat[m,1]/2)
+          mean_d_rate_low <- b0 - s*((R^(i_init-load_low-1) - 1)/log(R))
+          mean_d_rate_high <- b0 - s*((R^(i_init-load_high-1) - 1)/log(R))
+          s <- mean_d_rate_high - mean_d_rate_low
+          if(s > 0){
+            flux_del_i <- flux_del_i + (t1-t2/mut_dat$T_until_fix[m])*s
+          } else if(s < 0){
+            flux_ben_i <- flux_ben_i + (t1-t2/mut_dat$T_until_fix[m])*s
+          }
+        }
+        m <-m+1
+      }
+      df_del[i,as.character(dat[i,2])] <- flux_del_i
+      df_ben[i,as.character(dat[i,2])] <- flux_ben_i
+    }
+    df[1,] <- colMeans(df_del, na.rm = T)
+    df[2,] <- colMeans(df_ben, na.rm = T)
+    return(df)
+  }
+}
+
+cal_flux_alg_2 <- function(popsizedata, mutfixdat) {
+  if (class(popsizedata) != "data.frame" | class(popsizedata) != "data.frame") {
+    print("ERROR: both datasets need to be of dataframe type") # check that both arguments are dataframes
+  } else{
+    dat <- popsizedata[,c(1,2)] #we need first two columns, Time and Pop size
+    mut_dat <- mutfixdat[order(-mutfixdat$T_appear),] # mutation table ordered by time of appearance
+    colnames(dat)[1] <- "t_start" #renaming column
+    #creating a column with t_end
+    dat[,3] <- c(dat[2:nrow(dat) ,1], dat[(nrow(dat)),1]+1)
+    #dat[nrow(dat), 3] <- as.numeric(maxTime) #last entry is the maxTime or last time before end of population
+    colnames(dat)[3] <- "t_end" #renaming column
+    #turning time into format matching mutations, i.e. 
+    #the smaller the number the closer to the present
+    dat$t_start <- dat$t_end[nrow(dat)] - dat$t_start
+    dat$t_end <- dat$t_end[nrow(dat)] - dat$t_end
+    #dataframe with popsizes and three rows for del flux, ben flux, and fit flux
+    popsizes <- sort(unique(dat[,2]))
+    df <- as.data.frame(matrix(ncol=length(popsizes), nrow = 2))
+    colnames(df) <- as.character(popsizes)
+    df_del <- as.data.frame(matrix(ncol=length(popsizes), nrow = nrow(dat)))
+    df_ben <- as.data.frame(matrix(ncol=length(popsizes), nrow = nrow(dat)))
+    colnames(df_del) <- as.character(popsizes)
+    colnames(df_ben) <- as.character(popsizes)
+    for (i in 1:nrow(dat)) {
+      t_start <- dat[i, 1]
+      t_end <- dat[i, 3]
+      n <- 1
+      #loop until find the right mutation to start from
+      while(t_start < mut_dat$T_fix[n] && n != nrow(mut_dat)) {
+        n= n+1
+      } 
+      m <- n
+      flux_del_i <- 0
+      flux_ben_i <- 0
+      while(mut_dat$T_appear[m] > t_end && m <= nrow(mut_dat)) {
+        if (mut_dat$T_fix[m] < t_start) {
+          t1 <- ifelse(mut_dat$T_appear[m] < t_start, mut_dat$T_appear[m], t_start)
+          t2 <- ifelse(mut_dat$T_fix[m] < t_end, mut_dat$T_fix[m], t_end)
+          #calculating fluxes
+          if(mut_dat$mutation[m] > 0){
+            flux_del_i <- flux_del_i + (t1-t2/mut_dat$T_until_fix[m])*mut_dat$mutation[m]
+          } else if(mut_dat$mutation[m] < 0){
+            flux_ben_i <- flux_ben_i + (t1-t2/mut_dat$T_until_fix[m])*mut_dat$mutation[m]
+          }
+          #calculating mean s
+          mean_d_rate <- popsizedata[i, 3]
+          d0 <- 0.2
+          R <- 0.98
+          sdmin <- 0.001
+          R_load <- 1-log(R)*((mean_d_rate - d0)/sdmin)
+          mean_load <- -log(R_load, base = R)
+          load_low <- mean_load - (mut_dat[m,1]/2)
+          load_high <- mean_load + (mut_dat[m,1]/2)
+          mean_d_rate_low <- d0 +sdmin*((1-(R^-load_low))/log(R))
+          mean_d_rate_high <- d0 +sdmin*((1-(R^-load_high))/log(R))
+          s <- mean_d_rate_high - mean_d_rate_low
+          if(s > 0){
+            flux_del_i <- flux_del_i + (t1-t2/mut_dat$T_until_fix[m])*s
+          } else if(s < 0){
+            flux_ben_i <- flux_ben_i + (t1-t2/mut_dat$T_until_fix[m])*s
+          }
+        }
+        m <-m+1
+      }
+      df_del[i,as.character(dat[i,2])] <- flux_del_i
+      df_ben[i,as.character(dat[i,2])] <- flux_ben_i
+    }
+    df[1,] <- colMeans(df_del, na.rm = T)
+    df[2,] <- colMeans(df_ben, na.rm = T)
+    return(df)
+  }
+}
+###################################################
+flux_red_250000 <- read.csv("flux_250000.csv", header = TRUE)
+flux_red_250000 <- flux_red_250000[,-1]
+flux_red_250000 <- flux_red_250000[which(flux_red_250000$del_fit != 0),]
+flux_red_250000$ben_fit <- -flux_red_250000$ben_fit
+flux_red_250000$reduction <- as.character(round((250000 - (100 * log(20000*0.005)/0.005))/20000, 2))
+
+flux_red_350000 <- read.csv("flux_350000.csv", header = TRUE)
+flux_red_350000 <- flux_red_350000[,-1]
+flux_red_350000 <- flux_red_350000[which(flux_red_350000$del_fit != 0),]
+flux_red_350000$ben_fit <- -flux_red_350000$ben_fit
+flux_red_350000$reduction <- as.character(round((350000 - (100 * log(20000*0.005)/0.005))/20000, 2))
+
+flux_red_400000 <- read.csv("flux_400000.csv", header = TRUE)
+flux_red_400000 <- flux_red_400000[,-1]
+flux_red_400000 <- flux_red_400000[which(flux_red_400000$del_fit != 0),]
+flux_red_400000$ben_fit <- -flux_red_400000$ben_fit
+flux_red_400000$reduction <- as.character(round((400000 - (100 * log(20000*0.005)/0.005))/20000, 2))
+
+flux_red <- rbind(flux_red_250000, flux_red_350000, flux_red_400000)
+flux_red[which(flux_red$ben_fit == 0),]$ben_fit <- NA
+flux_red$reduction <- factor(flux_red$reduction, levels = c("7.89", "12.89", "15.39"))
+
+png("flux_red.png", units="in", width=8, height=5, res=300)
+p <- ggplot()
+p <- p+geom_point(data=flux_red, aes(x=popsizes, y=del_fit), col ="red")
+p <- p+geom_point(data=flux_red, aes(x=popsizes, y=ben_fit), col ="blue")
+p <- p+geom_smooth(data=flux_red, aes(x=popsizes, y=del_fit), method = "lm", se = FALSE, col="red")
+p <- p+geom_smooth(data=flux_red, aes(x=popsizes, y=ben_fit), method = "lm", se = FALSE, col="blue")
+#p <- p+scale_x_continuous(limits = c(900, 21000), breaks = c(1000, 5000, 10000, 15000, 20000))
+#p <- p1+scale_y_continuous(limits = c(0, 4), breaks = c(1,2,3,4))
+p <- p + facet_grid(~reduction)
+p <- p+labs(x="Population size", y="Fitness (delta d) flux/per gen")+theme_Publication()
+p
+dev.off()
+
+png("flux_red_2.png", units="in", width=5, height=5, res=300)
+p <- ggplot()
+p <- p+geom_point(data=flux_red_400000, aes(x=popsizes, y=ben_fit/del_fit), col ="red")
+p <- p+geom_point(data=flux_red_400000, aes(x=popsizes, y=ben_fit), col ="blue")
+p <- p+geom_smooth(data=flux_red_400000, aes(x=popsizes, y=del_fit), method = "lm", se = FALSE, col="red")
+p <- p+geom_smooth(data=flux_red_400000, aes(x=popsizes, y=ben_fit), method = "lm", se = FALSE, col="blue")
+#p <- p+scale_x_continuous(limits = c(900, 21000), breaks = c(1000, 5000, 10000, 15000, 20000))
+#p <- p1+scale_y_continuous(limits = c(0, 4), breaks = c(1,2,3,4))
+p <- p+labs(x="Population size", y="Change in death rate (delta d)\nflux/per gen")+theme_Publication()
+p
+dev.off()
