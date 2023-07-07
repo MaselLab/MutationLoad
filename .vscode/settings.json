@@ -1,0 +1,8 @@
+{
+    "C_Cpp.default.cppStandard": "c++11",
+    "C_Cpp.default.cStandard": "c11",
+    "files.associations": {
+        "pcg_basic.h": "c",
+        "cstdlib": "c"
+    }
+}
