@@ -970,8 +970,7 @@ for details of the columns in this table.
 @return Return the ID of the newly added edge on success,
     or a negative value on failure.
 */
-tsk_id_t tsk_edge_table_add_row(tsk_edge_table_t *self, double left, double right, 
-    tsk_id_t parent, tsk_id_t child);
+tsk_id_t tsk_edge_table_add_row(tsk_edge_table_t *self, double left, double right, tsk_id_t parent, tsk_id_t child);
 
 /**
 @brief Clears this table, setting the number of rows to zero.
