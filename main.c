@@ -5,6 +5,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <float.h>
 #include <string.h>
 #include <math.h>
@@ -120,6 +121,15 @@ int main(int argc, char *argv[]) {
 		Sb2 = 1.0;
 	}
 
+    //I have two parameters for N for the type of run that needs to have bracketed values of N.
+	int N1;
+    N1 = (int) popsize*0.25;
+	int *pN1 = &N1;
+
+	int N2;
+    N2 = popsize;
+	int *pN2 = &N2;
+
 	//calculate the beneficial mutation rate from the inputted ratio
 	double beneficialmutationrate = bentodelmutrate*deleteriousmutationrate;
 	double Sd = Sb2*SdtoSbratio;
@@ -160,6 +170,7 @@ int main(int argc, char *argv[]) {
     
    //START OF RUNS
     if (typeofrun == 0) {
+        fprintf(miscfilepointer, "Running root finding for Sb");
         //create and open the final data file name using the input parameter values
         char * finaldatafilename = MakeFinalDataFileName(typeofrunname, beneficialmutationratename, slopeforcontourlinename, randomnumberseedname);
         finaldatafilepointer = fopen(finaldatafilename, "w");
@@ -189,13 +200,55 @@ int main(int argc, char *argv[]) {
 		fclose(finaldatafilepointer);
     
     } else if (typeofrun == 1){
+        double slope;
+        fprintf(miscfilepointer, "Running single run simulation");
         if(!isabsolute){
             //This type of run just simulates a single population with the input parameters.
-            RunSimulationRel(tskitstatus, isabsolute, ismodular, elementsperlb, Nxtimestepsname, popsizename, deleteriousmutationratename, chromosomesizename, numberofchromosomesname, beneficialmutationratename, Sb2name, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
+            slope = RunSimulationRel(tskitstatus, isabsolute, ismodular, elementsperlb, Nxtimestepsname, popsizename, deleteriousmutationratename, chromosomesizename, numberofchromosomesname, beneficialmutationratename, Sb2name, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
         }else{
             RunSimulationAbs(issnapshot, prevsnapshotfilename, isredinmaxpopsize, redinmaxpopsizename, redinmaxpopsize, beneficialmutationratename, Sb2name, tskitstatus, ismodular, elementsperlb, isabsolute, Nxtimesteps, popsize, K, chromosomesize, numberofchromosomes, deleteriousmutationrate, Sd, deleteriousdistribution, beneficialmutationrate, Sb2, beneficialdistribution, r, i_init, s, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer, rawdatafilesize, iscalcfixation);
         }
+        fprintf(miscfilepointer, "slope of run is %.10f", slope);
         
+    } else if (typeofrun == 2){
+        fprintf(miscfilepointer, "Running root finding for N crit\n");
+        //create and open the final data file name using the input parameter values
+        char * finaldatafilename = MakeFinalDataFileName(typeofrunname, beneficialmutationratename, slopeforcontourlinename, randomnumberseedname);
+        finaldatafilepointer = fopen(finaldatafilename, "w");
+        /*This type of run finds the Ncrit value for the given set of parameters
+         that produces a population whose fitness stays almost exactly stable.
+         It does this by finding values of Ncrit that lead to populations definitely
+         increasing and definitely decreasing in fitness,
+         and then searching between them until it finds a value of Ncrit that leads
+         to a population with a long-term slope of fitness that is within an error term of zero.
+         */
+        int wrong_bounds;
+        double Ncritrequiredforzeroslopeoffitness;
+        
+        fprintf(miscfilepointer, "Beginning bracketing function.\n");
+        
+        fflush(miscfilepointer);
+        
+        wrong_bounds = BracketZeroForNcrit(tskitstatus, isabsolute, ismodular, elementsperlb, pN1, pN2, Nxtimestepsname, deleteriousmutationratename, chromosomesizename, numberofchromosomesname, beneficialmutationratename, typeofrun, Nxtimesteps, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, slopeforcontourline, beneficialdistribution, Sd, Sb2name, Sb2, deleteriousdistribution, randomnumbergeneratorforgamma, verbosefilepointer, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
+        
+        if(wrong_bounds == -1){
+            fprintf(miscfilepointer, "Bracketing function failed.\n");
+		    return -1;
+        }
+        
+        fprintf(miscfilepointer, "Finished bracketing function.\n");
+        
+        fflush(miscfilepointer);
+        fprintf(miscfilepointer, "Beginning Secant function.\n");
+
+        fflush(miscfilepointer);
+        Ncritrequiredforzeroslopeoffitness = SecantMethodToFindNcritWithZeroSlope(tskitstatus, isabsolute, ismodular, elementsperlb, pN1, pN2, Nxtimestepsname, deleteriousmutationratename, chromosomesizename, numberofchromosomesname, beneficialmutationratename, typeofrun, Nxtimesteps, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, slopeforcontourline, beneficialdistribution, Sd, Sb2name, Sb2, deleteriousdistribution, randomnumbergeneratorforgamma, miscfilepointer, verbosefilepointer, finaldatafilepointer, veryverbosefilepointer, rawdatafilesize);
+        
+        fprintf(finaldatafilepointer, "The value of Ncrit for which the slope of log fitness is zero with mub of %.10f, sb of %.10f, Ud of %.4f is %.2f", beneficialmutationrate, Sb2, deleteriousmutationrate, Ncritrequiredforzeroslopeoffitness);
+        fflush(finaldatafilepointer);
+
+        free(finaldatafilename);
+		fclose(finaldatafilepointer);
     } else{
         //One day maybe I'll have more types of runs.
         fprintf(miscfilepointer, "That type of run is not currently supported.");
@@ -279,7 +332,7 @@ double CalculateVarianceInLogFitness(int popsize, long double *wholepopulationwi
     for (i = 0; i < popsize; i++) {
         variancesum += (double) pow((log(wholepopulationwisarray[i]) - logaverage), 2);
     }
-    variancesum = (variancesum/popsize);
+    variancesum = (variancesum/(popsize-1)); //note that in the article (Mawass et al. 2024) the Bessel correction is missing here. However, given that we use the variance measure only to decide when to end the burn-in period, the effect of its absence would very minimal in practice over long runs.
     return variancesum;
 }
 
@@ -475,8 +528,6 @@ void RecombineChromosomesIntoGamete(bool isabsolute, int tskitstatus, bool ismod
     
             *childnode = tsk_node_table_add_row(&treesequencetablecollection->nodes, 0, ((double) totaltimesteps - currenttimestep), TSK_NULL, TSK_NULL, NULL, 0);
             check_tsk_error(*childnode);
-    
-            double childtime = treesequencetablecollection->nodes.time[*childnode];  
         }
     }
 
@@ -503,7 +554,7 @@ void RecombineChromosomesIntoGamete(bool isabsolute, int tskitstatus, bool ismod
                         check_tsk_error(returnvaluefortskit);
                     }
                 }
-            }else{
+            } else{
                 if (startchromosome == 0){
                     returnvaluefortskit = tsk_edge_table_add_row(&treesequencetablecollection->edges, (double)(h*chromosomesize), (double)(h*chromosomesize + recombinationsite), wholepopulationnodesarray[parentnode1], *childnode, NULL, 0);
                     check_tsk_error(returnvaluefortskit);
@@ -690,12 +741,12 @@ int BracketZeroForSb(int tskitstatus, bool isabsolute, bool ismodular, int eleme
         fflush(verbosefilepointer);
     }
     if (resultingslope1 == resultingslope2) {
-        return 0;
         fprintf(miscfilepointer, "Slopes after first try are the same, equaling %.5f and %.5f\n", resultingslope1, resultingslope2);
+        return 0;
     }
     if (resultingslope1 > slopeforcontourline) {
-        return 0;
         fprintf(miscfilepointer, "Slope with sb 0.0 larger than proposed contour, slope = %.6f, contour line value = %.6f\n", resultingslope1, slopeforcontourline);
+        return 0;
     }
     
     for (i = 0; i < numberoftries; i++) {
@@ -791,6 +842,322 @@ double BisectionMethodToFindSbWithZeroSlope(int tskitstatus, bool isabsolute, bo
     return 0.0;
     
 }
+
+//This is the second bracketing function to find Ncrit which is the population size where the net fitness flux of 0 for a given set of parameters.
+//
+int BracketZeroForNcrit(int tskitstatus, bool isabsolute, bool ismodular, int elementsperlb, int *N1, int *N2, char *Nxtimestepsname, char *delmutratename, char *chromsizename, char *chromnumname, char *mubname, int typeofrun, int Nxtimesteps, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double slopeforcontourline, int beneficialdistribution, double Sd, char *Sbname, double Sb, int deleteriousdistribution, gsl_rng *randomnumbergeneratorforgamma, FILE *verbosefilepointer, FILE *miscfilepointer, FILE *veryverbosefilepointer, int rawdatafilesize) {
+    //setting up variables
+    int i, numberoftriesforlower, numberoftriesforupper, generations;
+    double resultingslope1, resultingslope2;
+    int gen = 10;//scale number of generations based on tested N
+    //number of attempts of finding bounds
+    numberoftriesforlower = 3;
+    numberoftriesforupper = 3;
+    //factor to increase or decrease the next attempted N from the initial unsuccessful guesses
+    int factor = 2;
+
+    char N1name[6], N2name[6];
+    snprintf(N1name, 6, "%d", *N1);
+    snprintf(N2name, 6, "%d", *N2);
+    if (VERBOSE == 1) {
+        fprintf(verbosefilepointer, "N1name: %s, N2name: %s\n", N1name, N2name);
+        fflush(verbosefilepointer);
+    }
+
+    generations = *N1 * gen;
+    fprintf(verbosefilepointer, "generations for N1 %d: %d\n", *N1, generations);
+    fflush(verbosefilepointer);
+    //testing lower bound N1
+    resultingslope1 = RunSimulationRel(tskitstatus, isabsolute, ismodular, elementsperlb, Nxtimestepsname, N1name, delmutratename, chromsizename, chromnumname, mubname, Sbname, typeofrun, generations, *N1, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
+    
+    generations = *N2 * gen;
+    fprintf(verbosefilepointer, "generations for N2 %d: %d\n", *N2, generations);
+    fflush(verbosefilepointer);
+    //testing higher bound N2
+    resultingslope2 = RunSimulationRel(tskitstatus, isabsolute, ismodular, elementsperlb, Nxtimestepsname, N2name, delmutratename, chromsizename, chromnumname, mubname, Sbname, typeofrun, generations, *N2, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
+
+    //different print statments based on results of initial guesses
+    if (VERBOSE == 1) {
+        fprintf(verbosefilepointer, "First two slopes are: %.6f for N %d, and %.6f for N %d\n", resultingslope1, *N1, resultingslope2, *N2);
+        fflush(verbosefilepointer);
+    }
+    if (resultingslope1 == resultingslope2) {
+        fprintf(miscfilepointer, "Slopes after first try are the same, equaling %.6f and %.6f\n", resultingslope1, resultingslope2);
+        return -1;
+    }
+    if (resultingslope1 > slopeforcontourline) {
+        fprintf(miscfilepointer, "Slope with inital lower bound N1 %d larger than proposed contour, slope = %.6f, contour line value = %.6f. Lower bound N should have slope < contour line\n",*N1, resultingslope1, slopeforcontourline);
+    }
+    if (resultingslope2 < slopeforcontourline) {
+        fprintf(miscfilepointer, "Slope with inital upper bound N2 %d lower than proposed contour, slope = %.6f, contour line value = %.6f. Upper bound N should have slope > contour line\n",*N2, resultingslope2, slopeforcontourline);
+    }
+    
+    if ((resultingslope1 < slopeforcontourline) && (resultingslope2 > slopeforcontourline)) {
+        return 0;//if guesses are successful, everything is good to go 
+    } else if (resultingslope2 <= slopeforcontourline) {
+        //this block of code will attempt to find a new upper bound
+        for (i = 0; i < numberoftriesforupper; i++) {
+            //if initial upper bound guess is unsuccessful
+            *N1 = *N2;//if the first guess of an upper bound is wrong, then we make it the new lower bound
+            if (VERBOSE == 1) {
+                fprintf(verbosefilepointer, "Previous upper bound N2 is now new lower bound N1 : %s\n", N2name);
+                fflush(verbosefilepointer);
+            }
+            *N2 = *N2 * factor;//calculate new upper limit guess by multiplying old guess by preset factor
+            generations = *N2 * gen;//set number of generations
+            snprintf(N2name, 6, "%d", *N2);
+            if (VERBOSE == 1) {
+                fprintf(verbosefilepointer, "Testing new upper bound N2: %s\n", N2name);
+                fprintf(verbosefilepointer, "Starting run with new N2 = %d\n", *N2);
+                fflush(verbosefilepointer);
+            }
+            //calculating slope of new tested guess of upper limit
+            resultingslope2 = RunSimulationRel(tskitstatus, isabsolute, ismodular, elementsperlb, Nxtimestepsname, N2name, delmutratename, chromsizename, chromnumname, mubname, Sbname, typeofrun, generations, *N2, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
+            if (VERBOSE == 1) {
+                fprintf(verbosefilepointer, "Slope for new upper bound N2 %d = %.6f\n", *N2, resultingslope2);
+                fflush(verbosefilepointer);
+            }
+            if (resultingslope2 > slopeforcontourline)
+            {
+                //if a new guess of upper limit was found
+                fprintf(verbosefilepointer, "new upper bound N2 found %d\n", *N2);
+                fflush(verbosefilepointer);
+                break;
+            } else if (i == numberoftriesforupper && resultingslope2 <= slopeforcontourline){
+                //if no new guess of upper limit is found within the max number of tries
+                fprintf(verbosefilepointer, "No new upper bound N2 found after %d attempts\n", numberoftriesforupper);
+                fflush(verbosefilepointer);
+                return -1;
+            }    
+        }          
+    } else if (resultingslope1 >= slopeforcontourline) {
+        //this block of code will attempt to find a new lower bound
+        for (i = 0; i < numberoftriesforlower; i++) {
+            //if initial lower bound guess is unsuccessful
+            *N2 = *N1;//if the first guess of a lower bound is wrong, then we make it the new upper bound
+            if (VERBOSE == 1) {
+                fprintf(verbosefilepointer, "Previous lower bound N1 is now new upper bound N2 : %s\n", N1name);
+                fflush(verbosefilepointer);
+            }
+            *N1 = *N1 / factor;//calculate new lower limit guess by dividing old guess by preset factor
+            generations = *N1 * gen;//set number of generations
+            snprintf(N1name, 6, "%d", *N1);
+            if (VERBOSE == 1) {
+                fprintf(verbosefilepointer, "Testing new lower bound N1: %s\n", N1name);
+                fprintf(verbosefilepointer, "Starting run with new N1 = %d\n", *N1);
+                fflush(verbosefilepointer);
+            }
+            //calculating slope of new tested guess of upper limit
+            resultingslope1 = RunSimulationRel(tskitstatus, isabsolute, ismodular, elementsperlb, Nxtimestepsname, N1name, delmutratename, chromsizename, chromnumname, mubname, Sbname, typeofrun, Nxtimesteps, *N1, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
+            if (VERBOSE == 1) {
+                fprintf(verbosefilepointer, "Slope for new lower bound N1 %d = %.6f\n", *N1, resultingslope1);
+                fflush(verbosefilepointer);
+            }
+            if (resultingslope1 < slopeforcontourline)
+            {
+                //if a new guess of upper limit was found
+                fprintf(verbosefilepointer, "new lower bound N1 found %d\n", *N1);
+                fflush(verbosefilepointer);
+                break;
+            } else if (i == numberoftriesforlower && resultingslope1 >= slopeforcontourline){
+                //if no new guess of upper limit is found within the max number of tries
+                fprintf(verbosefilepointer, "No new lower bound N1 found after %d attempts\n", numberoftriesforlower);
+                fflush(verbosefilepointer);
+                return -1;
+            } 
+        }  
+    }
+}
+
+//The following function is modified from Numerical Recipes in C, Second Edition.
+double SecantMethodToFindNcritWithZeroSlope(int tskitstatus, bool isabsolute, bool ismodular, int elementsperlb, int *N1, int *N2, char *Nxtimestepsname, char *delmutratename, char * chromsizename, char *chromnumname, char *mubname, int typeofrun, int Nxtimesteps, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double slopeforcontourline, int beneficialdistribution, double Sd, char *Sbname, double Sb, int deleteriousdistribution, gsl_rng *randomnumbergeneratorforgamma, FILE *verbosefilepointer, FILE *miscfilepointer, FILE *finaldatafilepointer, FILE *veryverbosefilepointer, int rawdatafilesize) {
+    int i, Nl, root, generations;
+    int gen = 10;
+    double *N = NULL;
+    double *v = NULL;   
+    // Variable to store the number of elements in the array
+    int num_elements = 0;
+    int filtered_count = 0;
+
+    double slope, slopel, slopetemp;
+    double percent_threshold = 25.0;
+    int maxtries = 30;
+    char N1name[6], N2name[6], rootname[6];
+    snprintf(N1name, 6, "%d", *N1);
+    snprintf(N2name, 6, "%d", *N2);
+    if (VERBOSE == 1) {
+        fprintf(verbosefilepointer, "Entered secant function. First two N %d and %d\n", *N1, *N2);
+        fprintf(verbosefilepointer, "Starting N1name: %s, starting N2name: %s\n", N1name, N2name);
+        fflush(verbosefilepointer);
+    }
+
+    generations = *N1 * gen;
+
+    slopel = RunSimulationRel(tskitstatus, isabsolute, ismodular, elementsperlb, Nxtimestepsname, N1name, delmutratename, chromsizename, chromnumname, mubname, Sbname, typeofrun, generations, *N1, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
+    if (VERBOSE == 1) {
+        fprintf(verbosefilepointer, "Finished run with N1 %d, resulting in a slope of %.6f\n", *N1, slopel);
+        fflush(verbosefilepointer);
+    }
+
+    // Dynamically reallocate memory for the array to store the new number
+    num_elements++;
+    N = (double *)realloc(N, num_elements * sizeof(double));
+    v = (double *)realloc(v, num_elements * sizeof(double));
+
+    // Check if memory allocation was successful
+    if (v == NULL || N == NULL) {
+        printf("Memory allocation failed\n");
+        exit(1); // Exit the program due to memory allocation failure
+    }
+
+    // Store the input number in the array
+    N[num_elements - 1] = (double) *N1;
+    v[num_elements - 1] = slopel;
+    
+    generations = *N2 * gen;
+
+    slope = RunSimulationRel(tskitstatus, isabsolute, ismodular, elementsperlb, Nxtimestepsname, N2name, delmutratename, chromsizename, chromnumname, mubname, Sbname, typeofrun, generations, *N2, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
+    if (VERBOSE == 1) {
+        fprintf(verbosefilepointer, "Finished run with N2 %d, resulting in a slope of %.6f\n", *N2, slope);
+    }
+    
+    num_elements++;
+    N = (double *)realloc(N, num_elements * sizeof(double));
+    v = (double *)realloc(v, num_elements * sizeof(double));
+
+    // Check if memory allocation was successful
+    if (v == NULL || N == NULL) {
+        printf("Memory allocation failed\n");
+        exit(1); // Exit the program due to memory allocation failure
+    }
+
+    // Store the input number in the array
+    N[num_elements - 1] = (double) *N2;
+    v[num_elements - 1] = slope;
+
+    if (((slopel - slopeforcontourline)*(slope - slopeforcontourline)) > 0.0) {
+        fprintf(miscfilepointer, "Root not bracketed properly, with starting slopes %.10f and %.10f for a desired slope of %.6f\n", slopel, slope, slopeforcontourline);
+        return 0.0;
+    }
+
+    //Secant calculation here
+    if (abs(slopel) < abs(slope)){
+        root = *N1;
+        Nl = *N2;
+        slopetemp = slopel;
+        slopel = slope;
+        slope = slopetemp;
+    } else{
+        Nl = *N1;
+        root = *N2;
+    }
+    
+    for (i = 1; i <= maxtries; i++) {
+        int dx = (Nl-root)*slope/(slope-slopel);
+        Nl=root;
+        slopel=slope;
+        root += dx;
+        snprintf(rootname, 6, "%d", root);
+        if (VERBOSE == 1) {
+            fprintf(verbosefilepointer, "rootname: %s\n", rootname);
+            fprintf(verbosefilepointer, "Starting run with N %d\n", root);
+            fflush(verbosefilepointer);
+        }
+
+        if (root == Nl) {
+            fprintf(miscfilepointer, "Ncrit found based on secant method converging on same N: %d\n", root);
+            break;
+        }
+        generations = root * gen;
+
+        slope = RunSimulationRel(tskitstatus, isabsolute, ismodular, elementsperlb, Nxtimestepsname, N2name, delmutratename, chromsizename, chromnumname, mubname, Sbname, typeofrun, generations, root, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
+        
+        fprintf(verbosefilepointer, "Finished run with N %d, resulting in a slope of %.6f\n", root, slope);
+        fflush(verbosefilepointer);
+        
+        num_elements++;
+        N = (double *)realloc(N, num_elements * sizeof(double));
+        v = (double *)realloc(v, num_elements * sizeof(double));
+
+        // Check if memory allocation was successful
+        if (v == NULL || N == NULL) {
+            printf("Memory allocation failed\n");
+            exit(1); // Exit the program due to memory allocation failure
+        }
+
+        // Store the input number in the array
+        N[num_elements - 1] = (double) root;
+        v[num_elements - 1] = slope;
+        
+        double relative_change = fabs((slope - slopel) / slopel) * 100.0;
+
+        if (relative_change < percent_threshold) {
+            fprintf(miscfilepointer, "Ncrit found based on secant method due to relative change being less than %.1f: %d\n", percent_threshold, root);
+            break;
+        }
+    }
+    // Create arrays to store filtered N and v
+    double *filtered_N = malloc(num_elements * sizeof(double));
+    double *filtered_v = malloc(num_elements * sizeof(double));
+
+    if (filtered_N == NULL || filtered_v == NULL) {
+        printf("Memory allocation failed\n");
+        exit(1); // Exit the program due to memory allocation failure
+    }
+
+    // Iterate through recorded data
+    for (int i = 0; i < num_elements; ++i) {
+        // Check if N is within a factor of 3 from the root
+        if (N[i] >= root / 3 && N[i] <= root * 3) {
+            // Store the pair in filtered arrays
+            filtered_N[filtered_count] = N[i];
+            filtered_v[filtered_count] = v[i];
+            filtered_count++;
+        }
+    }
+    // Free memory for the original N and v arrays
+    free(N);
+    free(v);
+
+    // Resize the arrays to the actual number of valid elements
+    filtered_N = realloc(filtered_N, filtered_count * sizeof(double));
+    filtered_v = realloc(filtered_v, filtered_count * sizeof(double));
+
+    if (filtered_N == NULL || filtered_v == NULL) {
+        printf("Memory reallocation failed\n");
+        exit(1); // Exit the program due to memory reallocation failure
+    }
+
+    size_t step = 1;
+    double cov00, cov01, cov11, sumsq, Ncrit;
+    double b, m;
+
+    gsl_fit_linear(filtered_N, step, filtered_v, step, filtered_count, &b, &m, &cov00, &cov01, &cov11, &sumsq);
+    fprintf(miscfilepointer, "the slope of the linear curve is %.10f and the intercept is %.10f\n", b, m);
+    fflush(miscfilepointer);
+    Ncrit = -b/m;
+    fprintf(miscfilepointer, "Ncrit found based on linear curve fitting method: %.2f", Ncrit);
+    free(filtered_N);
+    free(filtered_v);
+    return Ncrit;
+}
+
+double BestApproximateFit(double *x, double *y, int n)
+{
+    size_t step = 1;
+    double cov00, cov01, cov11, sumsq, Ncrit;
+    double intercept, slope;
+
+    //The following function fits a linear model to the two variables (popsize and slope of log fitness)
+    //and records the parameters of the best-fitting linear model in the intercept, cov00, cov01, cov11, sumsq, and slope variables.
+    //I use the slope and intercept parameters,  to find the root as -intercept/slope.
+    gsl_fit_linear(x, step, y, step, n, &intercept, &slope, &cov00, &cov01, &cov11, &sumsq);
+    
+    Ncrit = (-intercept)/slope;
+
+    return Ncrit;
+}
+
 char * MakeDirectoryName(char * tskitstatus, char* deldist, char * isabsolutename, bool isabsolute, char * bendist, char * benmut, char * numberofchromosomes, char * chromosomesize, char * popsize, char * delmut, char * randomnumberseed, char * K, char * r, char *i_init, char * s, bool ismodular, char *elementsperlb, char *iscalcfixationname, int typeofrun, char * Sbname) 
 {
 	
@@ -816,6 +1183,11 @@ char * MakeDirectoryName(char * tskitstatus, char* deldist, char * isabsolutenam
         strcat(directoryname, K);
     }
     if(typeofrun == 1){
+        strcat(directoryname, "_Sb_");
+        strcat(directoryname, Sbname);
+    }
+    if(typeofrun == 2){
+        strcat(directoryname, "_Ncrit");
         strcat(directoryname, "_Sb_");
         strcat(directoryname, Sbname);
     }
@@ -1001,8 +1373,8 @@ int AssignArgumentstoVar(char **argv, int *Nxtimesteps, char *Nxtimestepsname, i
 		printf("[Error] 8th argument (beneficial distribution) must be 0 (point), 1 (exponential) or 2 (uniform). However, by the moment only point mutations are tested for mutaway code \n");
 		return -1;
 	}
-	if (*typeofrun != 0 && *typeofrun != 1) {
-		printf("[Error] 9th argument (type of run) must be 0 or 1 \n");
+	if (*typeofrun != 0 && *typeofrun != 1 && *typeofrun != 2) {
+		printf("[Error] 9th argument (type of run) must be 0 or 1 or 2\n");
 		return -1;
 	}
 	if (*relorabs != 0 && *relorabs != 1) {
@@ -1093,9 +1465,11 @@ void AssignStringNames(char *beneficialmutationratename, double beneficialmutati
 
 	//pointer for type of run name
 	if(typeofrun == 0)
-		strncpy(typeofrunname, "root", sizeof("root"));
+		strncpy(typeofrunname, "rootSb", sizeof("rootSb"));
 	else if(typeofrun == 1)
 		strncpy(typeofrunname, "single", sizeof("single"));
+    else if(typeofrun == 2)
+		strncpy(typeofrunname, "rootNcrit", sizeof("rootNcrit"));
 
 	//pointer for tskitstatus name
 	if(tskitstatus == 0) {

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <float.h>
 #include <string.h>
 #include <stdbool.h>
@@ -41,25 +42,25 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
     char * rawdatafilename = (char *) malloc(200);
     strcpy(rawdatafilename, "rawdatafor"); //starting the string that will be the name of the data file.
 
-    strcat(rawdatafilename, "Nxtimesteps"); //for adding values of generations to the data name.
+    strcat(rawdatafilename, "_Nxtimesteps_"); //for adding values of generations to the data name.
     strcat(rawdatafilename, Nxtimestepsname);
 
-    strcat(rawdatafilename, "popsize"); //for adding values of starting population sizes to the data name.
+    strcat(rawdatafilename, "_popsize_"); //for adding values of starting population sizes to the data name.
     strcat(rawdatafilename, popsizename);
 
-    strcat(rawdatafilename, "mutrate"); //for adding values of mutation rate to the data name (remember that mutation rate is currently the per-locus rate, not per-genome).
+    strcat(rawdatafilename, "_mutrate_"); //for adding values of mutation rate to the data name (remember that mutation rate is currently the per-locus rate, not per-genome).
     strcat(rawdatafilename, delmutratename);
 
-    strcat(rawdatafilename, "chromsize"); //for adding values of chromosome size to the data name.
+    strcat(rawdatafilename, "_chromsize_"); //for adding values of chromosome size to the data name.
     strcat(rawdatafilename, chromsizename);
 
-    strcat(rawdatafilename, "chromnum"); //for adding values of the number of chromosomes to the data name.
+    strcat(rawdatafilename, "_chromnum_"); //for adding values of the number of chromosomes to the data name.
     strcat(rawdatafilename, chromnumname);
     
-    strcat(rawdatafilename, "benmutrate"); //for adding values of the beneficial mutation rate to the data name.
+    strcat(rawdatafilename, "_benmutrate_"); //for adding values of the beneficial mutation rate to the data name.
     strcat(rawdatafilename, mubname);
     
-    strcat(rawdatafilename, "Sb"); //for adding values of the beneficial mutation effect size to the data name.
+    strcat(rawdatafilename, "_Sb_"); //for adding values of the beneficial mutation effect size to the data name.
     strcat(rawdatafilename, Sbname);
     
     strcat(rawdatafilename, ".txt");
@@ -69,9 +70,11 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
     
     char * summarydatafilename = (char *) malloc(100);
     strcpy(summarydatafilename, "summarydatafor");
-    strcat(summarydatafilename, "Sb");
+    strcat(rawdatafilename, "_popsize_"); //for adding values of starting population sizes to the data name.
+    strcat(rawdatafilename, popsizename);
+    strcat(summarydatafilename, "_Sb_");
     strcat(summarydatafilename, Sbname);
-    strcat(summarydatafilename, "mub");
+    strcat(summarydatafilename, "_mub_");
     strcat(summarydatafilename, mubname);
     strcat(summarydatafilename, ".txt");
     summarydatafilepointer = fopen(summarydatafilename, "w"); //opens the file to which to print summary data.
@@ -80,8 +83,9 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
     edgefilepointer = fopen("edgetable.txt", "w");
     sitefilepointer = fopen("sitetable.txt", "w");
     mutationfilepointer = fopen("mutationtable.txt", "w");
-    
+
     int totaltimesteps = Nxtimesteps * popsize;
+
     double currenttimestep = 0.0;
     double *wholepopulationgenomes;
     int totalpopulationgenomelength;
@@ -162,7 +166,15 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
     int endofsimulation = Nxtimesteps-1;
     int Nxtimestepsafterburnin = 0;
     double arbitrarynumber;
-    arbitrarynumber = (-1 * 0.007 / popsize); //using a number somewhere close to the mean of the DFE for deleterious mutations.
+    
+    if (popsize < 200){
+        arbitrarynumber = (double) (-1 / popsize);//using a much smaller arbitary number when popsize is small which is the case when studying dynamics of small pops
+    } else if (deleteriousmutationrate < 1.0){
+        arbitrarynumber = (-1 / popsize);//using a  smaller arbitary number when Ud is small which is the case when testing the impact of low Ud
+    }
+    else{
+        arbitrarynumber = (-1 * 0.007 / popsize);//using a number somewhere close to the mean of the DFE for deleterious mutations.
+    }
     double slopeoflogfitness;    
     double variancesum;
     
@@ -178,7 +190,7 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
         //Following code performs N rounds of paired births and deaths.
         for (j = 0; j < popsize; j++) {
             currenttimestep += 1.0;            
-            PerformOneTimeStepRel(tskitstatus, isabsolute, isburninphaseover, ismodular, elementsperlb, &treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, popsize, totaltimesteps, currenttimestep,wholepopulationwistree, wholepopulationwisarray, wholepopulationgenomes, psumofwis, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, deleteriousdistribution, parent1gamete, parent2gamete, randomnumbergeneratorforgamma, miscfilepointer);  
+            PerformOneTimeStepRel(tskitstatus, isabsolute, isburninphaseover, ismodular, elementsperlb, &treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, popsize, totaltimesteps, currenttimestep,wholepopulationwistree, wholepopulationwisarray, wholepopulationgenomes, psumofwis, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, deleteriousdistribution, parent1gamete, parent2gamete, randomnumbergeneratorforgamma, miscfilepointer);
         }
         
         //Following code calculates the variance in log(fitness) of the population after this generation of births and deaths.
@@ -197,7 +209,7 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
         //The tskit API calls out sorting each time as inefficient, but they haven't yet uploaded an example of how to do it differently. The API currently suggests that they would use the C++ API, which I don't want to deal with.
         //Simplify interval is currently set to 5. Should be either an input parameter or global variable at some point, probably.
         if (tskitstatus > 0){
-            if (i % 10 == 0) {
+            if (i % 500 == 0) {
                 returnvaluefortskfunctions = tsk_table_collection_sort(&treesequencetablecollection, NULL, 0);
                 check_tsk_error(returnvaluefortskfunctions);
             
@@ -223,7 +235,7 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
                 gsl_fit_linear(literallyjustlast200Ntimesteps, step, last200Ntimestepsvariance, step, 200, &c0, &slopeofvariance, &cov00, &cov01, &cov11, &sumsq);
                 if (slopeofvariance < arbitrarynumber) {
                     endofburninphase = i;
-                    endofdelay = endofburninphase + 500;
+                    endofdelay = endofburninphase + 100;
                     isburninphaseover = 1;
                     fprintf(miscfilepointer, "Burn-in phase called as ending in generation %d\n", i+1);
                     fprintf(summarydatafilepointer, "Burn-in phase called as ending in generation %d\n", i+1);
@@ -322,6 +334,9 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
         for (k = 0; k < tablepointer->mutations.num_rows; k++) {
             fprintf(mutationfilepointer, "%d %d %.12s\n", tablepointer->mutations.site[k], tablepointer->mutations.node[k], (tablepointer->mutations.derived_state + k*12));
         }
+    //using collection dump function
+        returnvaluefortskfunctions = tsk_table_collection_dump(&treesequencetablecollection, "tables.trees", 0);
+        check_tsk_error(returnvaluefortskfunctions);
     }
 
     if (VERYVERBOSE == 1) {
@@ -437,7 +452,7 @@ void PerformOneTimeStepRel(int tskitstatus, bool isabsolute, int isburninphaseov
     
 }
 
-void InitializePopulationRel(int tskitstatus, tsk_table_collection_t * treesequencetablecollection, tsk_id_t * wholepopulationnodesarray, tsk_id_t * wholepopulationsitesarray, long double *wholepopulationwistree, long double *wholepopulationwisarray, int popsize, double *wholepopulationgenomes, int totalpopulationgenomelength, int totaltimesteps, long double * psumofwis) 
+void InitializePopulationRel(int tskitstatus, tsk_table_collection_t *treesequencetablecollection, tsk_id_t *wholepopulationnodesarray, tsk_id_t *wholepopulationsitesarray, long double *wholepopulationwistree, long double *wholepopulationwisarray, int popsize, double *wholepopulationgenomes, int totalpopulationgenomelength, int totaltimesteps, long double *psumofwis) 
 {
     int i, j;
     
@@ -455,7 +470,7 @@ void InitializePopulationRel(int tskitstatus, tsk_table_collection_t * treeseque
         }
     }
     
-    *psumofwis = (long double)popsize;
+    *psumofwis = (long double) popsize;
     
     for (i = 0; i < totalpopulationgenomelength; i++){
         wholepopulationgenomes[i] = 0.0;
@@ -466,7 +481,7 @@ void InitializePopulationRel(int tskitstatus, tsk_table_collection_t * treeseque
 	treesequencetablecollection->sequence_length = haploidgenomelength;
 
         for (i = 0; i < (2 * popsize); i++) {
-            wholepopulationnodesarray[i] = tsk_node_table_add_row(&treesequencetablecollection->nodes, 0, totaltimesteps, TSK_NULL, TSK_NULL, NULL, 0);
+            wholepopulationnodesarray[i] = tsk_node_table_add_row(&treesequencetablecollection->nodes, 0, (double) totaltimesteps, TSK_NULL, TSK_NULL, NULL, 0);
             check_tsk_error(wholepopulationnodesarray[i]);
         }
     

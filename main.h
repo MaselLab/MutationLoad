@@ -2,6 +2,7 @@
 #define MAIN_H_INCLUDED 1
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <float.h>
 #include <string.h>
 #include <math.h>
@@ -54,6 +55,9 @@ int DetermineMutationSite(int totalgametelength);
 //root simulations. UH might move them to shared with flags and remove files pointers (they are declared globally)
 int BracketZeroForSb(int tskitstatus, bool isabsolute, bool ismodular, int elementsperlb, double *Sb1, double *Sb2, char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double slopeforcontourline, int beneficialdistribution, double Sd, int deleteriousdistribution, gsl_rng * randomnumbergeneratorforgamma, FILE *verbosefilepointer, FILE *miscfilepointer, FILE *veryverbosefilepointer, int rawdatafilesize);
 double BisectionMethodToFindSbWithZeroSlope(int tskitstatus, bool isabsolute, bool ismodular, int elementsperlb, double * Sb1, double * Sb2, char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double slopeforcontourline, int beneficialdistribution, double Sd, int deleteriousdistribution, gsl_rng * randomnumbergeneratorforgamma, FILE *miscfilepointer, FILE *verbosefilepointer, FILE *finaldatafilepointer, FILE *veryverbosefilepointer, int rawdatafilesize);
+int BracketZeroForNcrit(int tskitstatus, bool isabsolute, bool ismodular, int elementsperlb, int *N1, int *N2, char *Nxtimestepsname, char *delmutratename, char *chromsizename, char *chromnumname, char *mubname, int typeofrun, int Nxtimesteps, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double slopeforcontourline, int beneficialdistribution, double Sd, char *Sbname, double Sb, int deleteriousdistribution, gsl_rng *randomnumbergeneratorforgamma, FILE *verbosefilepointer, FILE *miscfilepointer, FILE *veryverbosefilepointer, int rawdatafilesize);
+double SecantMethodToFindNcritWithZeroSlope(int tskitstatus, bool isabsolute, bool ismodular, int elementsperlb, int *N1, int *N2, char *Nxtimestepsname, char *delmutratename, char *chromsizename, char *chromnumname, char *mubname, int typeofrun, int Nxtimesteps, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double slopeforcontourline, int beneficialdistribution, double Sd, char *Sbname, double Sb, int deleteriousdistribution, gsl_rng *randomnumbergeneratorforgamma, FILE *verbosefilepointer, FILE *miscfilepointer, FILE *finaldatafilepointer, FILE *veryverbosefilepointer, int rawdatafilesize);
+double BestApproximateFit(double *x, double *y, int n);
 //make directory name and final data file name function. GOAL is to increase modularity in program
 char * MakeDirectoryName(char * tskitstatus, char* deldist, char * isabsolutename, bool isabsolute, char * bendist, char * benmut, char * numberofchromosomes, char * chromosomesize, char * popsize, char * delmut, char * randomnumberseed, char * K, char * r, char *i_init, char * s, bool ismodular, char *elementsperlb, char *iscalcfixationname, int typeofrun, char * Sbname);
 char * MakeFinalDataFileName(char * typeofrun, char * benmut, char * slopeforcontourline, char * randomnumberseed);

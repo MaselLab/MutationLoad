@@ -2,6 +2,7 @@
 #define SHAREFUNC_FLAG_H_INCLUDED 1
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <float.h>
 #include <string.h>
 #include <stdbool.h>

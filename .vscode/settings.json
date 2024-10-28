@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "string.h": "c",
+        "stdbool.h": "c",
+        "pcg_basic.h": "c"
+    }
+}

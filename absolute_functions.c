@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <float.h>
 #include <string.h>
 #include <stdbool.h>
@@ -753,7 +754,6 @@ bool PerformOneEventAbs(int tskitstatus, int isburninphaseover, bool ismodular, 
 
 }
 
-
 void InitializePopulationAbs(int tskitstatus, tsk_table_collection_t * treesequencetablecollection, tsk_id_t * wholepopulationnodesarray, tsk_id_t * wholepopulationsitesarray, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, int initialPopSize, int maxPopSize, int totaltimesteps, int deleteriousdistribution, double *wholepopulationgenomes, int totalpopulationgenomelength, long double *psumofdeathrates, long double *psumofdeathratessquared, long double *psumofload, long double *psumofloadsquared, double b_0, double r, int i_init, double s)
 {    
     int i, j;
@@ -1001,6 +1001,7 @@ double CalculateDeathRate(bool ismodular, int elementsperlb, double *parent1game
     return inddeathrate;
 }
 
+//the following four functions are prototypes and are not complete (and possibly might not become useful). They were part of an attempt to extract information from tree sequences during a simulation run of the absolute code
 void FindFixedMutations(const tsk_tree_t *tree, FILE *tskitdatafilepointer, FILE *miscfilepointer)
 {
     const tsk_id_t *parent = tree->parent;
