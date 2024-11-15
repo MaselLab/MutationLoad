@@ -21,14 +21,20 @@ r=0.98
 i_init=400
 s=0.01
 tskit=0
+#0 for relative; 1 for absolute
+fitnesstype=0
+r=0.98
+i_init=400
+s=0.01
 #0 for runs without modular epistasis; 1 for runs with modular epistasis
 modularepis=0
 elementsperl=0
-#This ratio should be between 1 and 10
-SdtoSbratio=1
-Sbname="1.0000"
-#0 for point; 1 for exponential
-deldist=0
+#0 for no tskit; 1 for tskit on; 2 for tskit on after burnin
+tskitstatus=2
+SdtoSbratio=0.029
+#0 for Kim et al., 1 for exponential, 2 for point
+deldist=1
+#rawdata file size in datapoints
 rawfilesize=10000
 redinK=0
 
@@ -63,10 +69,13 @@ fi
 
 if [ $deldist -eq 0 ]
 then
-	deldiststring="point_"
+	deldiststring="kim_"
 elif [ $deldist -eq 1 ]
 then
 	deldiststring="exponential_"
+elif [ $deldist -eq 2]
+then
+	deldiststring="point_"
 fi
 
 #mub is written as a formated double in mutation load program
