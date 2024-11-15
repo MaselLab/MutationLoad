@@ -187,11 +187,11 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
         
 
         //This is the main data output, currently the summed fitness and variance in log(fitness) in the population.
-        //fprintf(rawdatafilepointer, "%d,%Lf,%.18f\n", i+1, *psumofwis, variancesum);
-        //fflush(rawdatafilepointer);
-
-        fprintf(rawdatafilepointer, "%d \n", i+1);
+        fprintf(rawdatafilepointer, "%d,%Lf,%.18f\n", i+1, *psumofwis, variancesum);
         fflush(rawdatafilepointer);
+
+        //fprintf(rawdatafilepointer, "%d \n", i+1);
+        //fflush(rawdatafilepointer);
 
         //Following code periodically simplifies the tree sequence tables, which requires the tables to be sorted each time.
         //The tskit API calls out sorting each time as inefficient, but they haven't yet uploaded an example of how to do it differently. The API currently suggests that they would use the C++ API, which I don't want to deal with.
