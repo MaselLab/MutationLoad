@@ -54,6 +54,8 @@ absolute_functions.o: absolute_functions.c
 	$(CC) $(CFLAGS) -c -std=c99 /home/u5/walidmawass/tskit/c/subprojects/kastore/kastore.c
 /home/u5/walidmawass/tskit/c/tskit/core.o: /home/u5/walidmawass/tskit/c/tskit/core.c
 	$(CC) $(CFLAGS) -c -std=c99 /home/u5/walidmawass/tskit/c/tskit/core.c
+/home/u5/walidmawass/tskit/c/tskit/genotypes.o: /home/u5/walidmawass/tskit/c/tskit/genotypes.c
+	$(CC) $(CFLAGS) -c -std=c99 /home/u5/walidmawass/tskit/c/tskit/genotypes.c
 /home/u5/walidmawass/tskit/c/tskit/trees.o: /home/u5/walidmawass/tskit/c/tskit/trees.c
 	$(CC) $(CFLAGS) -c -std=c99 /home/u5/walidmawass/tskit/c/tskit/trees.c
 endif
