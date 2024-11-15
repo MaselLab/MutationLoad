@@ -124,7 +124,7 @@ int main(int argc, char *argv[]) {
 	double beneficialmutationrate = bentodelmutrate*deleteriousmutationrate;
 	double Sd = Sb2*SdtoSbratio;
 
-	char *beneficialmutationratename, *bendistname, *deldistname, *typeofrunname, *tskitstatusname, *Sb2name, *isabsolutename;
+	char *beneficialmutationratename, *bendistname, *deldistname, *typeofrunname, *tskitstatusname, *Sb2name, *isabsolutename, *Sdname;
 	beneficialmutationratename = (char *) malloc(30);
 	bendistname = (char *) malloc(30);
 	deldistname = (char *) malloc(30);
@@ -132,8 +132,9 @@ int main(int argc, char *argv[]) {
 	tskitstatusname = (char *) malloc(30);
 	Sb2name = (char *) malloc(30);
 	isabsolutename = (char *) malloc(30);
+    Sdname = (char *) malloc(30);
 
-	AssignStringNames(beneficialmutationratename, beneficialmutationrate, bendistname, beneficialdistribution, deldistname, deleteriousdistribution, typeofrunname, typeofrun,tskitstatusname, tskitstatus, Sb2name, Sb2, isabsolutename, isabsolute, iscalcfixationname, iscalcfixation);
+	AssignStringNames(beneficialmutationratename, beneficialmutationrate, bendistname, beneficialdistribution, deldistname, deleteriousdistribution, typeofrunname, typeofrun,tskitstatusname, tskitstatus, Sb2name, Sb2, isabsolutename, isabsolute, iscalcfixationname, iscalcfixation, Sd, Sdname);
 
     pcg32_srandom(randomnumberseed, randomnumberseed); // seeds the random number generator.
     gsl_rng * randomnumbergeneratorforgamma = gsl_rng_alloc(gsl_rng_mt19937);
@@ -141,7 +142,7 @@ int main(int argc, char *argv[]) {
     //it's a bit inelegant to have two different RNGs, which could be solved by using a different algorithm 
     //for choosing variates from a gamma distribution, instead of using the free one from gsl.
     
-    char * directoryname = MakeDirectoryName(tskitstatusname, deldistname, isabsolutename, isabsolute, bendistname, beneficialmutationratename, numberofchromosomesname, chromosomesizename, popsizename, deleteriousmutationratename, randomnumberseedname, Kname, rname, i_initname, sname, ismodular, elementsperlbname, iscalcfixationname, typeofrun, Sb2name);// this will create the directory name pointer using input parameter values
+    char * directoryname = MakeDirectoryName(tskitstatusname, deldistname, isabsolutename, isabsolute, bendistname, beneficialmutationratename, numberofchromosomesname, chromosomesizename, popsizename, deleteriousmutationratename, randomnumberseedname, Kname, rname, i_initname, sname, ismodular, elementsperlbname, iscalcfixationname, typeofrun, Sb2name, Sdname);// this will create the directory name pointer using input parameter values
     
     mkdir(directoryname, 0777);//create the directory with the directory name pointer
     chdir(directoryname);//move into the created directory
@@ -226,6 +227,7 @@ int main(int argc, char *argv[]) {
 	free(tskitstatusname);
 	free(Sb2name);
 	free(isabsolutename);
+    free(Sdname);
 
     fclose(verbosefilepointer);
     fclose(veryverbosefilepointer);
@@ -562,35 +564,40 @@ bool ProduceMutatedGamete(int tskitstatus, int isburninphaseover, tsk_table_coll
     double Sds[30];
     //Following lines stochastically generate a number of deleterious mutations drawn from a Poisson distribution with mean determined by the deleterious mutation rate
     //with effect sizes drawn from a gamma distribution with parameters taken from Kim et al 2017.
-    bool DontBreakWhileLoop = false;
     
-    while(1){
-        DontBreakWhileLoop = false;
+    // Note that deleteriousdistribution == 0 corresponds to Kim et al., == 1 corresponds to exponential,
+    // and == 2 corresponds to point for th deleterious distribution. This loop also ensures that if we're
+    // performing a relative run, we don't end up with any Sd's greater than or equal to 1.
+    bool stayInWhileLoop = true;
+    while (stayInWhileLoop) {
+        // We update our looping flag to false so that the while loop will break, so long as we do not encounter
+        // any lethal mutations within a relative run.
+        stayInWhileLoop = false;
         numberofdeleteriousmutations = DetermineNumberOfMutations(deleteriousmutationrate);
-        if(!isabsolute){
-            for (k = 0; k < numberofdeleteriousmutations; k++) {
+
+        for (k = 0; k < numberofdeleteriousmutations; k++) {
+            if (deleteriousdistribution == 0) {
+                // Case for Kim et al.
                 Sds[k] = (gsl_ran_gamma(randomnumbergeneratorforgamma, 0.169, 1327.4)/23646); //Uses parameters for the gamma distribution of the selection coefficients of new mutations scaled to an inferred ancestral populations size. To produce the distribution of unscaled effect sizes, numbers drawn from this distribution must be divided by two times the ancestral population size for the population from which the distribution was derived (11,823 in this case). Data used to produce these fits were samples from 6503 individuals from the National Heart, Lung, and Blood Institute European-American dataset. Analysis of DFE from Kim et al. 2017.
-            //This gamma distribution can occasionally produce deleterious mutations with effect sizes larger than 1,
-            //which would result in a gamete with fitness less than zero, which would break my algorithm.
-            //The following if statement simply throws out any deleterious mutations with effect sizes larger than 1.
-                if (Sds[k] >= 1) {
-                //this mean a new lethal mutation appeared
-                    DontBreakWhileLoop = true;
-                    break;
-                }
+            } else if (deleteriousdistribution == 1) {
+                // Case for exponential
+                Sds[k] = gsl_ran_exponential(randomnumbergeneratorforgamma, Sd);
+            }  else if (deleteriousdistribution == 2) {
+                // Case for point
+                Sds[k] = Sd;
             }
-        }else{
-            for (k = 0; k < numberofdeleteriousmutations; k++) {
-                if(deleteriousdistribution == 0){
-                    Sds[k] = Sd;
-                }
-                else if(deleteriousdistribution == 1)
-                    Sds[k] = gsl_ran_exponential(randomnumbergeneratorforgamma, Sd);
-                }
-            }
-            if (!DontBreakWhileLoop) 
+
+            // We then check to see whether we encountered a lethal mutation, in which case we break
+            // the inner for loop, and indicate that the outer while loop should not be broken. Note
+            // that we need only check for this within a relative run
+            if (!isabsolute && Sds[k] >= 1) {
+                stayInWhileLoop = true;
                 break;
+            }
+        }
     }
+
+    
 
     //Adds the specified number of deleterious mutations to the gamete, recording the sites of each mutation for tree sequence recording.
     //Mutation effect sign depends on fitness scheme, for absolute fitness the sign of the deleterious mutation effect is positive while for relative fitness the sign is negative
@@ -791,7 +798,7 @@ double BisectionMethodToFindSbWithZeroSlope(int tskitstatus, bool isabsolute, bo
     return 0.0;
     
 }
-char * MakeDirectoryName(char * tskitstatus, char* deldist, char * isabsolutename, bool isabsolute, char * bendist, char * benmut, char * numberofchromosomes, char * chromosomesize, char * popsize, char * delmut, char * randomnumberseed, char * K, char * r, char *i_init, char * s, bool ismodular, char *elementsperlb, char *iscalcfixationname, int typeofrun, char * Sbname) 
+char * MakeDirectoryName(char * tskitstatus, char* deldist, char * isabsolutename, bool isabsolute, char * bendist, char * benmut, char * numberofchromosomes, char * chromosomesize, char * popsize, char * delmut, char * randomnumberseed, char * K, char * r, char *i_init, char * s, bool ismodular, char *elementsperlb, char *iscalcfixationname, int typeofrun, char * Sbname, char *Sdname) 
 {
 	
 	char * directoryname = (char *) malloc(400);
@@ -835,6 +842,9 @@ char * MakeDirectoryName(char * tskitstatus, char* deldist, char * isabsolutenam
 	strcat(directoryname, chromosomesize);
 	strcat(directoryname, "_seed_");
 	strcat(directoryname, randomnumberseed);
+    strcat(directoryname, "_Sd_");
+    strcat(directoryname, Sdname);
+    
 
 	return directoryname;
 }
@@ -1033,8 +1043,8 @@ int AssignArgumentstoVar(char **argv, int *Nxtimesteps, char *Nxtimestepsname, i
 		printf("[Error] Beaware that this code was originally written for 22nd argument (SdtoSbratio) equal 1.0. Sb = Sd = 1.0. Check that you modify the code before changing this parameter \n");
 		return -1;
 	} */
-	if (*deleteriousdistribution != 0 && *deleteriousdistribution != 1) {
-		printf("[Error] 23th argument (deleterious distribution) must be 0 (point) or 1 (exponential). However, by the moment only point mutations are tested for mutaway code \n");
+	if (*deleteriousdistribution != 0 && *deleteriousdistribution != 1 && *deleteriousdistribution != 2) {
+		printf("[Error] 23th argument (deleterious distribution) must be 0 (Kim et al.) or 1 (point) or 2 (exponential). However, by the moment only point mutations are tested for mutaway code \n");
 		return -1;
 	}
 	if (*rawdatafilesize == 0 || *rawdatafilesize > *Nxtimesteps) {
@@ -1073,7 +1083,7 @@ int AssignArgumentstoVar(char **argv, int *Nxtimesteps, char *Nxtimestepsname, i
 	}
 	return 1;
 }
-void AssignStringNames(char *beneficialmutationratename, double beneficialmutationrate, char *bendistname, int beneficialdistribution, char *deldistname, int deleteriousdistribution, char *typeofrunname, int typeofrun, char *tskitstatusname, int tskitstatus, char* Sb2name, double Sb2, char *isabsolutename, bool isabsolute, char *iscalcfixationname, bool iscalcfixation) {
+void AssignStringNames(char *beneficialmutationratename, double beneficialmutationrate, char *bendistname, int beneficialdistribution, char *deldistname, int deleteriousdistribution, char *typeofrunname, int typeofrun, char *tskitstatusname, int tskitstatus, char* Sb2name, double Sb2, char *isabsolutename, bool isabsolute, char *iscalcfixationname, bool iscalcfixation, double Sd, char *Sdname) {
 	//pointer for the beneficial mutation rate name
 	sprintf(beneficialmutationratename, "%1.4f", beneficialmutationrate);
 
@@ -1087,9 +1097,11 @@ void AssignStringNames(char *beneficialmutationratename, double beneficialmutati
 
 	//pointer for the deleterious distribution name
 	if(deleteriousdistribution == 0)
+		strncpy(deldistname, "kim_et_al", sizeof("kim_et_al"));
+	else if(deleteriousdistribution == 2)
 		strncpy(deldistname, "point", sizeof("point"));
-	else if(deleteriousdistribution == 1)
-		strncpy(deldistname, "exponential", sizeof("exponential"));
+    else 
+        strncpy(deldistname, "exponential", sizeof("exponential"));
 
 	//pointer for type of run name
 	if(typeofrun == 0)
@@ -1109,6 +1121,9 @@ void AssignStringNames(char *beneficialmutationratename, double beneficialmutati
 	//pointer for Sb name
 	sprintf(Sb2name, "%1.4f", Sb2);
 
+    // pointer for Sd name
+    sprintf(Sdname, "%1.6f", Sd);
+
 	//pointer for isabsolutename
 	if(isabsolute)
 		strncpy(isabsolutename, "absolute", sizeof("absolute"));
@@ -1120,3 +1135,4 @@ void AssignStringNames(char *beneficialmutationratename, double beneficialmutati
 	else
 		strncpy(iscalcfixationname, "OFF", sizeof("OFF"));
 }
+
