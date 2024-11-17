@@ -164,7 +164,9 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
     double arbitrarynumber;
     arbitrarynumber = (-1 * 0.007 / popsize); //using a number somewhere close to the mean of the DFE for deleterious mutations.
     double slopeoflogfitness;    
-    double variancesum;
+    double varianceinlogfitness;   
+    long double fitnessfittest;
+    long double load;
     
     if (VERYVERBOSE == 1) {
         fprintf(veryverbosefilepointer, "Variables initialized, preparing to begin simulation.\n");
@@ -183,11 +185,12 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
         
         //Following code calculates the variance in log(fitness) of the population after this generation of births and deaths.
         //May use an imprecise algorithm -- check before using as data.
-        variancesum = CalculateVarianceInLogFitness(popsize, wholepopulationwisarray, *psumofwis);
+        varianceinlogfitness = CalculateVarianceInLogFitness(popsize, wholepopulationwisarray, *psumofwis);
+        fitnessfittest = FindFittestWi(wholepopulationwisarray, popsize)
+        load = fitnessfittest/(sumofwis/popsize) - 1.0
         
-
         //This is the main data output, currently the summed fitness and variance in log(fitness) in the population.
-        fprintf(rawdatafilepointer, "%d,%Lf,%.18f\n", i+1, *psumofwis, variancesum);
+        fprintf(rawdatafilepointer, "%d,%Lf,%.18f,%Lf\n", i+1, *psumofwis, varianceinlogfitness, load);
         fflush(rawdatafilepointer);
 
         //fprintf(rawdatafilepointer, "%d \n", i+1);
@@ -213,7 +216,7 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
         double c0, cov00, cov01, cov11, sumsq;
 
         if (isburninphaseover == 0) {
-            UpdateLast200NTimeSteps(last200Ntimestepsvariance, variancesum);
+            UpdateLast200NTimeSteps(last200Ntimestepsvariance, varianceinlogfitness);
             UpdateLast200NTimeSteps(literallyjustlast200Ntimesteps, i+1);
             if (i > 199) {           //to avoid calling the end of the burn-in phase at generation one
                                     //because of setting pre-simulation generations to zeroes
