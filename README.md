@@ -6,3 +6,13 @@ complexity.
 Version dependencies:
   tskit -- 0.5.8
   gsl -- 2.8
+
+To use tskit with the code you can git clone the tskit repo and then checkout to version 0.5.8 
+
+'''
+git clone https://github.com/tskit-dev/tskit.git
+cd tskit
+git checkout 0.5.8
+'''
+
+The makefile assumes that you clone tskit on your home directory.

@@ -3,16 +3,16 @@
 #SBATCH --output=job%A_%a.out
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
-#SBATCH --time=24:00:00
+#SBATCH --time=220:00:00
 #SBATCH --partition=standard
 #SBATCH --account=masel
-#SBATCH --array=0-4
+#SBATCH --array=0-12
 
-arrayuds=(0.1 0.5 1 2 10)
+arrayuds=(0.1 0.5 1 2 3 4 5 6 7 8 9 10)
 
 #Mutationload variables
-timeSteps=20000
-initialPopsize=20000
+timeSteps=100000
+initialPopsize=2000
 mud=${arrayuds[$SLURM_ARRAY_TASK_ID]}
 chromosomesize=200
 numberofchromosomes=23

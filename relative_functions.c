@@ -65,7 +65,7 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
     strcat(rawdatafilename, ".txt");
 
     rawdatafilepointer = fopen(rawdatafilename, "w"); //opens the file to which to print data to be plotted.
-    fprintf(rawdatafilepointer, "Nxtimesteps,Sum.of.wis,Variance.in.log.fitness\n");
+    fprintf(rawdatafilepointer, "Nxtimesteps,Sum.of.wis,Variance.in.log.fitness,Load\n");
     
     char * summarydatafilename = (char *) malloc(100);
     strcpy(summarydatafilename, "summarydatafor");
@@ -186,8 +186,8 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
         //Following code calculates the variance in log(fitness) of the population after this generation of births and deaths.
         //May use an imprecise algorithm -- check before using as data.
         varianceinlogfitness = CalculateVarianceInLogFitness(popsize, wholepopulationwisarray, *psumofwis);
-        fitnessfittest = FindFittestWi(wholepopulationwisarray, popsize)
-        load = fitnessfittest/(sumofwis/popsize) - 1.0
+        fitnessfittest = FindFittestWi(wholepopulationwisarray, popsize);
+        load = fitnessfittest/(sumofwis/popsize) - 1.0;
         
         //This is the main data output, currently the summed fitness and variance in log(fitness) in the population.
         fprintf(rawdatafilepointer, "%d,%Lf,%.18f,%Lf\n", i+1, *psumofwis, varianceinlogfitness, load);
