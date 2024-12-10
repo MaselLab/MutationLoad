@@ -80,7 +80,7 @@ With this, gsl should have been installed to the default location in your direct
 
  
 
-#Compilation 
+# Compilation 
 
 Once all of the necessary dependencies have been downloaded and installed, the code can be compiled using the Makefile within the repository. First, though, the HOME_DIR macro at the top of the Makefile should be adjusted so that it contains the name of your own home directory, which will enable make to find the files necessary for compilation. Again, to get the path to the home directory, the command given below works on most systems: 
 
@@ -94,7 +94,7 @@ Running the make command will then compile the program, creating an executable n
 
  
 
-#Running the Program 
+# Running the Program 
 
 Considering that the simulation takes in many command-line arguments, a bash shell script is used to run the executable; more specifically, the bash file titled “general_bash_local.sh” within the repository acts as a good starting place for such a shell script. Make sure, though, to use the  chmod +x command to make both the mutationload file and the bash script executable before running the bash script with ./general_bash_local.sh.  
 
