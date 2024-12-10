@@ -82,7 +82,7 @@ With this, gsl should have been installed to the default location in your direct
 
 # Compilation 
 
-Once all of the necessary dependencies have been downloaded and installed, the code can be compiled using the Makefile within the repository. First, though, the HOME_DIR macro at the top of the Makefile should be adjusted so that it contains the name of your own home directory, which will enable make to find the files necessary for compilation. Again, to get the path to the home directory, the command given below works on most systems: 
+Once all of the necessary dependencies have been downloaded and installed, the code can be compiled using the Makefile within the repository. First, though, the HOME_DIR macro at the top of the Makefile should be adjusted so that it contains the name of your own home directory, which will enable make to find the files necessary for compilation; more specifically, the Makfile titled "general_makefile" is the one that should be used. Again, to get the path to the home directory, the command given below works on most systems: 
 
 ``` 
 
