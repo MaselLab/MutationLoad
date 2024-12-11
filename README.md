@@ -48,7 +48,7 @@ git checkout beafeba3f576da4524e24b00aa184e608f6de4c4
 
 # gsl Installation 
 
-Version 2.8 of the GNU Scientific Library, or gsl, must also be installed to compile and run the simulation code. Information on this library and how to download it on your own system can be found here, and the downloaded package will then contain an INSTALL text file, providing specific information on how to install gsl. For the purposes of running the simulation, gsl should be installed to the default location, rather than using the --prefix option to specify a particular folder.  
+Version 2.8 of the GNU Scientific Library, or gsl, must also be installed to compile and run the simulation code. Information on this library and how to download it on your own system can be found here (https://www.gnu.org/software/gsl/), and the downloaded package will then contain an INSTALL text file, providing specific information on how to install gsl. For the purposes of running the simulation, gsl should be installed to the default location, rather than using the --prefix option to specify a particular folder.  
 
  
 
