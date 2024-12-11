@@ -36,11 +36,11 @@ To download the appropriate version of the tskit repository, when in your home d
 
 ``` 
 
-git clone https://github.com/tskit-dev/tskit.git 
+	git clone https://github.com/tskit-dev/tskit.git 
 
-cd tskit 
+	cd tskit 
 
-git checkout beafeba3f576da4524e24b00aa184e608f6de4c4 
+	git checkout beafeba3f576da4524e24b00aa184e608f6de4c4 
 
 ``` 
 
@@ -53,36 +53,36 @@ Version 2.8 of the GNU Scientific Library, or gsl, must also be installed to com
  
 
 To get an idea of how this installation process will work, we provide the set of steps used to install this library on one of our own systems, although this exact approach likely won’t work for all operating systems. Downloading version 2.8 of gsl from the site linked above should provide you with a .tar file, which must then be unzipped. On a local system, this can often be done by double-clicking the .tar within your file navigator; otherwise, for most systems, the following tar command should work: 
-
-tar –zxvf gsl-2.8.tar.gz 
-
+```
+	tar –zxvf gsl-2.8.tar.gz 
+```
 Once the unzipping is done, you should have a new folder called gsl-2.8. Enter the folder with the command 
-
-cd gsl-2.8 
-
+```
+	cd gsl-2.8 
+```
 Next, we configure the installation, which can be done with 
-
-./configure 
-
+```
+	./configure 
+```
 Note that the –prefix option is not used in this case, since we want the folder to be installed in the default location. This command may take a few minutes to complete, and once it’s done, the library can be compiled with 
-
-make 
-
+```
+	make 
+```
 Again, this step will require a few minutes to complete. To ensure that the compilation was completed properly, we run the following command, checking to make sure that no errors arise: 
-
-make check 
-
+```
+	make check 
+```
 Finally, once this command runs, the program can be installed with 
-
-make install 
-
+```
+	make install 
+```
 With this, gsl should have been installed to the default location in your directory system!  
 
  
 
 # Compilation 
 
-Once all of the necessary dependencies have been downloaded and installed, the code can be compiled using the Makefile within the repository. First, though, the HOME_DIR macro at the top of the Makefile should be adjusted so that it contains the name of your own home directory, which will enable make to find the files necessary for compilation; more specifically, the Makefile titled "general_makefile" is the one that should be edited and used. Again, to get the path to the home directory, the command given below works on most systems: 
+Once all of the necessary dependencies have been downloaded and installed, the code can be compiled using the Makefile within the repository. First, though, the HOME_DIR macro at the top of the Makefile should be adjusted so that it contains the name of your own home directory, which will enable make to find the files necessary for compilation. Again, to get the path to the home directory, the command given below works on most systems: 
 
 ``` 
 
@@ -90,16 +90,24 @@ Once all of the necessary dependencies have been downloaded and installed, the c
 
 ``` 
 
-Running the make command will then compile the program, creating an executable named mutationload that can be used to run the simulation itself. However, to specify the correct makefile, we must use the -f option with make, as is shown in the command below:
+Running the make command will then compile the program, creating an executable named mutationload that can be used to run the simulation itself:
 ```
-	make -f general_makefile
+	make
 ```
-
+Note, though, that if using the older version of the Makefile for this repository, titled "old_makefile", compilation can be performed by specifyng this alternate file:
+```
+	make -f old_makefile
+```
  
 
 # Running the Program 
 
-Considering that the simulation takes in many command-line arguments, a bash shell script is used to run the executable; more specifically, the bash file titled “general_bash_local.sh” within the repository acts as a good starting place for such a shell script. Make sure, though, to use the  chmod +x command to make both the mutationload file and the bash script executable before running the bash script with ./general_bash_local.sh.  
+Considering that the simulation takes in many command-line arguments, a bash shell script is used to run the executable; more specifically, the bash file titled “general_bash_local.sh” within the repository acts as a good starting place for such a shell script. Make sure, though, to first use the chmod command to make both the mutationload file and the bash script executable:
+```
+	chmod +x general_bash_local.sh
+	chmod +x mutationload
+```
+Once this has been done, we can invoke our bash script to run the mutationload executable:
 
 ``` 
 
