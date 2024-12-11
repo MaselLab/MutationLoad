@@ -1,6 +1,6 @@
  # Simulation Overview 
 
-For the purposes of studying topics in theoretical population genetics, this repository contains a whole-genome forwards time simulation constructed by the Masel lab at the University of Arizona. To simulate whole genomes efficiently, this simulation breaks the genome up into discrete linkage blocks, with each of these being associated with a numeric value summarizing the combined effects of all mutations occurring within that linkage block. Recombination then only occurs at hotspots between adjacent linkage blocks, with two recombination events occurring per chromosome, allowing a reasonable runtime for the simulation. Our code is then compatible with tskit, which allows us to track and analyze the history of individual mutations within the population. 
+For the purposes of studying topics in theoretical population genetics, this repository contains a whole-genome forwards time simulation constructed by the Masel lab at the University of Arizona. To simulate whole genomes efficiently, this simulation breaks the genome up into discrete linkage blocks, with each of these being associated with a numeric value summarizing the combined effects of all mutations occurring within that linkage block. Recombination then only occurs at hotspots between adjacent linkage blocks, with two recombination events occurring per chromosome per meiosis, allowing a reasonable runtime for the simulation. Our code is then compatible with tskit, which allows us to track and analyze the history of individual mutations within the population. 
 
  
 
