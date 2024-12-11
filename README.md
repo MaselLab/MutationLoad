@@ -119,57 +119,58 @@ The script can then be adjusted to change the parameters for a particular simula
 
 ### Relative Fitness Parameters 
 
-	fitnesstype – 0 for a run using relative fitness, 1 for a run using absolute fitness 
++ fitnesstype – 0 for a run using relative fitness, 1 for a run using absolute fitness 
 
-	timeSteps – number of generations the simulation should run for 
++ timeSteps – number of generations the simulation should run for 
 
-	initialPopsize –initial number of individuals in the population 
++ initialPopsize –initial number of individuals in the population 
 
-	mud – genome-wide deleterious mutation rate (Ud) 
++ mud – genome-wide deleterious mutation rate (Ud) 
 
-	chromosomesize – number of linkage blocks per chromosome 
++ chromosomesize – number of linkage blocks per chromosome 
 
-	numberofchromosomes – number of distinct chromosomes per individual (note that individuals are diploid, so they have two copies of each chromosome) 
++ numberofchromosomes – number of distinct chromosomes per individual (note that individuals are diploid, so they have two copies of each chromosome) 
 
-	bentodelratio -- ratio of Ub (beneficial mutation rate) to Ud (deleterious mutation rate) 
++ bentodelratio -- ratio of Ub (beneficial mutation rate) to Ud (deleterious mutation rate) 
 
-	sb – mean effect of a beneficial mutation 
-	bendist – indicates the distribution for beneficial effect size; 0 for point, 1 for exponential, and 2 for uniform 
++ sb – mean effect of a beneficial mutation
 
-	typeofrun – indicates the type of simulation run; 0 for root, 1 for single 
++ bendist – indicates the distribution for beneficial effect size; 0 for point, 1 for exponential, and 2 for uniform 
 
-	tskitstatus – 0 for no tskit, 1 to have tskit on the entire simulation, 2 to have tskit on only after the burn-in phase  
++ typeofrun – indicates the type of simulation run; 0 for root, 1 for single 
 
-	deldist – determines the type of distribution for deleterious effect size; 0 to use the distribution inferred for humans in  Kim et al. 2017, 1 for exponential, 2 for point 
++ tskitstatus – 0 for no tskit, 1 to have tskit on the entire simulation, 2 to have tskit on only after the burn-in phase  
 
-	SdtoSbratio – ratio of Sd (deleterious effect size) to Sb (beneficial effect size). If deldist=0, this parameter is neglected. 
++ deldist – determines the type of distribution for deleterious effect size; 0 to use the distribution inferred for humans in  Kim et al. 2017, 1 for exponential, 2 for point 
+
++ SdtoSbratio – ratio of Sd (deleterious effect size) to Sb (beneficial effect size). If deldist=0, this parameter is neglected. 
 
  
 
 ### Absolute Fitness Parameters 
 
-	slope – the slope for the contour line 
++ slope – the slope for the contour line 
 
-	seed – the seed for the random number generators in the program 
++ seed – the seed for the random number generators in the program 
 
-	K – the carrying capacity in a deterministic population with minimal load 
++ K – the carrying capacity in a deterministic population with minimal load 
 
-	r – epistasis variable R, which varies between 0 and 1, with 1 representing no epistasis and 0 representing full epistasis 
++ r – epistasis variable R, which varies between 0 and 1, with 1 representing no epistasis and 0 representing full epistasis 
 
-	i_init – the number of mutations away from the worst-case scenario at the beginning of the simulation 
++ i_init – the number of mutations away from the worst-case scenario at the beginning of the simulation 
 
-	s – selection coefficient of a beneficial mutation at minimum death rate (i.e. max birth rate) 
++ s – selection coefficient of a beneficial mutation at minimum death rate (i.e. max birth rate) 
 
-	rawdatafilesize – raw data file size in data points, which determines the sampling rate of data points 
++ rawdatafilesize – raw data file size in data points, which determines the sampling rate of data points 
 
-	redinmaxpopsize – input for reduction in max population size 
++ redinmaxpopsize – input for reduction in max population size 
 
-	calcfixation – 0 to have fixation calculation off, 1 to have fixation calculation on  
++ calcfixation – 0 to have fixation calculation off, 1 to have fixation calculation on  
 
  
 
 ### Modular Epistasis Parameters 
 
-	modularepis – 0 for runs without modular epistasis, 1 for runs with modular epistasis. Note that modularepis=1 works only in absolute fitness runs (fitnesstype=1) 
++ modularepis – 0 for runs without modular epistasis, 1 for runs with modular epistasis. Note that modularepis=1 works only in absolute fitness runs (fitnesstype=1) 
 
-	elementsperl – number of elements per linkage block 
++ elementsperl – number of elements per linkage block 
