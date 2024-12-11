@@ -1,3 +1,6 @@
+# Note that to run this Makefile instead, use the command
+#	make -f old_makefile
+# to compile the program
 
 ifeq ($(whereisrun), walid)
 CC = gcc
