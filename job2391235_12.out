@@ -1,7 +1,0 @@
-(standard_in) 1: syntax error
-directory path is datafor_relative_tskitstatus_r_0.98_i_init400_s_0.01_K_20000_deldist_exponential_bendist_exponential__mub_0.0000_chromnum_23_N0_2000_mud__L_200seed_24/ 
-start of mutationload program
-[Error]; Wrong number of arguments in program. usage: timeSteps; initialPopsize; genome-wide deleterious mutation rate; chromosome size; number of chromosomes; beneficial/deleterious mutation ratio; Sb; beneficial distribution; type of run; slope; seed; MaxPopSize; relative or absolute; epistasis r; i_init; deltad_0; tskit status; without modular epistasis or with it; elements per linkage block; snapshot; snapshot file name; deleterious/beneficial s ratio; point or exponential deleterious distribution; size of raw data file; reduction in MaxPopSize; Fixation Calculation status 
-0
-end of mutationload program
-gzip: datafor_relative_tskitstatus_r_0.98_i_init400_s_0.01_K_20000_deldist_exponential_bendist_exponential__mub_0.0000_chromnum_23_N0_2000_mud__L_200seed_24/popsnapshotfor_popsize_2000_tskitstatus_ON_AFTER_BURNIN_mub_0.0000.txt: No such file or directory
