@@ -85,7 +85,7 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
     mutationfilepointer = fopen("mutationtable.txt", "w");
 
     int totaltimesteps = Nxtimesteps * popsize;
-
+    //Defining variables related to tree sequence recording
     double currenttimestep = 0.0;
     double *wholepopulationgenomes;
     int totalpopulationgenomelength;
@@ -127,7 +127,7 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
         fprintf(veryverbosefilepointer, "Entered simulation run.\n");
         fflush(veryverbosefilepointer);
     }
-    
+    //Initilize population with input parameters and tree sequence table collection
     InitializePopulationRel(tskitstatus, &treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, wholepopulationwistree, wholepopulationwisarray, popsize, wholepopulationgenomes, totalpopulationgenomelength, totaltimesteps, psumofwis);
     
     /*Sets the initial population to have zeroes in all their linkage blocks,
@@ -158,6 +158,7 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
         literallyjustlast200Ntimesteps[k] = 0.0;
         last200Ntimestepsvariance[k] = 0.0;
     }
+    //Define variables for burn-in control
     double slopeofvariance;
     int isburninphaseover = 0;
     int didpopulationcrash = 0;
@@ -524,7 +525,7 @@ int ChooseParentWithTree(long double *wholepopulationwistree, int popsize, long 
     newparent = (SearchTree(leftbound, rightbound, randomnumberofbirth, wholepopulationwistree));
     return newparent;
 }
-
+//In this model, we calculate individual fitness as a multiplicative model
 double CalculateWi(double *parent1gamete, double *parent2gamete, int totalindividualgenomelength)
 {
     double newwi = 0.0;

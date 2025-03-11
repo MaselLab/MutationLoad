@@ -65,40 +65,40 @@ int main(int argc, char *argv[]) {
 
     int wrong_args;
 	wrong_args = AssignArgumentstoVar(argv, &Nxtimesteps, Nxtimestepsname, &popsize, popsizename, &deleteriousmutationrate, deleteriousmutationratename, &chromosomesize, chromosomesizename, &numberofchromosomes, numberofchromosomesname, &bentodelmutrate, &Sbtemp, &beneficialdistribution, &typeofrun, &slopeforcontourline, slopeforcontourlinename, &randomnumberseed, randomnumberseedname, &K, Kname, &relorabs, &r, rname, &i_init, i_initname, &s, sname, &tskitstatus, &nonmodormod, &elementsperlb, elementsperlbname, &snapshot, prevsnapshotfilename, &SdtoSbratio, SdtoSbrationame, &deleteriousdistribution, &rawdatafilesize, &redinmaxpopsize, redinmaxpopsizename, &calcfixation);
-
+    //main run error check
     if(wrong_args == -1){
 		return -1;
     }
 
 	bool isabsolute;
-
+    //checking absolute vs relative fitness model choice
 	if(relorabs == 0){
 		isabsolute = false;
     }else if(relorabs == 1){
 		isabsolute = true;
     }
-
+    //checking if modular chromosome model or not
 	bool ismodular;
 	if(nonmodormod == 0){
 		ismodular = false;
     }else if(nonmodormod == 1){
 		ismodular = true;
     }
-
+    //checking if snapshot of previous run is being used or fresh run
 	bool issnapshot;
 	if(snapshot == 0){
 		issnapshot = false;
     }else if(snapshot == 1){
 		issnapshot = true;
     }
-
+    //checking if reduction in max popsize is being run or not
     bool isredinmaxpopsize;
     if(redinmaxpopsize == 0.0){
         isredinmaxpopsize = false;
     } else{
         isredinmaxpopsize = true;
     }
-
+    //checking if fixation time calculation module using tree sequences is being used or not
     bool iscalcfixation;
 	if(calcfixation == 0){
 		iscalcfixation = false;
@@ -123,7 +123,7 @@ int main(int argc, char *argv[]) {
 
     //I have two parameters for N for the type of run that needs to have bracketed values of N.
 	int N1;
-    N1 = (int) popsize*0.25;
+    N1 = (int) popsize*0.25;//we choose the lower N to be 25% lower than the input N
 	int *pN1 = &N1;
 
 	int N2;
@@ -332,7 +332,8 @@ double CalculateVarianceInLogFitness(int popsize, long double *wholepopulationwi
     for (i = 0; i < popsize; i++) {
         variancesum += (double) pow((log(wholepopulationwisarray[i]) - logaverage), 2);
     }
-    variancesum = (variancesum/(popsize-1)); //note that in the article (Mawass et al. 2024) the Bessel correction is missing here. However, given that we use the variance measure only to decide when to end the burn-in period, the effect of its absence would very minimal in practice over long runs.
+    variancesum = (variancesum/(popsize-1)); //note that in the article (Mawass et al. 2024) the Bessel correction is missing here
+    //However, given that we use the variance measure only to decide when to end the burn-in period, the effect of its absence is very minimal in practice over long runs
     return variancesum;
 }
 
@@ -844,7 +845,6 @@ double BisectionMethodToFindSbWithZeroSlope(int tskitstatus, bool isabsolute, bo
 }
 
 //This is the second bracketing function to find Ncrit which is the population size where the net fitness flux of 0 for a given set of parameters.
-//
 int BracketZeroForNcrit(int tskitstatus, bool isabsolute, bool ismodular, int elementsperlb, int *N1, int *N2, char *Nxtimestepsname, char *delmutratename, char *chromsizename, char *chromnumname, char *mubname, int typeofrun, int Nxtimesteps, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double slopeforcontourline, int beneficialdistribution, double Sd, char *Sbname, double Sb, int deleteriousdistribution, gsl_rng *randomnumbergeneratorforgamma, FILE *verbosefilepointer, FILE *miscfilepointer, FILE *veryverbosefilepointer, int rawdatafilesize) {
     //setting up variables
     int i, numberoftriesforlower, numberoftriesforupper, generations;
@@ -978,9 +978,10 @@ double SecantMethodToFindNcritWithZeroSlope(int tskitstatus, bool isabsolute, bo
     // Variable to store the number of elements in the array
     int num_elements = 0;
     int filtered_count = 0;
-
     double slope, slopel, slopetemp;
+    //We choose a threshold of 25% change in slope. This choice is somewhat arbitrary
     double percent_threshold = 25.0;
+    //Number of maximum tries to find Ncrit 
     int maxtries = 30;
     char N1name[6], N2name[6], rootname[6];
     snprintf(N1name, 6, "%d", *N1);
@@ -990,9 +991,9 @@ double SecantMethodToFindNcritWithZeroSlope(int tskitstatus, bool isabsolute, bo
         fprintf(verbosefilepointer, "Starting N1name: %s, starting N2name: %s\n", N1name, N2name);
         fflush(verbosefilepointer);
     }
-
+    //number of generations is a function of the attempted census pop size
     generations = *N1 * gen;
-
+    //calculate the slope of fitness change as a function of the lower pop size
     slopel = RunSimulationRel(tskitstatus, isabsolute, ismodular, elementsperlb, Nxtimestepsname, N1name, delmutratename, chromsizename, chromnumname, mubname, Sbname, typeofrun, generations, *N1, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
     if (VERBOSE == 1) {
         fprintf(verbosefilepointer, "Finished run with N1 %d, resulting in a slope of %.6f\n", *N1, slopel);
@@ -1015,7 +1016,7 @@ double SecantMethodToFindNcritWithZeroSlope(int tskitstatus, bool isabsolute, bo
     v[num_elements - 1] = slopel;
     
     generations = *N2 * gen;
-
+    //calculate the slope of fitness change as a function of the higher pop size
     slope = RunSimulationRel(tskitstatus, isabsolute, ismodular, elementsperlb, Nxtimestepsname, N2name, delmutratename, chromsizename, chromnumname, mubname, Sbname, typeofrun, generations, *N2, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer, rawdatafilesize);
     if (VERBOSE == 1) {
         fprintf(verbosefilepointer, "Finished run with N2 %d, resulting in a slope of %.6f\n", *N2, slope);
@@ -1034,7 +1035,7 @@ double SecantMethodToFindNcritWithZeroSlope(int tskitstatus, bool isabsolute, bo
     // Store the input number in the array
     N[num_elements - 1] = (double) *N2;
     v[num_elements - 1] = slope;
-
+    //check if the bracketing was not successful. This is just a double check out of caution
     if (((slopel - slopeforcontourline)*(slope - slopeforcontourline)) > 0.0) {
         fprintf(miscfilepointer, "Root not bracketed properly, with starting slopes %.10f and %.10f for a desired slope of %.6f\n", slopel, slope, slopeforcontourline);
         return 0.0;
@@ -1127,11 +1128,13 @@ double SecantMethodToFindNcritWithZeroSlope(int tskitstatus, bool isabsolute, bo
         printf("Memory reallocation failed\n");
         exit(1); // Exit the program due to memory reallocation failure
     }
-
+    // defining variables related to linear model fit
     size_t step = 1;
     double cov00, cov01, cov11, sumsq, Ncrit;
     double b, m;
-
+    //The following function fits a linear model to the two variables (popsize and slope of log fitness)
+    //and records the parameters of the best-fitting linear model in the intercept, cov00, cov01, cov11, sumsq, and slope variables.
+    //I use the slope and intercept parameters,  to find the root as -intercept/slope.
     gsl_fit_linear(filtered_N, step, filtered_v, step, filtered_count, &b, &m, &cov00, &cov01, &cov11, &sumsq);
     fprintf(miscfilepointer, "the slope of the linear curve is %.10f and the intercept is %.10f\n", b, m);
     fflush(miscfilepointer);
@@ -1141,23 +1144,7 @@ double SecantMethodToFindNcritWithZeroSlope(int tskitstatus, bool isabsolute, bo
     free(filtered_v);
     return Ncrit;
 }
-
-double BestApproximateFit(double *x, double *y, int n)
-{
-    size_t step = 1;
-    double cov00, cov01, cov11, sumsq, Ncrit;
-    double intercept, slope;
-
-    //The following function fits a linear model to the two variables (popsize and slope of log fitness)
-    //and records the parameters of the best-fitting linear model in the intercept, cov00, cov01, cov11, sumsq, and slope variables.
-    //I use the slope and intercept parameters,  to find the root as -intercept/slope.
-    gsl_fit_linear(x, step, y, step, n, &intercept, &slope, &cov00, &cov01, &cov11, &sumsq);
-    
-    Ncrit = (-intercept)/slope;
-
-    return Ncrit;
-}
-
+//The next few functions serve to aggregate arguments to build the name of the directory or raw files names for the particular simulation run
 char * MakeDirectoryName(char * tskitstatus, char* deldist, char * isabsolutename, bool isabsolute, char * bendist, char * benmut, char * numberofchromosomes, char * chromosomesize, char * popsize, char * delmut, char * randomnumberseed, char * K, char * r, char *i_init, char * s, bool ismodular, char *elementsperlb, char *iscalcfixationname, int typeofrun, char * Sbname) 
 {
 	

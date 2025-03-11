@@ -23,6 +23,7 @@
 #include <tskit/core.h>
 #include <tskit/trees.h>
 
+//Function that adds sampled mutation to a random site along the genome in a gamete with tskit mutation tracking
 void MutateGamete(int tskitstatus, int isburninphaseover,  tsk_table_collection_t * treesequencetablecollection, tsk_id_t * wholepopulationsitesarray, tsk_id_t childnode, int totaltimesteps, double currenttimestep, bool isabsolute, int totalindividualgenomelength, double *gamete, double mutationeffectsize)
 {
     tsk_id_t idofnewmutation;
@@ -50,6 +51,7 @@ void MutateGamete(int tskitstatus, int isburninphaseover,  tsk_table_collection_
     }
 }
 
+//Function that performs a death event (details relate to which fitness model is used: absolute vs relative)
 double PerformDeath(bool isabsolute, int tskitstatus, int isburninphaseover, int maxPopSize, int *pPopSize, int victim, int deleteriousdistribution, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates, long double *psumofdeathratessquared, double b_0, double r,  int i_init, double s, long double *psumofload, long double *psumofloadsquared, tsk_id_t * wholepopulationnodesarray, FILE *miscfilepointer)
 {
     int placeinindex;
@@ -102,6 +104,7 @@ double PerformDeath(bool isabsolute, int tskitstatus, int isburninphaseover, int
     Fen_set(wholepopulationselectiontree, maxPopSize, 0.0, victim);
 }
 
+//Function that performs a birth event (details relate to which fitness model is used: absolute vs relative)
 void PerformBirth(int tskitstatus, int isburninphaseover, bool ismodular, int elementsperlb, tsk_table_collection_t * treesequencetablecollection, tsk_id_t * wholepopulationnodesarray, tsk_id_t childnode1, tsk_id_t childnode2, bool isabsolute, double *parent1gamete, double *parent2gamete, int maxPopSize, int *pPopSize, int birthplace, double *wholepopulationgenomes, int totalindividualgenomelength, int deleteriousdistribution, long double *wholepopulationselectiontree, long double *wholepopulationwisarray, long double *wholepopulationdeathratesarray, int *wholepopulationindex, bool *wholepopulationisfree, long double *psumofloads, long double *psumofdeathrates, long double *psumofdeathratessquared, double b_0, double r,  int i_init, double s, long double *psumofload, long double *psumofloadsquared, FILE *miscfilepointer)
 {
     int i;

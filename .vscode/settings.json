@@ -2,6 +2,8 @@
     "files.associations": {
         "string.h": "c",
         "stdbool.h": "c",
-        "pcg_basic.h": "c"
+        "pcg_basic.h": "c",
+        "relative_functions.h": "c",
+        "sharedfunc_flag.h": "c"
     }
 }
