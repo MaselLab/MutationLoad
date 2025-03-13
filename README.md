@@ -18,7 +18,6 @@ More details on each component are provided below.
 - [Installation](#installation)
 - [Features](#features)
 - [Usage](#usage)
-- [Contributing](#contributing)
 - [License](#license)
 - [Contact](#contact)
 
