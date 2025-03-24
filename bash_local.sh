@@ -1,37 +1,39 @@
 #!/bin/bash
 
 #Mutationload variables
-timeSteps=500000
-initialPopsize=20000
+timeSteps=${arraytimeSteps[${SLURM_ARRAY_TASK_ID}]}
+initialPopsize=${arrayN[${SLURM_ARRAY_TASK_ID}]}
 mud=2.0
-chromosomesize=50
-numberofchromosomes=23
-bentodelrateratio=0.0
-sb="0.0"
+chromosomesize=55
+numberofchromosomes=22
+bentodelratio=0.001
+sb=0.005
 #0 for point; 1 for exponential; and 2 for uniform
-bendist=0
-#0 for root; 1 for single
+bendist=1
+#0 for root sb; 1 for single; 2 for root Ncrit
 typeofrun=1
 slope=0
-seed=57
-K=20000
+seed=24
+K=10000
 #0 for relative; 1 for absolute
-fitnesstype=1
+fitnesstype=0
 r=0.98
-i_init=400
+i_init=500
 s=0.01
-tskit=0
 #0 for runs without modular epistasis; 1 for runs with modular epistasis
 modularepis=0
 elementsperl=0
-#This ratio should be between 1 and 10
-SdtoSbratio=1
-Sbname="1.0000"
+#0 for no tskit; 1 for tskit on; 2 for tskit on after burnin
+tskitstatus=1
+SdtoSbratio=1.0
 #0 for point; 1 for exponential
-deldist=0
-rawfilesize=10000
-redinK=0
-
+deldist=1
+#rawdata file size in datapoints
+rawdatafilesize=100
+#change in carrying capacity, type in the difference in popsize
+redinmaxpopsize=0
+#status of fixation calculation; 0 for OFF; 1 for ON
+calcfixation=0
 
 if [ $fitnesstype -eq 0 ]
 then
@@ -40,15 +42,6 @@ elif [ $fitnesstype -eq 1 ]
 then
 	fitnessstring="absolute_"
 fi
-
-if [ $tskit -eq 0 ]
-then
-    	tskitstring="OFF_"
-elif [ $tskit -eq 1 ]
-then
-    	tskitstring="ON_"
-fi
-
 
 if [ $bendist -eq 0 ]
 then
@@ -61,6 +54,17 @@ then
 	bendiststring="uniform_"
 fi
 
+if [ $tskitstatus -eq 0 ]
+then
+	tskitstatusstring="OFF_"
+elif [ $tskitstatus -eq 1 ]
+then
+	tskitstatusstring="ON_"
+elif [ $tskitstatus -eq 2 ]
+then
+	tskitstatusstring="ON_AFTER_BURNIN_"
+fi
+
 if [ $deldist -eq 0 ]
 then
 	deldiststring="point_"
@@ -70,19 +74,21 @@ then
 fi
 
 #mub is written as a formated double in mutation load program
-mub=$(echo "$mud * $bentodelrateratio" | bc -l)
+mub=$(echo "$mud * $bentodelratio" | bc -l)
 mub=$(printf "%.4f" $mub)
 
 #creates 2 strings; directory refers to the folder where data for the specified parameters will be stored; file is the snapshot of the simulation at its end.
 if [ $modularepis -eq 0 ]
 then
-	directory="datafor_"$fitnessstring"tskit_"$tskitstring"r_"$r"_iinit_"$i_init"_s_"$s"_K_"$K"_deldist_"$deldiststring"bendist_"$bendiststring"mub_"$mub"_chromnum_"$numberofchromosomes"_N0_"$initialPopsize"_mud_"$mud"_L_"$chromosomesize"_seed_"$seed"/"
+	directory="datafor_"$fitnessstring"tskitstatus_"$tskitstring"r_"$r"_i_init"$i_init"_s_"$s"_K_"$K"_deldist_"$deldiststring"bendist_"$bendiststring"_mub_"$mub"_chromnum_"$numberofchromosomes"_N0_"$initialPopsize"_mud_"$mud"_L_"$chromosomesize"seed_"$seed"/"
 elif [ $modularepis -eq 1 ]
 then
-	directory="datafor_"$fitnessstring"tskit_"$tskitstring"elementsperlb_"$elementsperl"_r_"$r"_iinit_"$i_init"_s_"$s"_K_"$K"_deldist_"$deldiststring"bendist_"$bendiststring"mub_"$mub"_chromnum_"$numberofchromosomes"_N0_"$initialPopsize"_mud_"$mud"_L_"$chromosomesize"_seed_"$seed"/"
+	directory="datafor_"$fitnessstring"tskitstatus_"$tskitstring"elementsperlb_"$elementsperl"_r_"$r"_i_init"$i_init"_s_"$s"_K_"$K"_deldist_"$deldiststring"_bendist_"$bendiststring"_mub_"$mub"_chromnum_"$numberofchromosomes"_N0_"$initialPopsize"_mud_"$mud"_L_"$chromosomesize"seed_"$seed"/"
 fi
 
-file1='popsnapshotfor_Sb_'$Sbname'mub_'$mub".txt"
+printf "directory path is %s \n" "$directory"
+
+file1="popsnapshotfor_popsize_"$initialPopsize"_tskitstatus_"$tskitstatusstring"mub_"$mub".txt"
 
 #checks if a previous snapshot of the simulation exist. Snapshots are saved as compressed files (.gz) to save space
 prevsim=$([ -f $directory$file1".gz" ] && echo 1 || echo 0)
@@ -96,16 +102,17 @@ then
 	snapshot=1
 fi
 
+
 SECONDS=0
 echo "start of mutationload program"
 
-./mutationload $timeSteps $initialPopsize $mud $chromosomesize $numberofchromosomes $bentodelrateratio $sb $bendist $typeofrun $slope $seed $K $fitnesstype $r $i_init $s $tskit $modularepis $elementsperl $snapshot $file1 $SdtoSbratio $deldist $rawfilesize $redinK
-
-#$snapshot $directory$file1
-echo $directory$file1
+# run mutationload program with arguments
+./mutationload $timeSteps $initialPopsize $mud $chromosomesize $numberofchromosomes $bentodelratio $sb $bendist $typeofrun $slope $seed $K $fitnesstype $r $i_init $s $tskitstatus $modularepis $elementsperl $snapshot $file1 $SdtoSbratio $deldist $rawdatafilesize $redinmaxpopsize $calcfixation
 
 echo $SECONDS
 
 echo "end of mutationload program"
+
+#$snapshot $directory$file1
 
 gzip $directory$file1
