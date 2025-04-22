@@ -166,7 +166,7 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
     double slopeoflogfitness;    
     double varianceinlogfitness;   
     long double fitnessfittest;
-    long double load;
+    long double FractionSelectiveDeaths;
     
     if (VERYVERBOSE == 1) {
         fprintf(veryverbosefilepointer, "Variables initialized, preparing to begin simulation.\n");
