@@ -65,7 +65,7 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
     strcat(rawdatafilename, ".txt");
 
     rawdatafilepointer = fopen(rawdatafilename, "w"); //opens the file to which to print data to be plotted.
-    fprintf(rawdatafilepointer, "Nxtimesteps,Sum.of.wis,Variance.in.log.fitness,Load\n");
+    fprintf(rawdatafilepointer, "Nxtimesteps,Sum.of.wis,Variance.in.log.fitness,FractionSelectiveDeaths\n");
     
     char * summarydatafilename = (char *) malloc(100);
     strcpy(summarydatafilename, "summarydatafor");
@@ -187,10 +187,10 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
         //May use an imprecise algorithm -- check before using as data.
         varianceinlogfitness = CalculateVarianceInLogFitness(popsize, wholepopulationwisarray, *psumofwis);
         fitnessfittest = FindFittestWi(wholepopulationwisarray, popsize);
-        load = fitnessfittest/(sumofwis/popsize) - 1.0;
+        FractionSelectiveDeaths = (fitnessfittest-(sumofwis/popsize))/fitnessfittest;
         
         //This is the main data output, currently the summed fitness and variance in log(fitness) in the population.
-        fprintf(rawdatafilepointer, "%d,%Lf,%.18f,%Lf\n", i+1, *psumofwis, varianceinlogfitness, load);
+        fprintf(rawdatafilepointer, "%d,%Lf,%.18f,%Lf\n", i+1, *psumofwis, varianceinlogfitness, FractionSelectiveDeaths);
         fflush(rawdatafilepointer);
 
         //fprintf(rawdatafilepointer, "%d \n", i+1);
