@@ -98,6 +98,7 @@ Note, though, that if using the older version of the Makefile for this repositor
 ```
 	make -f old_makefile
 ```
+Also, if an error comes up during compilation due to a missing file, this is frequently caused by an issue related to the location of the "dependencies" folder within the simulation's directory. It can be helpful to make sure that the location of this folder matches that which is specified in the Makefile (i.e. that the folder is within the larger MutationLoad folder). If issues persist, it's also possible to try moving all of the files within the folder into the overall MutationLoad folder, then removing mentions of the "dependencies" folder from the Makefile. 
  
 
 # Running the Program 
