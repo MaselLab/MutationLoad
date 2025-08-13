@@ -22,7 +22,7 @@
 #include <tskit/core.h>
 #include <tskit/trees.h>
 
-double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredinmaxpopsize, char *redinmaxpopsizename, double redinmaxpopsize, char* mubname, char* Sbname, int tskitstatus, bool ismodular, int elementsperlb, bool isabsolute, int maxTime, int initialPopSize, int K, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double Sd, bool isvariablesd, int deleteriousdistribution, double beneficialmutationrate, double Sb, int beneficialdistribution, double r, int i_init, double s, gsl_rng* randomnumbergeneratorforgamma, FILE *miscfilepointer, FILE *veryverbosefilepointer, int rawdatafilesize, bool iscalcfixation)
+double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredinmaxpopsize, char *redinmaxpopsizename, double redinmaxpopsize, char* mubname, char* Sbname, int tskitstatus, bool ismodular, int elementsperlb, bool isabsolute, int maxTime, int initialPopSize, int K, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double Sd, bool isvariablesd, int deleteriousdistribution, double beneficialmutationrate, double Sb, int beneficialdistribution, double r, int i_init, double s, gsl_rng* randomnumbergeneratorforgamma, FILE *miscfilepointer, FILE *veryverbosefilepointer, int rawdatafilesize, bool iscalcfixation, char *isvariablesdname)
 {
 
     if(!isabsolute){
@@ -40,7 +40,7 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredi
     FILE *tskitdatafilepointer;
     int i, j, k, w;
 
-    char* rawdatafilename =  MakeRawDataFileName(mubname, Sbname, isredinmaxpopsize, redinmaxpopsizename);
+    char* rawdatafilename =  MakeRawDataFileName(mubname, Sbname, isredinmaxpopsize, redinmaxpopsizename, isvariablesd, isvariablesdname);
 
     char* summarydatafilename = MakeSummaryDataFileName(mubname, Sbname);
     
