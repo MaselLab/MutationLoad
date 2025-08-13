@@ -155,15 +155,19 @@ The script can then be adjusted to change the parameters for a particular simula
 
 + file1 – snapshot file
 
-+ SdtoSbratio – ratio of Sd (deleterious effect size) to Sb (beneficial effect size). If deldist=0, this parameter is neglected. 
++ SdtoSbratio – ratio of Sd (deleterious effect size) to Sb (beneficial effect size). If run type is relative, this parameter is neglected
 
-+ deldist – determines the type of distribution for deleterious effect size; 0 to use the distribution inferred for humans in Kim et al. 2017, 1 for exponential, 2 for point
++ deldist – determines the type of distribution for deleterious effect size; 0 for exponential, 1 for point (for absolute runs); Kim et al. DFE (for relative runs) or Gamma distribution with variable sd (if variable Sd is ON)
 
 + rawdatafilesize – controls how many lines to print out in the raw data file (helps compact the size of the file if timeSteps is large)
 
 + redinmaxpopsize – 0 to exclude reduction in max pop size, 1 to include reduction in pop size (specific for absolute model)
 
 + calcfixation – 0 to not perform fixation time calculation using trees, 1 to calculate fixation time (specific for absolute model; NOTE: incomplete feature)
+
++ sd – mean effect of a deleterious mutation (mainly used for relative runs when testing DFEs with different means)
+
++ variablesd – 0 to not perform testing of variable deleterious DFEs, 1 to run test of DFEs with variable Sd (specific for absolute model; NOTE: incomplete feature)
 
 - The Mathematica script requires **Mathematica Desktop** or **Mathematica Online**.
 - The Python script can be executed in a bash terminal in a conda environment(see script headers for dependency details).

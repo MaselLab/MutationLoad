@@ -22,7 +22,7 @@
 #include <tskit/core.h>
 #include <tskit/trees.h>
 
-double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int elementsperlb, char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, char * Sbname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double Sd, int deleteriousdistribution, gsl_rng * randomnumbergeneratorforgamma, FILE *miscfilepointer, FILE *veryverbosefilepointer, int rawdatafilesize)
+double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int elementsperlb, char * Nxtimestepsname, char * popsizename, char * delmutratename, char * chromsizename, char * chromnumname, char * mubname, char * Sbname, int typeofrun, int Nxtimesteps, int popsize, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double Sd, bool isvariablesd, int deleteriousdistribution, gsl_rng * randomnumbergeneratorforgamma, FILE *miscfilepointer, FILE *veryverbosefilepointer, int rawdatafilesize)
 {
     if(isabsolute){
         fprintf(miscfilepointer, "\n Trying to use RunSimulationRel within an absolute fitness program. \n");
@@ -191,7 +191,7 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
         //Following code performs N rounds of paired births and deaths.
         for (j = 0; j < popsize; j++) {
             currenttimestep += 1.0;            
-            PerformOneTimeStepRel(tskitstatus, isabsolute, isburninphaseover, ismodular, elementsperlb, &treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, popsize, totaltimesteps, currenttimestep,wholepopulationwistree, wholepopulationwisarray, wholepopulationgenomes, psumofwis, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, deleteriousdistribution, parent1gamete, parent2gamete, randomnumbergeneratorforgamma, miscfilepointer);
+            PerformOneTimeStepRel(tskitstatus, isabsolute, isburninphaseover, ismodular, elementsperlb, &treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, popsize, totaltimesteps, currenttimestep,wholepopulationwistree, wholepopulationwisarray, wholepopulationgenomes, psumofwis, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, isvariablesd, deleteriousdistribution, parent1gamete, parent2gamete, randomnumbergeneratorforgamma, miscfilepointer);
         }
         
         //Following code calculates the variance in log(fitness) of the population after this generation of births and deaths.
@@ -416,7 +416,7 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
     }
 }
 
-void PerformOneTimeStepRel(int tskitstatus, bool isabsolute, int isburninphaseover, bool ismodular, int elementsperlb, tsk_table_collection_t *treesequencetablecollection, tsk_id_t * wholepopulationnodesarray, tsk_id_t * wholepopulationsitesarray, int popsize, int totaltimesteps, double currenttimestep, long double *wholepopulationwistree, long double *wholepopulationwisarray, double *wholepopulationgenomes, long double * psumofwis, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double Sd, int deleteriousdistribution, double *parent1gamete, double *parent2gamete, gsl_rng * randomnumbergeneratorforgamma, FILE *miscfilepointer)
+void PerformOneTimeStepRel(int tskitstatus, bool isabsolute, int isburninphaseover, bool ismodular, int elementsperlb, tsk_table_collection_t *treesequencetablecollection, tsk_id_t * wholepopulationnodesarray, tsk_id_t * wholepopulationsitesarray, int popsize, int totaltimesteps, double currenttimestep, long double *wholepopulationwistree, long double *wholepopulationwisarray, double *wholepopulationgenomes, long double * psumofwis, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double beneficialmutationrate, double Sb, int beneficialdistribution, double Sd, bool isvariablesd, int deleteriousdistribution, double *parent1gamete, double *parent2gamete, gsl_rng * randomnumbergeneratorforgamma, FILE *miscfilepointer)
 {
     int currentparent1, currentparent2, currentvictim;
 
@@ -430,10 +430,10 @@ void PerformOneTimeStepRel(int tskitstatus, bool isabsolute, int isburninphaseov
     tsk_id_t childnode1, childnode2;
    
     RecombineChromosomesIntoGamete(isabsolute, tskitstatus, ismodular, elementsperlb, isburninphaseover, treesequencetablecollection, wholepopulationnodesarray, &childnode1, totaltimesteps, currenttimestep, currentparent1, chromosomesize, numberofchromosomes, parent1gamete, wholepopulationgenomes, totalindividualgenomelength);
-    ProduceMutatedGamete(tskitstatus, isburninphaseover, treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, &childnode1, totaltimesteps, currenttimestep, currentparent1, isabsolute, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, deleteriousdistribution, parent1gamete, randomnumbergeneratorforgamma, miscfilepointer);
+    ProduceMutatedGamete(tskitstatus, isburninphaseover, treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, &childnode1, totaltimesteps, currenttimestep, currentparent1, isabsolute, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, isvariablesd, deleteriousdistribution, parent1gamete, randomnumbergeneratorforgamma, miscfilepointer);
         
     RecombineChromosomesIntoGamete(isabsolute, tskitstatus, ismodular, elementsperlb, isburninphaseover, treesequencetablecollection, wholepopulationnodesarray, &childnode2, totaltimesteps, currenttimestep, currentparent2, chromosomesize, numberofchromosomes, parent2gamete, wholepopulationgenomes, totalindividualgenomelength);
-    ProduceMutatedGamete(tskitstatus, isburninphaseover, treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, &childnode2, totaltimesteps, currenttimestep, currentparent2, isabsolute, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, deleteriousdistribution, parent2gamete, randomnumbergeneratorforgamma, miscfilepointer);
+    ProduceMutatedGamete(tskitstatus, isburninphaseover, treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, &childnode2, totaltimesteps, currenttimestep, currentparent2, isabsolute, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, isvariablesd, deleteriousdistribution, parent2gamete, randomnumbergeneratorforgamma, miscfilepointer);
                
     //next variables are only used for absolute simulations, however since InitializePopulation is a shared function I must initialize them here, even if I don't use them again
     long double *pInverseSumOfWis;

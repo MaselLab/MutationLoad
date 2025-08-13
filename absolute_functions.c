@@ -22,7 +22,7 @@
 #include <tskit/core.h>
 #include <tskit/trees.h>
 
-double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredinmaxpopsize, char *redinmaxpopsizename, double redinmaxpopsize, char* mubname, char* Sbname, int tskitstatus, bool ismodular, int elementsperlb, bool isabsolute, int maxTime, int initialPopSize, int K, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double Sd, int deleteriousdistribution, double beneficialmutationrate, double Sb, int beneficialdistribution, double r, int i_init, double s, gsl_rng* randomnumbergeneratorforgamma, FILE *miscfilepointer, FILE *veryverbosefilepointer, int rawdatafilesize, bool iscalcfixation)
+double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredinmaxpopsize, char *redinmaxpopsizename, double redinmaxpopsize, char* mubname, char* Sbname, int tskitstatus, bool ismodular, int elementsperlb, bool isabsolute, int maxTime, int initialPopSize, int K, int chromosomesize, int numberofchromosomes, double deleteriousmutationrate, double Sd, bool isvariablesd, int deleteriousdistribution, double beneficialmutationrate, double Sb, int beneficialdistribution, double r, int i_init, double s, gsl_rng* randomnumbergeneratorforgamma, FILE *miscfilepointer, FILE *veryverbosefilepointer, int rawdatafilesize, bool iscalcfixation)
 {
 
     if(!isabsolute){
@@ -311,7 +311,7 @@ double RunSimulationAbs(bool issnapshot, char *prevsnapshotfilename, bool isredi
         
         birthhappens = monteCarloStep(arrayofbirthrates, popsize, pCurrenttime, sumofdeathrates);//This is the monte carlo step. This decides if a birth or a death event takes place by returning a 0 or 1
         
-        PerformOneEventAbs(tskitstatus, isburninphaseover, ismodular, elementsperlb, &treesequencetablecollection,  wholepopulationnodesarray, wholepopulationsitesarray, pPopSize, pCurrenttime, wholepopulationgenomes, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationisfree, wholepopulationindex, psumofdeathrates, psumofdeathratessquared, psumofload, psumofloadsquared, parent1gamete, parent2gamete, totaltimesteps, isabsolute, birthhappens, maxPopSize, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, Sd, deleteriousdistribution, beneficialmutationrate, Sb, beneficialdistribution, b_0, r, i_init, s, randomnumbergeneratorforgamma, miscfilepointer);
+        PerformOneEventAbs(tskitstatus, isburninphaseover, ismodular, elementsperlb, &treesequencetablecollection,  wholepopulationnodesarray, wholepopulationsitesarray, pPopSize, pCurrenttime, wholepopulationgenomes, wholepopulationselectiontree, wholepopulationdeathratesarray, wholepopulationisfree, wholepopulationindex, psumofdeathrates, psumofdeathratessquared, psumofload, psumofloadsquared, parent1gamete, parent2gamete, totaltimesteps, isabsolute, birthhappens, maxPopSize, chromosomesize, numberofchromosomes, totalindividualgenomelength, deleteriousmutationrate, Sd, isvariablesd, deleteriousdistribution, beneficialmutationrate, Sb, beneficialdistribution, b_0, r, i_init, s, randomnumbergeneratorforgamma, miscfilepointer);
 
         if (tskitstatus == 2){
             if (isburninphaseover != 0){
@@ -681,7 +681,7 @@ bool discoverEvent(double deathRate, double birthRate) {
 }
 
 
-bool PerformOneEventAbs(int tskitstatus, int isburninphaseover, bool ismodular, int elementsperlb, tsk_table_collection_t *treesequencetablecollection, tsk_id_t * wholepopulationnodesarray, tsk_id_t * wholepopulationsitesarray, int *pPopSize, double * pCurrenttime, double *wholepopulationgenomes, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, bool *wholepopulationisfree, int *wholepopulationindex, long double *psumofdeathrates, long double *psumofdeathratessquared, long double *psumofload, long double *psumofloadsquared, double* parent1gamete, double* parent2gamete, int totaltimesteps, bool isabsolute, bool birthhappens, int maxPopSize, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double Sd, int deleteriousdistribution, double beneficialmutationrate, double Sb, int beneficialdistribution,  double b_0, double r, int i_init, double s, gsl_rng* randomnumbergeneratorforgamma, FILE *miscfilepointer)
+bool PerformOneEventAbs(int tskitstatus, int isburninphaseover, bool ismodular, int elementsperlb, tsk_table_collection_t *treesequencetablecollection, tsk_id_t * wholepopulationnodesarray, tsk_id_t * wholepopulationsitesarray, int *pPopSize, double * pCurrenttime, double *wholepopulationgenomes, long double *wholepopulationselectiontree, long double *wholepopulationdeathratesarray, bool *wholepopulationisfree, int *wholepopulationindex, long double *psumofdeathrates, long double *psumofdeathratessquared, long double *psumofload, long double *psumofloadsquared, double* parent1gamete, double* parent2gamete, int totaltimesteps, bool isabsolute, bool birthhappens, int maxPopSize, int chromosomesize, int numberofchromosomes, int totalindividualgenomelength, double deleteriousmutationrate, double Sd, bool isvariablesd, int deleteriousdistribution, double beneficialmutationrate, double Sb, int beneficialdistribution,  double b_0, double r, int i_init, double s, gsl_rng* randomnumbergeneratorforgamma, FILE *miscfilepointer)
 {
     if(isabsolute == 0){
         fprintf(miscfilepointer, "\n Trying to use PerformOneEventAbs within a non absolute fitness simulation. \n");
@@ -725,12 +725,12 @@ bool PerformOneEventAbs(int tskitstatus, int isburninphaseover, bool ismodular, 
         double currenttime;
 
         RecombineChromosomesIntoGamete(isabsolute, tskitstatus, ismodular, elementsperlb, isburninphaseover, treesequencetablecollection, wholepopulationnodesarray, &childnode1, totaltimesteps, currenttime, currentparent1, chromosomesize, numberofchromosomes, parent1gamete, wholepopulationgenomes, totalindividualgenomelength);
-        nolethalmut = ProduceMutatedGamete(tskitstatus, isburninphaseover, treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, &childnode1, totaltimesteps, currenttime, currentparent1, isabsolute, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, deleteriousdistribution, parent1gamete, randomnumbergeneratorforgamma, miscfilepointer);
+        nolethalmut = ProduceMutatedGamete(tskitstatus, isburninphaseover, treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, &childnode1, totaltimesteps, currenttime, currentparent1, isabsolute, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, isvariablesd, deleteriousdistribution, parent1gamete, randomnumbergeneratorforgamma, miscfilepointer);
         if(!nolethalmut)
             return false;
         
         RecombineChromosomesIntoGamete(isabsolute, tskitstatus, ismodular, elementsperlb, isburninphaseover, treesequencetablecollection, wholepopulationnodesarray, &childnode2, totaltimesteps, currenttime, currentparent2, chromosomesize, numberofchromosomes, parent2gamete, wholepopulationgenomes, totalindividualgenomelength);
-        nolethalmut = ProduceMutatedGamete(tskitstatus, isburninphaseover, treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, &childnode2, totaltimesteps, currenttime, currentparent2, isabsolute, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, deleteriousdistribution, parent2gamete, randomnumbergeneratorforgamma, miscfilepointer);
+        nolethalmut = ProduceMutatedGamete(tskitstatus, isburninphaseover, treesequencetablecollection, wholepopulationnodesarray, wholepopulationsitesarray, &childnode2, totaltimesteps, currenttime, currentparent2, isabsolute, totalindividualgenomelength, deleteriousmutationrate, beneficialmutationrate, Sb, beneficialdistribution, Sd, isvariablesd, deleteriousdistribution, parent2gamete, randomnumbergeneratorforgamma, miscfilepointer);
         if(!nolethalmut)
             return false;
         
