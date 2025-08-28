@@ -167,6 +167,7 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
     double varianceinlogfitness;   
     long double fitnessfittest;
     long double FractionSelectiveDeaths;
+	long double ExpectedExpWi;
     long double FractionSelectiveDeaths_exponantiatebirthrates;
     
     if (VERYVERBOSE == 1) {
@@ -189,7 +190,9 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
         varianceinlogfitness = CalculateVarianceInLogFitness(popsize, wholepopulationwisarray, *psumofwis);
         fitnessfittest = FindFittestWi(wholepopulationwisarray, popsize);
         FractionSelectiveDeaths = (fitnessfittest-(sumofwis/popsize))/fitnessfittest;
-	FractionSelectiveDeaths_exponantiatebirthrates = (exp(fitnessfittest)-exp((sumofwis/popsize)))/exp(fitnessfittest);
+		//Calculate Ee^b to use in Selective deaths calculation
+		ExpectedExpWi = FindExpectedExpWi(wholepopulationwisarray, popsize)
+		FractionSelectiveDeaths_exponantiatebirthrates = 1.0 - ExpectedExpWi/exp(fitnessfittest);
         
         //This is the main data output, currently the summed fitness and variance in log(fitness) in the population.
         fprintf(rawdatafilepointer, "%d,%Lf,%.18f,%Lf,%Lf\n", i+1, *psumofwis, varianceinlogfitness, FractionSelectiveDeaths, FractionSelectiveDeaths_exponantiatebirthrates);
