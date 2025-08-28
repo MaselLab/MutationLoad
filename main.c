@@ -303,11 +303,11 @@ long double FindExpectedExpWi(long double *wisarray, int popsize)
 {
     long double ExpectedExpWi;
     int i;
-	sumExpected = 0
+	sumExpected = 0;
     for (i = 1; i < popsize; i++) {
-		sumExpected = sumExpected + exp(wisarray[i])
+		sumExpected = sumExpected + exp(wisarray[i]);
     }
-	ExpectedExpWi = sumExpected/popsize
+	ExpectedExpWi = sumExpected/popsize;
     return ExpectedExpWi;
 }
 
