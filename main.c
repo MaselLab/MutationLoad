@@ -299,13 +299,13 @@ long double FindFittestWi(long double *wisarray, int popsize)
 }
 
 
-long double FindExpectedExpWi(long double *wisarray, int popsize)
+long double FindRatioExpectedExpWioverExpbestWi(long double *wisarray, int popsize, long double fittestwi)
 {
     long double ExpectedExpWi;
     int i;
 	long double sumExpected = 0;
     for (i = 0; i < popsize; i++) {
-		sumExpected = sumExpected + exp(wisarray[i]);
+		sumExpected = sumExpected + exp(wisarray[i] - fittestwi);
     }
 	ExpectedExpWi = sumExpected/popsize;
     return ExpectedExpWi;
