@@ -191,7 +191,7 @@ double RunSimulationRel(int tskitstatus, bool isabsolute, bool ismodular, int el
         fitnessfittest = FindFittestWi(wholepopulationwisarray, popsize);
         FractionSelectiveDeaths = (fitnessfittest-(sumofwis/popsize))/fitnessfittest;
 		//Calculate Ee^b to use in Selective deaths calculation
-		ExpectedExpWi = FindExpectedExpWi(wholepopulationwisarray, popsize)
+		ExpectedExpWi = FindExpectedExpWi(wholepopulationwisarray, popsize);
 		FractionSelectiveDeaths_exponantiatebirthrates = 1.0 - ExpectedExpWi/exp(fitnessfittest);
         
         //This is the main data output, currently the summed fitness and variance in log(fitness) in the population.
