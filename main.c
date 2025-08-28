@@ -298,6 +298,19 @@ long double FindFittestWi(long double *wisarray, int popsize)
     return fittestwi;
 }
 
+
+long double FindExpectedExpWi(long double *wisarray, int popsize)
+{
+    long double ExpectedExpWi;
+    int i;
+	sumExpected = 0
+    for (i = 1; i < popsize; i++) {
+		sumExpected = sumExpected + exp(wisarray[i])
+    }
+	ExpectedExpWi = sumExpected/popsize
+    return ExpectedExpWi;
+}
+
 double CalculateSlopeOfLogFitness(int endofsimulation, int endofburninphase, double *logaveragefitnesseachgeneration)
 {
     size_t step = 1;
