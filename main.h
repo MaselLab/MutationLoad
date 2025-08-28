@@ -30,6 +30,7 @@ void DoubleSwap(long double *x, long double *y);
 void DoubleBubbleSort(long double *arraytobesorted, int arraysize);
 double CalculateVarianceInLogFitness(int popsize, long double *wholepopulationwisarray, long double sumofwis);
 long double FindFittestWi(long double *wisarray, int popsize);
+long double FindExpectedExpWi(long double *wisarray, int popsize);
 double CalculateSlopeOfLogFitness(int endofsimulation, int endofburninphase, double *logaveragefitnesseachgeneration);
 
 //Fenwick trees
