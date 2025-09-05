@@ -817,20 +817,34 @@ p <- p+theme(legend.position = "none",
 p
 dev.off()
 
-#change in Ud wiht Ub=0.02;sb=0.001
+#change in Ud with Ub=0.02;sb=0.001
 df_red_ud_2 <- data.frame("Ud" = c(0.2511886, 0.5011872, 1.0, 1.9952623, 3.9810717),
                           "N_sim_fit" = c(471.78, 695.96, 953.70, 1500, 2488.79),
                           "N_sim_sec" = c(390, 591, 954, 1500, 2396),
                           "N_ana" = c(216.286, 313.904, 445.359, 623.097, 864.754),
                           "N_e_coal" = c(471.0206607437395, 682.0131766892991, 901.7554276638273,
                                          1320.4766134408887, 1847.292478102416)/2)
+ ####factor reduction in Ne  based on Del only model####
+s=0.00948704
+Ud=c(0.2511886, 0.5011872, 1.0, 1.9952623, 3.9810717)
+L=100
+chr=23
+Udw=Ud/(L*chr/2)
+Udw
+Rw=2/(L*chr/2/chr)
+Rw
+#Unlinked
+Ne_N=exp(-8 * Ud * s)
+Ne_N
+#linked+unlined Joseph's equation
+Ne_N2_Ud=exp(-8 * (Ud-Udw)*s) * exp(-Ud/(2*chr))
 
 #plot
 tiff("Ne_reduction_Ud_high_Ub.tiff", units="in", width=5, height=5, res=300)
 p <- ggplot()
 p <- p+geom_point(data = df_red_ud_2, aes(x=Ud, y=(N_ana/N_sim_sec), col="Fitness-flux-Ne", shape="Fitness-flux-Ne"), size=3)
 p <- p+geom_point(data = df_red_ud_2, aes(x=Ud, y=(N_e_coal/N_sim_fit), col="Coalescent-Ne", shape="Coalescent-Ne"), size=3)
-p <- p+geom_point(aes(x=Ud, y=Ne_N2, col="Del. only", shape="Del. only"), size=3)
+p <- p+geom_point(aes(x=Ud, y=Ne_N2_Ud, col="Del. only", shape="Del. only"), size=3)
 p <- p+geom_hline(yintercept = 1.0, col="red", linetype="dashed")
 p <- p+scale_x_log10(breaks = custom_breaks,
                      labels = custom_labels)+annotation_logticks(sides = "bl", outside = TRUE)+ coord_cartesian(clip = "off")
@@ -845,6 +859,96 @@ p <- p+guides(shape=guide_legend(keywidth = 0.05, keyheight = 0.05, ncol =1, nro
 p <- p+theme(legend.position = "none", legend.text = element_text(size = 12),legend.background = element_blank())
 p
 dev.off()
+
+#change in Sd with Ub=0.02;sb=0.001, Ud=2.0
+df_red_sd_2 <- data.frame("Sd" = c(0.05, 0.03, 0.01, 0.005, 0.003),
+                          "N_sim_fit" = c(1404.29, 1428.39, 1454.11, 1417.17, 1450),
+                          "N_sim_sec" = c(1337, 1452, 1445, 1427, 1450),
+                          "N_ana" = c(547.78, 570.541, 621.333, 653.772, 676.927),
+                          "N_e_coal" = c(1042.8969946062832, 1155.8836408279096, 1277.1174874421363,
+                                         1327.5279447736898, 1340.582373437434)/2)
+
+ ####factor reduction in Ne based on Del only model####
+Sd=c(0.05, 0.03, 0.01, 0.005, 0.003)
+Ud=2
+L=100
+chr=23
+Udw=Ud/(L*chr/2)
+Udw
+Rw=2/(L*chr/2/chr)
+Rw
+#Unlinked
+Ne_N=exp(-8 * Ud * s)
+Ne_N
+#linked+unlined Joseph's equation
+Ne_N2_Sd=exp(-8 * (Ud-Udw)*Sd) * exp(-Ud/(2*chr))
+
+#plot
+tiff("Ne_reduction_Sd_high_Ub.tiff", units="in", width=5, height=5, res=300)
+p <- ggplot()
+p <- p+geom_point(data = df_red_sd_2, aes(x=Sd, y=(N_ana/N_sim_sec), col="Fitness-flux-Ne", shape="Fitness-flux-Ne"), size=3)
+p <- p+geom_point(data = df_red_sd_2, aes(x=Sd, y=(N_e_coal/N_sim_fit), col="Coalescent-Ne", shape="Coalescent-Ne"), size=3)
+p <- p+geom_point(aes(x=Sd, y=Ne_N2_Sd, col="Del. only", shape="Del. only"), size=3)
+p <- p+geom_hline(yintercept = 1.0, col="red", linetype="dashed")
+p <- p+scale_x_log10(breaks = custom_breaks,
+                     labels = custom_labels)+annotation_logticks(sides = "bl", outside = TRUE)+ coord_cartesian(clip = "off")
+p <- p+labs(x=bquote(bar(S)[d]), y=expression("Factor reduction in "~N[e]))+theme_Publication()
+p <- p+scale_shape_manual(name = '', 
+                          values =c("Fitness-flux-Ne"=16,"Del. only"=15,"Coalescent-Ne"=17), 
+                          labels = c('Del. only','Coalescent-Ne', 'Fitness-flux-Ne'))
+p <- p+scale_colour_manual(name = ' ', 
+                           values =c("Fitness-flux-Ne"="black","Coalescent-Ne"="#56b4e9", "Del. only"="red"),
+                           labels = c("Fitness-flux-Ne","Coalescent-Ne", "Del. only"))
+p <- p+guides(shape=guide_legend(keywidth = 0.05, keyheight = 0.05, ncol =1, nrow=3))+ylim(c(0,1))
+p <- p+theme(legend.position = "none", legend.text = element_text(size = 12),legend.background = element_blank())
+p
+dev.off()
+
+#change in Ud*Sd with Ub=0.02;sb=0.001
+# From your Ud-varying dataset
+df_ud <- df_red_ud_2
+df_ud$Sd <- 0.00948704
+df_ud$UdSd <- df_ud$Ud * df_ud$Sd
+df_ud$type <- "Vary Ud (fixed Sd)"
+df_ud$Ne_N2­ <- Ne_N2_Ud
+# From your Sd-varying dataset
+df_sd <- df_red_sd_2
+df_sd$Ud <- 2   # your fixed Ud value = 2
+df_sd$UdSd <- df_sd$Ud * df_sd$Sd
+df_sd$type <- "Vary Sd (fixed Ud)"
+df_sd$Ne_N2 <- Ne_N2_Sd
+
+df_combined <- rbind(
+  data.frame(x=df_ud$UdSd, Ne_reduction=df_ud$N_ana/df_ud$N_sim_sec, source="Fitness-flux-Ne", type=df_ud$type),
+  data.frame(x=df_ud$UdSd, Ne_reduction=df_ud$N_e_coal/df_ud$N_sim_fit, source="Coalescent-Ne", type=df_ud$type),
+  data.frame(x=df_ud$UdSd, Ne_reduction=df_ud$Ne_N2, source="Del. only", type=df_ud$type),
+
+  data.frame(x=df_sd$UdSd, Ne_reduction=df_sd$N_ana/df_sd$N_sim_sec, source="Fitness-flux-Ne", type=df_sd$type),
+  data.frame(x=df_sd$UdSd, Ne_reduction=df_sd$N_e_coal/df_sd$N_sim_fit, source="Coalescent-Ne", type=df_sd$type),
+  data.frame(x=df_sd$UdSd, Ne_reduction=df_sd$Ne_N2, source="Del. only", type=df_sd$type)
+)
+#plot
+
+tiff("Ne_reduction_UdSd_high_Ub.tiff", units="in", width=5, height=5, res=300)
+p <- ggplot(df_combined, aes(x=x, y=Ne_reduction,
+                             col=source, shape=source, linetype=type))
+p <- p+geom_point(size=3)
+p <- p+geom_line()
+p <- p+geom_point(aes(x=Sd, y=Ne_N2, col="Del. only", shape="Del. only"), size=3)
+p <- p+geom_hline(yintercept = 1.0, col="red", linetype="dashed")
+p <- p+scale_x_log10() + annotation_logticks(sides="bl", outside=TRUE)
+p <- p+labs(x=expression(U[d] %.% bar(S)[d]),
+       y=expression("Factor reduction in "~N[e]))+theme_Publication()
+p <- p+scale_shape_manual(values=c("Fitness-flux-Ne"=16,"Del. only"=15,"Coalescent-Ne"=17))
+p <- p+scale_colour_manual(values=c("Fitness-flux-Ne"="black","Coalescent-Ne"="#56b4e9","Del. only"="red"))
+p <- p+scale_linetype_manual(values=c("Vary Ud (fixed Sd)"="solid",
+                                 "Vary Sd (fixed Ud)"="dashed"))  
+p <- p+ylim(c(0,1))
+p <- p+theme(legend.position = "none")
+p
+dev.off()
+
+
 ##################################Figure 8: Change in L#################################
 df_sim_L_5 <- data.frame("N" = c(1000, 2000, 3000, 4000, 5000, 6000, 7000),
                          "vb" = c(0.0000052944, 0.0000108097, 0.0000171429, 0.0000230964,
