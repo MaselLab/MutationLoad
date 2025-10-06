@@ -1,14 +1,28 @@
 #######set preferred theme########
+library(ggplot2)
+library(dplyr)
+library(scales)
+library(gridExtra)
+library(ggpubr)
+library(ggridges)
+library(plyr)
+library(corrplot)
+library(latex2exp)
+library(ggallin)
 library(extrafont)
-font_import()
+library(patchwork)
+library(cowplot)
+font_import(prompt = FALSE)
 loadfonts(device = "win")
+loadfonts(device = "pdf")
 
-theme_Publication <- function(base_size=24, base_family="Times New Roman") {
+theme_Publication <- function(base_size=9, base_family="Times New Roman") {
   library(grid)
   library(ggthemes)
   (theme_foundation(base_size=base_size, base_family=base_family)
     + theme(plot.title = element_text(face = "bold",
                                       size = rel(1.2), hjust = 0.5),
+            plot.tag = element_text(family = base_family, face = "italic", size = base_size),
             text = element_text(),
             panel.background = element_rect(colour = NA),
             plot.background = element_rect(colour = NA),
@@ -52,15 +66,20 @@ scale_colour_Publication <- function(...){
   
 }
 
-library(ggplot2)
-library(scales)
-library(gridExtra)
-library(ggpubr)
-library(ggridges)
-library(plyr)
-library(corrplot)
-library(latex2exp)
-library(ggallin)
+save_procb <- function(plot, filename, col = c("1col", "2col"), height_mm = 100) {
+  col <- match.arg(col)
+  width_mm <- ifelse(col == "1col", 80, 167)   # Proceedings B column widths
+  ggsave(filename, plot = plot,
+         width = width_mm/25.4, height = height_mm/25.4,
+         units = "in", dpi = 600,
+         compression = "lzw", device = "tiff")
+}
+
+label_thinspace <- label_number(
+  big.mark = "\u2009",  # Unicode thin space
+  decimal.mark = "."
+)
+
 theme_set(theme_Publication())
 setwd("analytical_data/")
 ######################################Figure 2+Figure 6: flux+derivative example with Ud/Ub=1000##########################################
@@ -132,80 +151,92 @@ f2 <- approxfun(predictions_ana$vb_pred - predictions_ana$vd_pred, predictions_a
 f2(0)
 
 #plotting fluxes with simulation data points and env 
-#Figure 2A
-tiff("fluxes_analtyical_withsim_withenv.tiff", units="in", width=6, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_del, aes(x=N, y=flux, col="Deleterious"), linewidth =1)
-p <- p+geom_line(data = dat_del, aes(x=N, y=flux_offset, col="Deleterious+env. change"),  linewidth =1)
-p <- p+geom_line(data = dat_ben, aes(x=N, y=flux, col="Beneficial"), linewidth =1)
-p <- p+geom_vline(xintercept = c(1834.058, 2330.3),linewidth=c(1,1), col = c("#ef3b2c","darkorange"),alpha=c(.8, .8), linetype=c("dotted", "dotted"))
-#p <- p+geom_point(data = df_sim, aes(x=N, y=vd, col="Deleterious"), size = 3)
-#p <- p+geom_point(data = df_sim, aes(x=N, y=vb, col="Beneficial"), size = 3)
-p <- p+xlim(c(500, 7000))
-p <- p+scale_y_continuous(limits = c(0, 0.00016), 
-                          breaks = c(0, 0.00005, 0.0001, 0.00015),
-                          labels = c("0", expression("5 ×" ~ 10^-5), expression("1 ×" ~ 10^-4), expression("1.5 ×" ~ 10^-4)))
-p <- p+labs(x="Census population size", y="Fitness change\nper generation")+theme_Publication()
-p <- p+scale_colour_manual(name = '', 
-                           values =c("Deleterious"="#ef3b2c","Deleterious+env. change"="darkorange","Beneficial"="#386cb0"),
-                           labels = c('Beneficial','Deleterious+env. change','Deleterious'))
-p <- p+guides(color = guide_legend(override.aes = list(size = 4)), 
-              linetype=guide_legend(keywidth = 2, keyheight = 1))
-p <- p+theme(axis.text.x = element_text(size=18),
-             axis.text.y = element_text(size=21),
-             axis.title.y = element_text(size=22, ,vjust = -2),
-             legend.position = "none")
-p
-dev.off()
+# Plot 2A
+p1 <- ggplot() +
+  geom_line(data = dat_del, aes(x = N, y = flux, col = "Deleterious"), linewidth = 0.7) +
+  geom_line(data = dat_del, aes(x = N, y = flux_offset, col = "Deleterious+env. change"), linewidth = 0.7) +
+  geom_line(data = dat_ben, aes(x = N, y = flux, col = "Beneficial"), linewidth = 0.7) +
+  geom_vline(xintercept = c(1834.058, 2330.3),
+             linewidth = 0.7, col = c("#ef3b2c","darkorange"),
+             alpha = 0.8, linetype = "dotted") +
+  xlim(c(500, 7000)) +
+  scale_y_continuous(
+    limits = c(0, 0.00015),
+    breaks = c(0, 0.00005, 0.0001, 0.00015),
+    labels = c("0", expression("5 ×" ~ 10^-5), expression("1 ×" ~ 10^-4), expression("1.5 ×" ~ 10^-4))
+  ) +
+  labs(y = "Fitness change per generation", x = NULL) +   # remove x-label
+  scale_colour_manual(name = '', 
+                      values = c("Deleterious"="#ef3b2c","Deleterious+env. change"="darkorange","Beneficial"="#386cb0"),
+                      labels = c("Beneficial","Deleterious+env. change","Deleterious")) +
+  theme_Publication(base_size = 9) +
+  theme(legend.position = "none",
+        axis.title.x = element_blank(),          # remove x-axis label
+        axis.text.x  = element_blank(),          # remove x-axis ticks
+        plot.margin = margin(t = .5, r = 1, b = .5, l = 1, unit = "mm"))
 
-#Figure 6A
-tiff("fluxes_analtyical_withsim_withenv_1.tiff", units="in", width=6, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_del, aes(x=N, y=flux, col="Deleterious"),alpha=.5, linewidth =1)
-p <- p+geom_line(data = dat_del, aes(x=N, y=flux_offset, col="Deleterious+env. change"),alpha=.5,  linewidth =1)
-p <- p+geom_line(data = dat_ben, aes(x=N, y=flux, col="Beneficial"),alpha=.5, linewidth =1)
-p <- p+geom_vline(xintercept = c(1834.058, 2330.3),linewidth=c(1,1), col = c("#ef3b2c","darkorange"),alpha=c(.8, .8), linetype=c("dotted", "dotted"))
-p <- p+geom_point(data = df_sim, aes(x=N, y=vd, col="Deleterious"), size = 3)
-p <- p+geom_point(data = df_sim, aes(x=N, y=vb, col="Beneficial"), size = 3)
-p <- p+xlim(c(500, 7000))
-p <- p+scale_y_continuous(limits = c(0, 0.00016), 
-                          breaks = c(0, 0.00005, 0.0001, 0.00015),
-                          labels = c("0", expression("5 ×" ~ 10^-5), expression("1 ×" ~ 10^-4), expression("1.5 ×" ~ 10^-4)))
-p <- p+labs(x="Census population size", y="Fitness change\nper generation")+theme_Publication()
-p <- p+scale_colour_manual(name = '', 
-                           values =c("Deleterious"="#ef3b2c","Deleterious+env. change"="darkorange","Beneficial"="#386cb0"),
-                           labels = c('Beneficial','Deleterious+env. change','Deleterious'))
-p <- p+guides(color = guide_legend(override.aes = list(size = 4)), 
-              linetype=guide_legend(keywidth = 2, keyheight = 1))
-p <- p+theme(axis.text.x = element_text(size=18),
-             axis.text.y = element_text(size=21),
-             axis.title.y = element_text(size=22, ,vjust = -2),
-             legend.position = "none")
-p
-dev.off()
+# Plot 2B
+p2 <- ggplot() +
+  geom_line(data = dat_del_der, aes(x = N, y = der, col = "Deleterious"), linewidth = 0.7) +
+  geom_line(data = dat_ben_der, aes(x = N, y = der, col = "Beneficial"), linewidth = 0.7) +
+  geom_vline(xintercept = c(1834.058, 2330.3),
+             linewidth = 0.7, col = c("#ef3b2c","darkorange"),
+             alpha = 0.8, linetype = "dotted") +
+  scale_y_continuous(
+    limits = c(0, 0.00000004),
+    breaks = c(0, 0.00000001, 0.00000002, 0.00000003, 0.00000004),
+    labels = c("0", expression("1 ×" ~ 10^-8), expression("2 ×" ~ 10^-8),
+               expression("3 ×" ~ 10^-8), expression("4 ×" ~ 10^-8))
+  ) +
+  scale_x_continuous(
+    limits = c(500, 7000),
+    breaks = c(2000, 4000, 6000),                  # labeled ticks only
+    labels = label_number(big.mark = "\u202F")
+  ) +
+  labs(x = "Census population size", y = "Fitness flux derivative") +
+  scale_colour_manual(name = ' ', 
+                      values = c("Deleterious"="#ef3b2c","Beneficial"="#386cb0"),
+                      labels = c("Beneficial","Deleterious")) +
+  theme_Publication(base_size = 9) +
+  theme(legend.position = "none",
+        plot.margin = margin(t = .5, r = 1, b = .5, l = 1, unit = "mm"))
 
-#Figure 2B
-tiff("derivative_analtyical_offset.tiff", units="in", width=5.5, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_del_der, aes(x=N, y=der, col="Deleterious"), linewidth =1)
-p <- p+geom_line(data = dat_ben_der, aes(x=N, y=der, col="Beneficial"), linewidth =1)
-p <- p+geom_vline(xintercept = c(1834.058, 2330.3),linewidth=c(1,1), col = c("#ef3b2c","darkorange"),alpha=c(.8, .8), linetype=c("dotted", "dotted"))
-p <- p+scale_y_continuous(limits = c(0, 0.00000004),
-                          breaks = c(0, 0.00000001, 0.00000002, 0.00000003, 0.00000004),
-                          labels = c("0", expression("1 ×" ~ 10^-8), expression("2 ×" ~ 10^-8),expression("3 ×" ~ 10^-8),expression("4 ×" ~ 10^-8)))
-p <- p+xlim(c(500, 7000))
-p <- p+labs(x="Census population size", y="Fitness flux derivative")+theme_Publication()
-p <- p+scale_colour_manual(name = ' ', 
-                           values =c("Deleterious"="#ef3b2c","Beneficial"="#386cb0"), labels = c('Beneficial','Deleterious'))
-p <- p+guides(color = guide_legend(override.aes = list(size = 5)))
-p <- p+theme(axis.text.x = element_text(size=18),
-             axis.text.y = element_text(size=21),
-             axis.title.y = element_text(size=26),
-             legend.position = "none")
-p
-dev.off()
+combined <- (p1 / p2) + plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
+  theme(plot.tag = element_text(family = "Times New Roman", face = "italic", size = 9))
 
-#Figure 6C
+tiff("figure2_combined.tiff",
+     width = 80/25.4, height = 140/25.4, units = "in",
+     res = 600, compression = "lzw")
+
+print(combined)
+
+dev.off()
+##############Figure 6
+linewidth=0.7
+# Figure 6A
+pA <- ggplot() +
+  geom_line(data = dat_del, aes(x=N, y=flux, col="Deleterious"), alpha=.5, linewidth =linewidth) +
+  geom_line(data = dat_del, aes(x=N, y=flux_offset, col="Del.+env. change"), alpha=.5, linewidth =linewidth) +
+  geom_line(data = dat_ben, aes(x=N, y=flux, col="Beneficial"), alpha=.5, linewidth =linewidth) +
+  geom_vline(xintercept = c(1834.058, 2330.3), col=c("#ef3b2c","darkorange"), alpha=.8, linetype="dotted") +
+  geom_point(data = df_sim, aes(x=N, y=vd, col="Deleterious"), size=1) +
+  geom_point(data = df_sim, aes(x=N, y=vb, col="Beneficial"), size=1) +
+  xlim(500, 7000) +
+  scale_y_continuous(limits=c(0, 0.000151),
+                     breaks=c(0, 0.00005, 0.0001, 0.00015),
+                     labels=c("0", expression("5 ×" ~ 10^-5), expression("1 ×" ~ 10^-4), expression("1.5 ×" ~ 10^-4))) +
+  labs(x="Census pop. size", y="Fitness change per gen.") +
+  scale_colour_manual(name = '', 
+                      values =c("Deleterious"="#ef3b2c","Del.+env. change"="darkorange","Beneficial"="#386cb0"),
+                      labels = c('Beneficial','Del.+env. change','Deleterious'))+
+  theme_Publication(base_size=9) +
+  theme(legend.position="none",
+        axis.title.x = element_blank(),          # remove x-axis label
+        axis.text.x  = element_blank(),
+        axis.title.y = element_text(size=8),
+        plot.margin = margin(t = .5, r = 1, b = .5, l = 1, unit = "mm"))
+
+#Figure 6B
 s=0.00948704
 Ud=2
 L=100
@@ -232,29 +263,28 @@ df_sim$Ne <- df_sim$N * Ne_N2
 predictions$Ne_ext <- predictions$N * Ne_N_sim
 df_sim$Ne_ext <- df_sim$N * Ne_N_sim
 
-#Figure 6C
-tiff("fluxes_analtyical_withsim_withinterpolationwithNe_ext.tiff", units="in", width=6, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_del, aes(x=N, y=flux, linetype="With no LD"),col="#ef3b2c", alpha=0.5, linewidth =1)
-p <- p+geom_line(data = dat_ben, aes(x=N, y=flux, linetype="With no LD"),col="#386cb0", alpha=0.5, linewidth =1)
-p <- p+geom_vline(xintercept = c(1834.058), linewidth = c(1),alpha=c(0.8), linetype=c("dotted"))
-p <- p+geom_point(data = df_sim, aes(x=Ne_ext, y=vd, col="Deleterious"), size = 3)
-p <- p+geom_point(data = df_sim, aes(x=Ne_ext, y=vb, col="Beneficial"), size = 3)
-p <- p+xlim(c(500, 4000))
-p <- p+scale_y_continuous(limits = c(0, 0.00016), 
-                          breaks = c(0, 0.00005, 0.0001, 0.00015),
-                          labels = c("0", expression("5 ×" ~ 10^-5), expression("1 ×" ~ 10^-4), expression("1.5 ×" ~ 10^-4)))
-p <- p+labs(x="Effective population size", y="Fitness flux")+theme_Publication()
-p <- p+scale_colour_manual(name = ' ', 
-                           values =c("Deleterious"="#ef3b2c","Beneficial"="#386cb0"), labels = c('Beneficial','Deleterious'))
-p <- p+scale_linetype_manual(name = '',
-                             values=c("With LD"=2,"With no LD"=1), labels = c('With LD','With no LD'))
-p <- p+guides(linetype=guide_legend(keywidth = 2, keyheight = 1, override.aes=c(col="black")))
-p <- p+theme(axis.text.x = element_text(size=18),
-             axis.text.y = element_text(size=18),
-             legend.position = "none")
-p
-dev.off()
+# Figure 6B
+pB <- ggplot() +
+  geom_line(data = dat_del, aes(x=N, y=flux, col="Deleterious"), alpha=0.5, linewidth=linewidth) +
+  geom_line(data = dat_ben, aes(x=N, y=flux, col="Beneficial"), alpha=0.5, linewidth=linewidth) +
+  geom_vline(xintercept=1834.058, linetype="dotted", alpha=0.8, linewidth=linewidth) +
+  geom_point(data = df_sim, aes(x=Ne_ext, y=vd, col="Deleterious"), size=1) +
+  geom_point(data = df_sim, aes(x=Ne_ext, y=vb, col="Beneficial"), size=1) +
+  xlim(500, 4000) +
+  scale_y_continuous(limits=c(0, 0.000151),
+                     breaks=c(0, 0.00005, 0.0001, 0.00015),
+                     labels=c("0", expression("5 ×" ~ 10^-5), expression("1 ×" ~ 10^-4), expression("1.5 ×" ~ 10^-4))) +
+  labs(x="Effective population size", y="Fitness flux") +
+  scale_colour_manual(name = ' ', 
+                      values =c("Deleterious"="#ef3b2c","Beneficial"="#386cb0"), labels = c('Beneficial','Deleterious'))+
+  theme_Publication(base_size=9) +
+  theme(legend.position="none",
+        axis.title.x = element_blank(),          # remove x-axis label
+        axis.text.x  = element_blank(),
+        axis.title.y = element_blank(),          # remove x-axis label
+        axis.text.y  = element_blank(),
+        plot.margin = margin(t = .5, r = .5, b = .5, l = .5, unit = "mm"))
+
 
 #derivative cal at ncrit with census pop
 dg_sim_n <- function(N, epsilon) {
@@ -321,50 +351,64 @@ change_in_slope_vd_ne <- sapply(predictions$Ne_ext[2:(length(N_range) - 1)], fun
 change_in_slope_vd_ne_sim <- as.vector(sapply(df_sim$Ne_ext[-1], function(N) dg_sim_ne(N, epsilon)))
 
 
-#Figure 6B
-#plotting fluxes
-tiff("derivative_analtyicalwithsim.tiff", units="in", width=6, height=5, res=300)
-p1 <- ggplot()
-p1 <- p1+geom_line(data = dat_del_der, aes(x=N, y=der, col="Deleterious"),alpha=0.5, linewidth =1)
-p1 <- p1+geom_line(data = dat_ben_der, aes(x=N, y=der, col="Beneficial"),alpha=0.5, linewidth =1)
-p1 <- p1+geom_vline(xintercept = c(1834.058), linewidth = c(1),alpha=c(0.8), linetype=c("dotted"))
-p1 <- p1+geom_point(aes(x=df_sim$N[-1], y=abs(change_in_slope_vd_sim), col="Deleterious"), size=3)
-p1 <- p1+geom_point(aes(x=df_sim$N[-1], y=change_in_slope_vb_sim, col="Beneficial"), size=3)
-p1 <- p1+scale_y_continuous(limits = c(0, 0.00000004),
-                            breaks = c(0, 0.00000001, 0.00000002, 0.00000003, 0.00000004),
-                            labels = c("0", expression("1 ×" ~ 10^-8), expression("2 ×" ~ 10^-8),expression("3 ×" ~ 10^-8),expression("4 ×" ~ 10^-8)))
-p1 <- p1+xlim(c(500, 7000))
-p1 <- p1+labs(x="Effective population size", y="Fitness flux derivative")+theme_Publication()
-p1 <- p1+scale_colour_manual(name = ' ', 
-                             values =c("Deleterious"="#ef3b2c","Beneficial"="#386cb0"), labels = c('Beneficial','Deleterious'))
-p1 <- p1+guides(color = guide_legend(override.aes = list(size = 5)))
-p1 <- p1+theme(axis.text.x = element_text(size=18),
-               axis.text.y = element_text(size=18),
-               legend.position = "none")
-p1
-dev.off()
+# Figure 6C
+pC <- ggplot() +
+  geom_line(data = dat_del_der, aes(x=N, y=der, col="Deleterious"), alpha=0.5, linewidth=linewidth) +
+  geom_line(data = dat_ben_der, aes(x=N, y=der, col="Beneficial"), alpha=0.5, linewidth=linewidth) +
+  geom_vline(xintercept=1834.058, linetype="dotted", alpha=0.8, linewidth=linewidth) +
+  geom_point(aes(x=df_sim$N[-1], y=abs(change_in_slope_vd_sim), col="Deleterious"), size=1) +
+  geom_point(aes(x=df_sim$N[-1], y=change_in_slope_vb_sim, col="Beneficial"), size=1) +
+  scale_y_continuous(limits=c(0, 0.00000004),
+                     breaks=c(0, 0.00000001, 0.00000002, 0.00000003, 0.00000004),
+                     labels=c("0", expression("1 ×" ~ 10^-8), expression("2 ×" ~ 10^-8),
+                              expression("3 ×" ~ 10^-8), expression("4 ×" ~ 10^-8))) +
+  scale_x_continuous(
+    limits = c(500, 7000),
+    breaks = c(2000, 4000, 6000),                  # labeled ticks only
+    labels = label_number(big.mark = "\u202F")
+  ) +
+  scale_colour_manual(name = ' ', 
+                      values =c("Deleterious"="#ef3b2c","Beneficial"="#386cb0"), labels = c('Beneficial','Deleterious'))+
+  labs(x="Census pop. size", y="Fitness flux derivative") +
+  theme_Publication(base_size=9) +
+  theme(legend.position="none",axis.title.y = element_text(size=8),
+        plot.margin = margin(t = .5, r = 1, b = .5, l = 1, unit = "mm"))
 
-#Figure 6D
-#plotting fluxes
-tiff("derivative_analtyicalwithsim_ext.tiff", units="in", width=6, height=5, res=300)
-p1 <- ggplot()
-p1 <- p1+geom_line(data = dat_del_der, aes(x=N, y=der, col="Deleterious"),alpha=0.5, linewidth =1)
-p1 <- p1+geom_line(data = dat_ben_der, aes(x=N, y=der, col="Beneficial"),alpha=0.5, linewidth =1)
-p1 <- p1+geom_vline(xintercept = c(1834.058), linewidth = c(1),alpha=c(0.8), linetype=c("dotted"))
-p1 <- p1+geom_point(aes(x=df_sim$Ne_ext[-1], y=abs(change_in_slope_vd_ne_sim), col="Deleterious"), size=3)
-p1 <- p1+geom_point(aes(x=df_sim$Ne_ext[-1], y=change_in_slope_vb_ne_sim, col="Beneficial"), size=3)
-p1 <- p1+scale_y_continuous(limits = c(0, 0.00000004),
-                            breaks = c(0, 0.00000001, 0.00000002, 0.00000003, 0.00000004),
-                            labels = c("0", expression("1 ×" ~ 10^-8), expression("2 ×" ~ 10^-8),expression("3 ×" ~ 10^-8),expression("4 ×" ~ 10^-8)))
-p1 <- p1+xlim(c(500, 4000))
-p1 <- p1+labs(x="Effective population size", y="Fitness flux derivative")+theme_Publication()
-p1 <- p1+scale_colour_manual(name = ' ', 
-                             values =c("Deleterious"="#ef3b2c","Beneficial"="#386cb0"), labels = c('Beneficial','Deleterious'))
-p1 <- p1+guides(color = guide_legend(override.aes = list(size = 5)))
-p1 <- p1+theme(axis.text.x = element_text(size=18),
-               axis.text.y = element_text(size=18),
-               legend.position = "none")
-p1
+# Figure 6D
+pD <- ggplot() +
+  geom_line(data = dat_del_der, aes(x=N, y=der, col="Deleterious"), alpha=0.5, linewidth=linewidth) +
+  geom_line(data = dat_ben_der, aes(x=N, y=der, col="Beneficial"), alpha=0.5, linewidth=linewidth) +
+  geom_vline(xintercept=1834.058, linetype="dotted", alpha=0.8,linewidth=linewidth) +
+  geom_point(aes(x=df_sim$Ne_ext[-1], y=abs(change_in_slope_vd_ne_sim), col="Deleterious"), size=1) +
+  geom_point(aes(x=df_sim$Ne_ext[-1], y=change_in_slope_vb_ne_sim, col="Beneficial"), size=1) +
+  scale_y_continuous(limits=c(0, 0.00000004),
+                     breaks=c(0, 0.00000001, 0.00000002, 0.00000003, 0.00000004),
+                     labels=c("0", expression("1 ×" ~ 10^-8), expression("2 ×" ~ 10^-8),
+                              expression("3 ×" ~ 10^-8), expression("4 ×" ~ 10^-8))) +
+  scale_x_continuous(
+    limits = c(500, 4000),
+    breaks = c( 2000, 4000),                  # labeled ticks only
+    labels = label_number(big.mark = "\u202F")
+  ) +
+  labs(x="Effective pop. size", y="Fitness flux derivative") +
+  theme_Publication(base_size=9) +
+  scale_colour_manual(name = ' ', 
+                      values =c("Deleterious"="#ef3b2c","Beneficial"="#386cb0"), labels = c('Beneficial','Deleterious'))+
+  theme(legend.position="none",
+        axis.title.y = element_blank(),          # remove x-axis label
+        axis.text.y  = element_blank(),
+        plot.margin = margin(t = .5, r = 1, b = .5, l = 1, unit = "mm"))
+
+fig6 <- (pA | pB) / (pC | pD) +
+  plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
+  theme(plot.tag = element_text(family = "Times New Roman", face = "italic", size = 9))
+
+# Save for 1-column (≈83 mm)
+tiff("figure6_combined_1col.tiff",
+     width=83/25.4, height=84/25.4, units="in",
+     res=600, compression="lzw")
+
+print(fig6)
 dev.off()
 
 #####################################Figure 3: Env degradation#######################
@@ -381,166 +425,179 @@ dat_env_offset_kim <- rbind(dat_env_offset_kim_100,dat_env_offset_kim_1000)
 dat_env_offset_kim$gen <- 0.1/dat_env_offset_kim$offset
 dat_env_offset_kim$ratio <- dat_env_offset_kim$offset/abs((dat_env_offset_kim$del_flux))
 
-custom_breaks <- c(1000.0000, 10000.0000, 100000.0000)  # Custom tick positions
-custom_labels <- c(expression(10^3),expression(10^4),expression(10^5))  # Custom tick labels
+# Reduce line thickness
+line_width <- 0.7
+# Top plot
+p1 <- ggplot(dat_env_offset_kim, aes(x = 0.1/offset, col = as.factor(UbUd))) +
+  geom_line(aes(y = bendelratio), linewidth = line_width) +
+  geom_point(aes(x = 0.1/(0.000015), y = 1.43395), col = "darkorange", shape = 42, size = 7) +
+  geom_hline(yintercept = 1, col = "red", linetype = "dashed") +
+  geom_vline(xintercept = c(0.1/2.2e-05, 0.1/4.5e-06), col = c("#2298e6","#9e9e9e"),
+             linetype = "dotdash", linewidth = line_width, alpha = 0.5) +
+  scale_x_log10() +
+  annotation_logticks(sides = "bl",short = unit(0.5, "mm"),
+                      mid = unit(0.75, "mm"),
+                      long = unit(1.25, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  scale_y_log10(labels = label_number(big.mark = "\u202F")) +
+  scale_colour_manual(
+    name = expression(U[d]/U[b]),
+    values = c("100" = "#2298e6", "1000" = "#9e9e9e"),
+    labels = c("100", "1000")
+  )+
+  labs(y = expression(bold("Drought:Meltdown ratio"))) +
+  theme_Publication(base_size = 9) +
+  theme(
+    axis.title.x = element_blank(), 
+    axis.text.x = element_blank(),
+    plot.margin = margin(t = 1, r = 1, b = 0, l = 1, unit = "mm"),
+    legend.position = "none")
 
-#plot
-tiff("env_offset.tiff", units="in", width=5, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_env_offset_kim, aes(x=0.1/offset, y=bendelratio, group=as.factor(UbUd), col=as.factor(UbUd)), linewidth =1)
-p <- p+geom_point(aes(x=0.1/(0.000015),y=1.43395),col="darkorange",shape=42, size=10)
-p <- p+scale_x_log10(breaks=custom_breaks,
-                     labels=custom_labels)
-p <- p+scale_y_log10()+annotation_logticks(sides = "bl", outside = TRUE)+ coord_cartesian(clip = "off")
-p <- p+geom_hline(yintercept = 1.0, col="red", linetype="dashed")
-p <- p+geom_vline(xintercept = c(0.1/2.2e-05), col="#2298e6", linetype="dotdash", linewidth = 1.1, alpha=0.5)
-p <- p+geom_vline(xintercept = c(0.1/4.5e-06), col="#9e9e9e", linetype="dotdash", linewidth = 1.1, alpha=0.5)
-p <- p+scale_colour_manual(name = expression(U[d]/U[b]),
-                           values = c(100, 1000),
-                           labels = c("100", "1000"))
-p <- p+labs(x="Generations needed for env.\nchange to reduce fitness by 10%",
-            y=expression("Drought:Meltdown ratio"))+theme_Publication()
-p <- p+guides(colour=guide_legend(keywidth = 1.5, keyheight = 1, ncol =1, nrow=2))
-p <- p+theme(legend.position = "none",axis.title.x=element_text(size = 19.5),
-             legend.text = element_text(size=16),axis.text.y = element_text(size = 20))
-p
-dev.off()
+# Middle plot
+p2 <- ggplot(dat_env_offset_kim, aes(x = 0.1/offset, col = as.factor(UbUd))) +
+  geom_line(aes(y = ratio), linewidth = line_width) +
+  geom_point(aes(x = 0.1/(0.000015), y = 0.000015/0.0000221607), col = "darkorange", shape = 42, size = 7) +
+  geom_abline(intercept = 3, slope = -1, linetype = "dashed") +
+  geom_hline(yintercept = 1, col = "red", linetype = "dashed") +
+  geom_vline(xintercept = c(0.1/2.2e-05, 0.1/4.5e-06), col = c("#2298e6","#9e9e9e"),
+             linetype = "dotdash", linewidth = line_width, alpha = 0.5) +
+  scale_x_log10() +
+  annotation_logticks(sides = "bl",short = unit(0.5, "mm"),
+                      mid = unit(0.75, "mm"),
+                      long = unit(1.25, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  scale_y_log10(breaks = c(0.01,0.1,1,10,100),
+                labels = c("0.01","0.1","1","10","100")) +
+  scale_colour_manual(
+    name = expression(U[d]/U[b]),
+    values = c("100" = "#2298e6", "1000" = "#9e9e9e"),
+    labels = c("100", "1000")
+  )+
+  labs(y = expression(bold("Env. change to del. flux ratio at " * N[crit]))) +
+  theme_Publication(base_size = 9) +
+  theme(
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    plot.margin = margin(t = 0, r = 1, b = 0, l = 1, unit = "mm"),
+    legend.position = "none")
 
-#plot
-tiff("env_offset_ratio.tiff", units="in", width=5, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_env_offset_kim, aes(x=0.1/offset, y=ratio, group=as.factor(UbUd), col=as.factor(UbUd)), linewidth =1)
-p <- p+geom_point(aes(x=0.1/(0.000015),y=0.000015/0.0000221607),col="darkorange",shape=42, size=8)
-p <- p+scale_x_log10(breaks=custom_breaks,
-                     labels=custom_labels)
-p <- p+geom_abline(intercept = 3, slope = -1, col="black", linetype="dashed")
-p <- p+scale_y_log10(breaks=c(0.01,0.1,1, 10, 100),
-                     labels=c("0.01","0.1","1","10", "100"))+annotation_logticks(sides = "bl", outside = TRUE)+ coord_cartesian(clip = "off")
-p <- p+geom_hline(yintercept = 1.0, col="red", linetype="dashed")
-p <- p+geom_vline(xintercept = c(0.1/2.2e-05), col="#2298e6", linetype="dotdash", linewidth = 1.1, alpha=0.5)
-p <- p+geom_vline(xintercept = c(0.1/4.5e-06), col="#9e9e9e", linetype="dotdash", linewidth = 1.1, alpha=0.5)
-p <- p+scale_colour_manual(name = expression(U[d]/U[b]),
-                           values = c(100, 1000),
-                           labels = c("100", "1000"))
-p <- p+labs(x="Generations needed for env.\nchange to reduce fitness by 10%",
-            y=expression(atop("Env. change to del. flux ",paste("ratio at ", N[crit]))))+theme_Publication()
-p <- p+guides(shape=guide_legend(keywidth = 1, keyheight = 1, ncol =1, nrow=3))
-p <- p+theme(legend.position = "none", axis.title.x=element_text(size = 18),
-             legend.text = element_text(size = 18),axis.text.y = element_text(size = 18),
-             axis.title.y = element_text(size=20,vjust = -2), legend.background = element_blank())
-p
-dev.off()
+# Bottom plot
+p3 <- ggplot(dat_env_offset_kim, aes(x = 0.1/offset, col = as.factor(UbUd))) +
+  geom_line(aes(y = Ncrit), linewidth = line_width) +
+  geom_point(aes(x = 0.1/(0.000015), y = 2330.34), col = "darkorange", shape = 42, size = 7) +
+  geom_hline(yintercept = c(623.805, 1834.57), col = "red", linetype = "dashed") +
+  geom_vline(xintercept = c(0.1/2.2e-05, 0.1/4.5e-06), col = c("#2298e6","#9e9e9e"),
+             linetype = "dotdash", linewidth = line_width, alpha = 0.5) +
+  scale_x_log10(labels = label_number(big.mark = "\u202F")) +
+  scale_y_log10(labels = label_number(big.mark = "\u202F")) +
+  annotation_logticks(sides = "bl",short = unit(0.5, "mm"),
+                      mid = unit(0.75, "mm"),
+                      long = unit(1.25, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  scale_colour_manual(
+    name = expression(U[d]/U[b]),
+    values = c("100" = "#2298e6", "1000" = "#9e9e9e"),
+    labels = c("100", "1000")
+  ) +
+  labs(x = "Generations needed for env.\nchange to reduce fitness by 10%", y = expression(bold(N[crit]))) +
+  theme_Publication(base_size = 9) +
+  theme(
+    plot.margin = margin(t = 1, r = 1, b = 1, l = 1, unit = "mm"),
+    legend.position = "none")
 
-#plot
-tiff("env_offset_ncrit.tiff", units="in", width=5, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_env_offset_kim, aes(x=(0.1/offset), y=Ncrit, group=as.factor(UbUd), col=as.factor(UbUd)), linewidth =1)
-p <- p+geom_point(aes(x=0.1/(0.000015),y=2330.34),col="darkorange",shape=42, size=10)
-p <- p+geom_vline(xintercept = c(0.1/2.2e-05), col="#2298e6", linetype="dotdash", linewidth = 1.1, alpha=0.5)
-p <- p+geom_vline(xintercept = c(0.1/4.5e-06), col="#9e9e9e", linetype="dotdash", linewidth = 1.1, alpha=0.5)
-p <- p+scale_x_log10(breaks=custom_breaks,
-                     labels=custom_labels)
-p <- p+scale_y_log10(breaks=c(0, 1000, 10000),
-                     labels=c("0","1000", "10000"))+annotation_logticks(sides = "bl", outside = TRUE)+ coord_cartesian(clip = "off")
-p <- p+scale_colour_manual(name = expression(U[d]/U[b]),
-                           values = c(100, 1000),
-                           labels = c("100", "1000"))
-p <- p+geom_hline(yintercept = c(623.805, 1834.57), col="red", linetype="dashed")
-p <- p+labs(x="Generations needed for env.\nchange to reduce fitness by 10%",
-            y=expression(N[crit]))+theme_Publication()
-p <- p+guides(shape=guide_legend(keywidth = 1, keyheight = 1, ncol =1, nrow=3))
-p <- p+theme(legend.position = "none", axis.title.x=element_text(size = 19.5),
-             legend.text = element_text(size = 18),axis.title.y = element_text(size=22,vjust = -2),)
-p
+# Combine with patchwork, add panel labels
+combined <- (p1 / p2 / p3) +
+  plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
+  theme(plot.tag = element_text(family = "Times New Roman", face = "italic", size = 9))
+
+# Save Proceedings B 1-column TIFF
+tiff("figure3_combined.tiff",
+     width = 80/25.4, height = 200/25.4, units = "in", # 1 col, 3 rows
+     res = 600, compression = "lzw")
+
+print(combined)
 dev.off()
 
 ###########################################Figure 4: ben:del ratio no env change####################################
 #ratio sensitvity to Ud/Ub
 dat_ubud_kim <- read.csv("udubtablekim_ratio.csv", header = F)
 colnames(dat_ubud_kim) <- c("Ub_Ud", "del_flux","Ncrit", "bendelratio")
-
-custom_breaks <- c(10, 100, 1000, 10000)  # Custom tick positions
-custom_labels <- c("10", "100", "1000", "10000")  # Custom tick labels
-
-#without offset
-tiff("ubud_analtyical_sim.tiff", units="in", width=5, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_ubud_kim, aes(x=Ub_Ud, y=bendelratio), linewidth =1)
-p <- p+scale_x_log10(breaks = custom_breaks,
-                     labels = custom_labels,
-                     name=expression(U[d]~"/"~U[b])) +annotation_logticks(sides = "b", outside = TRUE)+ coord_cartesian(clip = "off")
-p <- p+geom_hline(aes(yintercept =1), linetype="dotted", alpha=0.5, col="red", linewidth=0.9)
-p <- p+ylim(0,1.05)+geom_point(aes(x=1000,y=0.853449),col = "#F05039", shape=42, size=10)
-p <- p+labs(y="Drought:Meltdown ratio")+theme_Publication()
-p <- p+theme(legend.position.inside = c(0.5, 1), legend.background = element_blank())
-p
-dev.off()
-
-#ratio sensitvity to mean xb
+#ratio sensitvity to mean sb
 dat_sb_kim_100 <- read.csv("sbtablekim_100.csv", header = F)
 colnames(dat_sb_kim_100) <- c("sb", "del_flux","Ncrit", "bendelratio")
 dat_sb_kim_1000 <- read.csv("sbtablekim_1000.csv", header = F)
 colnames(dat_sb_kim_1000) <- c("sb", "del_flux","Ncrit", "bendelratio")
+#ratio sensitvity to mean sd
+dat_sd_100 <- read.csv("sdtablekim_100.csv", header = F)
+colnames(dat_sd_100) <- c("sd", "del_flux","Ncrit", "bendelratio")
+dat_sd_1000 <- read.csv("sdtablekim_1000.csv", header = F)
+colnames(dat_sd_1000) <- c("sd", "del_flux","Ncrit", "bendelratio")
 
-custom_breaks <- c(0.001, 0.005, 0.01)  # Custom tick positions
-custom_labels <- c("0.001", "0.005", "0.01")  # Custom tick labels
+#Ratio
+# Top-left plot
+p1 <- ggplot(dat_ubud_kim, aes(x = Ub_Ud, y = bendelratio)) +
+  geom_line(linewidth = line_width) +
+  geom_hline(yintercept = 1, linetype = "dotted", alpha = 0.5, col = "red", linewidth = line_width) +
+  geom_point(aes(x = 1000, y = 0.853449), col = "#F05039", shape = 42, size = 7) +
+  scale_x_log10(labels = label_number(big.mark = "\u202F")) +
+  annotation_logticks(sides = "b",short = unit(0.5, "mm"),
+                      mid = unit(0.75, "mm"),
+                      long = unit(1.25, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  scale_y_continuous(breaks= seq(0.2,1, by=.2), limits = c(0,1))+
+  labs(x = expression(bold(U[d]/U[b])), y = "Drought:Meltdown ratio") +
+  theme_Publication(base_size = 9) +
+  theme(plot.margin = margin(1,0,1,1), legend.position = "none")
 
-tiff("sb_analtyical.tiff", units="in", width=5, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_sb_kim_100, aes(x=sb, y=bendelratio, linetype="mut. rate ratio = 100"), linewidth =1)
-p <- p+geom_line(data = dat_sb_kim_1000, aes(x=sb, y=bendelratio, linetype="mut. rate ratio = 1000"), linewidth =1)
-p <- p+scale_x_log10(breaks = custom_breaks,
-                     labels = custom_labels)+annotation_logticks(sides = "b", outside = TRUE)+ coord_cartesian(clip = "off")
-p <- p+scale_linetype_manual(name = '',
-                             values=c("mut. rate ratio = 100"=2,"mut. rate ratio = 1000"=1),
-                             labels = c("mut. rate ratio = 100", "mut. rate ratio = 1000"))
-p <- p+geom_hline(aes(yintercept =1), linetype="dotted", alpha=0.5, col="red", linewidth=0.9)
-p <- p+ylim(0,1.05)+geom_point(aes(x=0.001,y=0.853449),col = "#F05039",shape=42, size=10)
-p <- p+labs(x=bquote(bar(x)[b]), y="Drought:Meltdown ratio")+theme_Publication()
-p <- p+theme(legend.position = "none")
-p
-dev.off()
+# Top-right plot
+p2 <- ggplot() +
+  geom_line(data = dat_sb_kim_100, aes(x = sb, y = bendelratio, linetype = "mut. rate ratio = 100"), linewidth = line_width) +
+  geom_line(data = dat_sb_kim_1000, aes(x = sb, y = bendelratio, linetype = "mut. rate ratio = 1000"), linewidth = line_width) +
+  geom_hline(yintercept = 1, linetype = "dotted", alpha = 0.5, col = "red", linewidth = line_width) +
+  geom_point(aes(x = 0.001, y = 0.853449), col = "#F05039", shape = 42, size = 7) +
+  scale_x_log10(breaks = c(0.001, 0.01), labels = c("0.001","0.01")) +
+  annotation_logticks(sides = "b",short = unit(0.5, "mm"),
+                      mid = unit(0.75, "mm"),
+                      long = unit(1.25, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  scale_linetype_manual(values = c("mut. rate ratio = 100" = 2, "mut. rate ratio = 1000" = 1)) +
+  scale_y_continuous(breaks= seq(.2,1, by=.2), limits = c(0,1))+
+  labs(x = bquote(bold(bar(s)[b])), y = "Drought:Meltdown ratio") +
+  theme_Publication(base_size = 9) +
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        plot.margin = margin(1,0,1,0), legend.position = "none")
 
-#ratio sensitvity to mean xd
-dat_sd_kim_100 <- read.csv("sdtablekim_100.csv", header = F)
-colnames(dat_sd_kim_100) <- c("sd", "del_flux","Ncrit", "bendelratio")
-dat_sd_kim_1000 <- read.csv("sdtablekim_1000.csv", header = F)
-colnames(dat_sd_kim_1000) <- c("sd", "del_flux","Ncrit", "bendelratio")
+# Bottom centered plot
+p3 <- ggplot() +
+  geom_line(data = dat_sd_100[-21,], aes(x = sd, y = bendelratio, linetype = "mut. rate ratio = 100"), linewidth = line_width) +
+  geom_line(data = dat_sd_1000[-21,], aes(x = sd, y = bendelratio, linetype = "mut. rate ratio = 1000"), linewidth = line_width) +
+  geom_hline(yintercept = 1, linetype = "dotted", alpha = 0.5, col = "red", linewidth = line_width) +
+  geom_point(aes(x = 0.0095, y = 0.853449), col = "#F05039", shape = 42, size = 7) +
+  scale_x_log10(limits=c(0.001, 0.1),breaks = c(0.001, 0.01, 0.1), labels = c("0.001","0.01","0.1")) +
+  annotation_logticks(sides = "b",short = unit(0.5, "mm"),
+                      mid = unit(0.75, "mm"),
+                      long = unit(1.25, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  scale_linetype_manual(values = c("mut. rate ratio = 100" = 2, "mut. rate ratio = 1000" = 1)) +
+  scale_y_continuous(breaks= seq(.2,1, by=.2), limits = c(0,1))+
+  labs(x = bquote(bold(-bar(s)[d])), y = "Drought:Meltdown ratio") +
+  theme_Publication(base_size = 9) +
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        plot.margin = margin(1,1,1,0), legend.position = "none")
 
-custom_breaks <- c(0.0001, 0.001, 0.01, 0.1)  # Custom tick positions
-custom_labels <- c("0.0001", "0.001", "0.01", "0.1")  # Custom tick labels
+# Combine rows
+combined <- (p1|p2|p3) +
+  plot_layout(heights = c(1, 0.9)) +  # bottom row slightly shorter
+  plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
+  theme(plot.tag = element_text(family = "Times New Roman", face = "italic", size = 9))
 
-tiff("sd_analtyical.tiff", units="in", width=5, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_sd_kim_100[-31,], aes(x=sd, y=bendelratio, linetype="mut. rate ratio = 100"), linewidth =1)
-p <- p+geom_line(data = dat_sd_kim_1000[-31,], aes(x=sd, y=bendelratio, linetype="mut. rate ratio = 1000"), linewidth =1)
-p <- p+scale_x_log10(breaks = custom_breaks,
-                     labels = custom_labels)+annotation_logticks(sides = "b", outside = TRUE)+ coord_cartesian(clip = "off")
-p <- p+scale_linetype_manual(name = '',
-                             values=c("mut. rate ratio = 100"=2,"mut. rate ratio = 1000"=1),
-                             labels = c("mut. rate ratio = 100", "mut. rate ratio = 1000"))
-p <- p+geom_hline(aes(yintercept =1), linetype="dotted", alpha=0.5, col="red", linewidth=0.9)
-p <- p+ylim(0,1.5)+geom_point(aes(x=0.0095,y=0.853449),col = "#F05039",shape=42, size=10)
-p <- p+labs(x=bquote(-bar(x)[d]), y="Drought:Meltdown ratio")+theme_Publication()
-p <- p+guides(color = guide_legend(override.aes = list(size = 5)))
-p <- p+theme(legend.position = "none")
-p
-dev.off()
+tiff("figure4_combined_2col.tiff",
+     width = 167/25.4, height = 80/25.4, units = "in",
+     res = 600, compression = "lzw")
 
-tiff("varsd_analtyical.tiff", units="in", width=5, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_sd_kim_100[-31,], aes(x=(sd^2)/0.169, y=bendelratio, linetype="mut. rate ratio = 100"), linewidth =1)
-p <- p+geom_line(data = dat_sd_kim_1000[-31,], aes(x=(sd^2)/0.169, y=bendelratio, linetype="mut. rate ratio = 1000"), linewidth =1)
-p <- p+scale_x_log10()+annotation_logticks(sides = "b", outside = TRUE)+ coord_cartesian(clip = "off")
-p <- p+scale_linetype_manual(name = '',
-                             values=c("mut. rate ratio = 100"=2,"mut. rate ratio = 1000"=1),
-                             labels = c("mut. rate ratio = 100", "mut. rate ratio = 1000"))
-p <- p+geom_hline(aes(yintercept =1), linetype="dotted", alpha=0.5, col="red", linewidth=0.9)
-p <- p+ylim(0,1.5)+geom_point(aes(x=0.0095,y=0.853449),col = "#F05039",shape=42, size=10)
-p <- p+labs(x=bquote(Var(x)[d]), y="Drought:Meltdown ratio")+theme_Publication()
-p <- p+guides(color = guide_legend(override.aes = list(size = 5)))
-p <- p+theme(legend.position = "none")
-p
+print(combined)
 dev.off()
 
 ###########################################Figure 5: sensitivity to Ub and Ud with env change####################################
@@ -557,106 +614,6 @@ colnames(dat_ud_kim_ub0.002_lowoffset) <- c("Ud", "del_flux","Ncrit", "bendelrat
 dat_ud_kim_ub0.02_lowoffset <- read.csv("lowoffset_udvaryingub0.02_kim.csv", header = F)
 colnames(dat_ud_kim_ub0.02_lowoffset) <- c("Ud", "del_flux","Ncrit", "bendelratio")
 
-custom_breaks <- c(1, 3, 10)  # Custom tick positions
-custom_labels <- c("1","3","10")  # Custom tick labels
-
-#ben del ratio
-tiff("ud_analtyical_offset.tiff", units="in", width=4, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_ud_kim_ub0.002_highoffset,
-                 aes(x=Ud, y=bendelratio, col="0.002", linetype="High offset"), linewidth =1)
-p <- p+geom_line(data = dat_ud_kim_ub0.02_highoffset,
-                 aes(x=Ud, y=bendelratio, col="0.02", linetype="High offset"), linewidth =1)
-p <- p+geom_line(data = dat_ud_kim_ub0.002_lowoffset,
-                 aes(x=Ud, y=bendelratio, col="0.002", linetype="Low offset"), linewidth =1)
-p <- p+geom_line(data = dat_ud_kim_ub0.02_lowoffset,
-                 aes(x=Ud, y=bendelratio, col="0.02", linetype="Low offset"), linewidth =1)
-p <- p+scale_x_log10(name=expression(U[d]))+annotation_logticks(sides = "bl", outside = TRUE)+ coord_cartesian(clip = "off")
-p <- p+scale_colour_manual(name = expression(U[b]), 
-                           values =c("0.002" = "#9e9e9e","0.02"="#2298e6"), 
-                           labels = c("0.002","0.02"))
-p <- p+scale_linetype_manual(name = '',
-                             values=c("Low offset"="dashed", "High offset"="solid"),
-                             labels = c('High offset','Low offset'))
-p <- p+scale_y_log10(limits=c(0.35,18.5),
-                     breaks=custom_breaks,
-                     labels=custom_labels)
-p <- p+geom_point(aes(x=2,y=0.853449),col = "#F05039",shape=42, size=10)
-p <- p+geom_hline(aes(yintercept =1), linetype="dotted", alpha=0.5, col="red", linewidth=0.9)
-p <- p+theme_Publication()+labs(y="Drought:Meltdown ratio")
-p <- p+guides(color = guide_legend(override.aes = list(size = 2),ncol =1, nrow=2), 
-              linetype=guide_legend(keywidth = 2, keyheight = 1, ncol =2, nrow=1))
-p <- p+theme(legend.position = "none",legend.title=element_text(size=16), legend.background = element_blank(),
-             legend.text = element_text(size=16), axis.text = element_text(size=20))
-p
-dev.off()
-
-custom_breaks <- c(300, 1000, 3000, 10000)  # Custom tick positions
-custom_labels <- c("300", "1000", "3000", "10000")  # Custom tick labels
-#Ncrit
-tiff("ud_analtyical_offset_ncrit.tiff", units="in", width=4, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_ud_kim_ub0.002_highoffset,
-                 aes(x=Ud, y=Ncrit, col="0.002", linetype="High offset"), linewidth =1)
-p <- p+geom_line(data = dat_ud_kim_ub0.02_highoffset,
-                 aes(x=Ud, y=Ncrit, col="0.02", linetype="High offset"), linewidth =1)
-p <- p+geom_line(data = dat_ud_kim_ub0.002_lowoffset,
-                 aes(x=Ud, y=Ncrit, col="0.002", linetype="Low offset"), linewidth =1)
-p <- p+geom_line(data = dat_ud_kim_ub0.02_lowoffset,
-                 aes(x=Ud, y=Ncrit, col="0.02", linetype="Low offset"), linewidth =1)
-p <- p+scale_x_log10(name=expression(U[d]))+annotation_logticks(sides = "bl", outside = TRUE)+ coord_cartesian(clip = "off")
-p <- p+scale_colour_manual(name = expression(U[b]), 
-                           values =c("0.002" = "#9e9e9e","0.02"="#2298e6"), 
-                           labels = c("0.002","0.02"))
-p <- p+scale_linetype_manual(name = '',
-                             values=c("Low offset"="dashed", "High offset"="solid"),
-                             labels = c('High offset','Low offset'))
-p <- p+scale_y_log10(limits=c(120, 21000),
-                     breaks=custom_breaks,
-                     labels=custom_labels)
-p <- p+geom_point(aes(x=2,y=1834.57),col = "#F05039",shape=42, size=10)
-p <- p+labs(y=expression(N[crit]))+theme_Publication()
-p <- p+guides(color = guide_legend(override.aes = list(size = 2),ncol =1, nrow=2), 
-              linetype=guide_legend(keywidth = 2, keyheight = 1, ncol =1, nrow=2))
-p <- p+theme(legend.position = "none",legend.title=element_text(size=14), legend.background = element_blank(),
-             legend.text = element_text(size=12), axis.text = element_text(size=20))
-p
-dev.off()
-
-#
-custom_breaks_y <- c(0.01, 0.1, 1)  # Custom tick positions
-custom_labels_y <- c(expression(0.01),expression(0.1),expression(1))  # Custom tick labels
-#offset del ratio
-tiff("ud_analtyical_offset_delratio.tiff", units="in", width=4, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_ud_kim_ub0.002_highoffset,
-                 aes(x=Ud, y=1.5e-5/abs(del_flux), col="0.002", linetype="High offset"), linewidth =1)
-p <- p+geom_line(data = dat_ud_kim_ub0.02_highoffset,
-                 aes(x=Ud, y=1.5e-5/abs(del_flux), col="0.02", linetype="High offset"), linewidth =1)
-p <- p+geom_line(data = dat_ud_kim_ub0.002_lowoffset,
-                 aes(x=Ud, y=1e-6/abs(del_flux), col="0.002", linetype="Low offset"), linewidth =1)
-p <- p+geom_line(data = dat_ud_kim_ub0.02_lowoffset,
-                 aes(x=Ud, y=1e-6/abs(del_flux), col="0.02", linetype="Low offset"), linewidth =1)
-p <- p+scale_x_log10(name=expression(U[d]))+annotation_logticks(sides = "bl", outside = TRUE)+ coord_cartesian(clip = "off")
-p <- p+scale_colour_manual(name = expression(U[b]), 
-                           values =c("0.002" = "#9e9e9e","0.02"="#2298e6"), 
-                           labels = c("0.002","0.02"))
-p <- p+scale_linetype_manual(name = '',
-                             values=c("Low offset"="dashed", "High offset"="solid"),
-                             labels = c('High offset','Low offset'))
-p <- p+scale_y_log10(limits=c(0.0038,1),
-                     breaks=custom_breaks_y,
-                     labels=custom_labels_y)
-p <- p+geom_hline(aes(yintercept =1), linetype="dotted", alpha=0.5, col="red", linewidth=0.9)
-p <- p+labs(y=expression(atop("Env. change to del. flux ",paste("ratio at ", N[crit]))))+theme_Publication()
-p <- p+guides(color = guide_legend(override.aes = list(size = 2),ncol =1, nrow=2), 
-              linetype=guide_legend(keywidth = 2, keyheight = 1, ncol =1, nrow=2))
-p <- p+theme(legend.position = "none",legend.title=element_text(size=14),
-             legend.background = element_blank(), axis.title.y = element_text(size=20, vjust = -1),
-             legend.text = element_text(size=12), axis.text = element_text(size=18))
-p
-dev.off()
-
 #with offset Kim et al. ratio varying Ub fixed Ud
 dat_ub_kim_ud2_highoffset <- read.csv("offset_ubvaryingud2_kim.csv", header = F)
 colnames(dat_ub_kim_ud2_highoffset) <- c("Ub", "del_flux","Ncrit", "bendelratio")
@@ -670,113 +627,187 @@ colnames(dat_ub_kim_ud2_lowoffset) <- c("Ub", "del_flux","Ncrit", "bendelratio")
 dat_ub_kim_ud1_lowoffset <- read.csv("lowoffset_ubvaryingud1_kim.csv", header = F)
 colnames(dat_ub_kim_ud1_lowoffset) <- c("Ub", "del_flux","Ncrit", "bendelratio")
 
-custom_breaks <- c(0.0001, 0.001, 0.01, 0.1)  # Custom tick positions
-custom_labels <- c(expression(10^-4),expression(10^-3),expression(10^-2),
-                   expression(10^-1))  # Custom tick labels
+line_width <- 0.6  # slightly thinner lines for compact figures
+text_size <- 9    # base font size for legibility
+#ben del ratio
+#p1
+p1 <- ggplot() +
+  geom_line(data = dat_ud_kim_ub0.002_highoffset,
+            aes(x=Ud, y=bendelratio, col="0.002", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_ud_kim_ub0.02_highoffset,
+            aes(x=Ud, y=bendelratio, col="0.02", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_ud_kim_ub0.002_lowoffset,
+                   aes(x=Ud, y=bendelratio, col="0.002", linetype="Low offset"), linewidth =line_width)+
+  geom_line(data = dat_ud_kim_ub0.02_lowoffset,
+                 aes(x=Ud, y=bendelratio, col="0.02", linetype="Low offset"), linewidth =line_width)+
+  geom_point(aes(x=2,y=0.853449),col = "#F05039",shape=42, size=7)+
+  scale_x_log10(name=NULL, breaks = c(0.1, 1, 10), labels=c("0.1", "1", "10")) +
+  annotation_logticks(sides = "bl",short = unit(0.5, "mm"),
+                      mid = unit(0.75, "mm"),
+                      long = unit(1.25, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  geom_hline(aes(yintercept =1), linetype="dotted", alpha=0.5, col="red", linewidth=line_width)+
+  scale_y_log10(limits=c(0.35,18.5), breaks=c(1,3,10), labels=c("1","3","10")) +
+  scale_colour_manual(values=c("0.002"="#9e9e9e","0.02"="#2298e6")) +
+  scale_linetype_manual(values=c("High offset"="solid", "Low offset"="dashed")) +
+  labs(y="Drought:Meltdown ratio") +
+  theme_Publication(base_size=text_size) +
+  theme(legend.position="none",
+        axis.title.x=element_blank(),  # remove x-axis for top row
+        axis.text.x=element_blank(),
+        plot.margin=margin(.5,.5,.5,.5))
 
-custom_breaks_y <- c(1, 3, 10)  # Custom tick positions
-custom_labels_y <- c("1","3","10")  # Custom tick labels
+
+#p2 #offset del ratio
+p2 <- ggplot() +
+  geom_line(data = dat_ud_kim_ub0.002_highoffset,
+            aes(x=Ud, y=1.5e-5/abs(del_flux-1.5e-5), col="0.002", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_ud_kim_ub0.02_highoffset,
+            aes(x=Ud, y=1.5e-5/abs(del_flux-1.5e-5), col="0.02", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_ud_kim_ub0.002_lowoffset,
+            aes(x=Ud, y=1e-6/abs(del_flux-1e-6), col="0.002", linetype="Low offset"), linewidth =line_width)+
+  geom_line(data = dat_ud_kim_ub0.02_lowoffset,
+            aes(x=Ud, y=1e-6/abs(del_flux-1e-6), col="0.02", linetype="Low offset"), linewidth =line_width)+
+  scale_x_log10(name=NULL, breaks = c(0.1, 1, 10), labels=c("0.1", "1", "10")) +
+  annotation_logticks(sides = "bl",short = unit(0.5, "mm"),
+                      mid = unit(0.75, "mm"),
+                      long = unit(1.25, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  scale_y_log10(limits=c(0.0038,1), breaks=c(0.01, 0.1, 1), labels=c("0.01","0.1","1")) +
+  geom_hline(aes(yintercept =1), linetype="dotted", alpha=0.5, col="red", linewidth=line_width)+
+  scale_colour_manual(values=c("0.002"="#9e9e9e","0.02"="#2298e6")) +
+  scale_linetype_manual(values=c("High offset"="solid", "Low offset"="dashed")) +
+  labs(y=expression(bold("Env.: Mut. deg. ratio at "*N[crit])))+
+  theme_Publication(base_size=text_size) +
+  theme(legend.position="none",
+        axis.title.x=element_blank(),  # remove x-axis for top row
+        axis.text.x=element_blank(),
+        axis.title.y=element_text(size=8),
+        plot.margin=margin(.5,.5,.5,.5))
+
+#p3 #Ncrit
+p3 <- ggplot() +
+  geom_line(data = dat_ud_kim_ub0.002_highoffset,
+            aes(x=Ud, y=Ncrit, col="0.002", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_ud_kim_ub0.02_highoffset,
+            aes(x=Ud, y=Ncrit, col="0.02", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_ud_kim_ub0.002_lowoffset,
+            aes(x=Ud, y=Ncrit, col="0.002", linetype="Low offset"), linewidth =line_width)+
+  geom_line(data = dat_ud_kim_ub0.02_lowoffset,
+            aes(x=Ud, y=Ncrit, col="0.02", linetype="Low offset"), linewidth =line_width)+
+  geom_point(aes(x=2,y=1834.57),col = "#F05039",shape=42, size=7)+
+  scale_x_log10(name=expression(bold(U[d])), breaks = c(0.1, 1, 10), labels=c("0.1", "1", "10")) +
+  annotation_logticks(sides = "bl",short = unit(0.25, "mm"),
+                      mid = unit(0.5, "mm"),
+                      long = unit(1, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  scale_y_log10(limits=c(120, 21000), breaks=c(300, 1000, 3000, 10000), labels = label_number(big.mark = "\u202F")) +
+  scale_colour_manual(values=c("0.002"="#9e9e9e","0.02"="#2298e6")) +
+  scale_linetype_manual(values=c("High offset"="solid", "Low offset"="dashed")) +
+  labs(y=expression(bold(N[crit]))) +
+  theme_Publication(base_size=text_size) +
+  theme(legend.position="none",
+        plot.margin=margin(.5,.5,.5,.5))
 
 #ben del ratio
-tiff("ub_analtyical_offset.tiff", units="in", width=5, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_ub_kim_ud2_highoffset,
-                 aes(x=Ub, y=bendelratio, col="2", linetype="High offset"), linewidth =1)
-p <- p+geom_line(data = dat_ub_kim_ud1_highoffset,
-                 aes(x=Ub, y=bendelratio, col="1", linetype="High offset"), linewidth =1)
-p <- p+geom_line(data = dat_ub_kim_ud2_lowoffset,
-                 aes(x=Ub, y=bendelratio, col="2", linetype="Low offset"), linewidth =1)
-p <- p+geom_line(data = dat_ub_kim_ud1_lowoffset,
-                 aes(x=Ub, y=bendelratio, col="1", linetype="Low offset"), linewidth =1)
-p <- p+scale_x_continuous(trans=c("log10","reverse"),name=expression(U[b]),
-                          breaks=custom_breaks,
-                          labels=custom_labels)+annotation_logticks(sides = "bl", outside = TRUE)+ coord_cartesian(clip = "off")
-p <- p+scale_colour_manual(name = expression(U[d]), 
-                           values =c("2" = "#9e9e9e","1"="#2298e6"), 
-                           labels = c("1","2"))
-p <- p+scale_linetype_manual(name = '',
-                             values=c("Low offset"="dashed", "High offset"="solid"),
-                             labels = c('Fast env. change','Slow env. change'))
-p <- p+scale_y_log10(limits=c(0.35,18.5),
-                     breaks=custom_breaks_y,
-                     labels=custom_labels_y)
-p <- p+geom_point(aes(x=0.002,y=0.853449),col = "#F05039",shape=42, size=10)
-p <- p+geom_hline(aes(yintercept =1), linetype="dotted", alpha=0.5, col="red", linewidth =.9)
-p <- p+labs(y="Drought:Meltdown ratio")+theme_Publication()
-p <- p+guides(color = guide_legend(override.aes = list(size = 2),ncol =1, nrow=2), 
-              linetype=guide_legend(keywidth = 2, keyheight = 1, ncol =1, nrow=2))
-p <- p+theme(legend.position = "none",legend.title=element_text(size=14), legend.background = element_blank(),
-             legend.text = element_text(size=12), axis.text = element_text(size=20))
-p
-dev.off()
+#p4
+p4 <- ggplot() +
+  geom_line(data = dat_ub_kim_ud2_highoffset,
+            aes(x=Ub, y=bendelratio, col="2", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_ub_kim_ud1_highoffset,
+            aes(x=Ub, y=bendelratio, col="1", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_ub_kim_ud2_lowoffset,
+            aes(x=Ub, y=bendelratio, col="2", linetype="Low offset"), linewidth =line_width)+
+  geom_line(data = dat_ub_kim_ud1_lowoffset,
+            aes(x=Ub, y=bendelratio, col="1", linetype="Low offset"), linewidth =line_width)+
+  geom_point(aes(x=0.002,y=0.853449),col = "#F05039",shape=42, size=7)+
+  annotation_logticks(sides = "bl",short = unit(0.25, "mm"),
+                      mid = unit(0.5, "mm"),
+                      long = unit(1, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  scale_x_continuous(trans=c("log10","reverse"),
+                     name=NULL, breaks = c(0.0001, 0.001, 0.01, 0.1), labels = c("0.0001", "0.001","0.01","0.1") ) +
+  geom_hline(aes(yintercept =1), linetype="dotted", alpha=0.5, col="red", linewidth=line_width)+
+  scale_y_log10(limits=c(0.35,18.5), breaks=c(1,3,10), labels=c("1","3","10")) +
+  scale_colour_manual(values=c("2"="#9e9e9e","1"="#2298e6")) +
+  scale_linetype_manual(values=c("High offset"="solid", "Low offset"="dashed")) +
+  labs(y="Drought:Meltdown ratio") +
+  theme_Publication(base_size=text_size) +
+  theme(legend.position="none",
+        axis.title.x=element_blank(),  # remove x-axis for top row
+        axis.text.x=element_blank(),
+        axis.title.y=element_blank(),  # remove y-axis for top row
+        axis.text.y=element_blank(),
+        plot.margin=margin(.5,.5,.5,.5))
 
-custom_breaks_y <- c(300, 1000, 3000, 10000)  # Custom tick positions
-custom_labels_y <- c("300", "1000", "3000", "10000")  # Custom tick labels
-#Ncrit
-tiff("ub_analtyical_offset_ncrit.tiff", units="in", width=5, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_ub_kim_ud2_highoffset,
-                 aes(x=Ub, y=Ncrit, col="2", linetype="High offset"), linewidth =1)
-p <- p+geom_line(data = dat_ub_kim_ud1_highoffset,
-                 aes(x=Ub, y=Ncrit, col="1", linetype="High offset"), linewidth =1)
-p <- p+geom_line(data = dat_ub_kim_ud2_lowoffset,
-                 aes(x=Ub, y=Ncrit, col="2", linetype="Low offset"), linewidth =1)
-p <- p+geom_line(data = dat_ub_kim_ud1_lowoffset,
-                 aes(x=Ub, y=Ncrit, col="1", linetype="Low offset"), linewidth =1)
-p <- p+scale_x_continuous(trans=c("log10","reverse"),name=expression(U[b]),
-                          breaks=custom_breaks,
-                          labels=custom_labels)+annotation_logticks(sides = "bl", outside = TRUE)+ coord_cartesian(clip = "off")
-p <- p+scale_colour_manual(name = expression(U[d]), 
-                           values =c("2" = "#9e9e9e","1"="#2298e6"), 
-                           labels = c("1","2"))
-p <- p+scale_linetype_manual(name = '',
-                             values=c("Low offset"="dashed", "High offset"="solid"),
-                             labels = c('High offset','Low offset'))
-p <- p+scale_y_log10(limits=c(120, 21000),
-                     breaks=custom_breaks_y,
-                     labels=custom_labels_y)
-p <- p+geom_point(aes(x=0.002,y=1834.57),col = "#F05039",shape=42, size=10)
-p <- p+labs(y=expression(N[crit]))+theme_Publication()
-p <- p+guides(color = guide_legend(override.aes = list(size = 2),ncol =1, nrow=2), 
-              linetype=guide_legend(keywidth = 2, keyheight = 1, ncol =1, nrow=2))
-p <- p+theme(legend.position = "none",legend.title=element_text(size=14), legend.background = element_blank(),
-             legend.text = element_text(size=12), axis.text = element_text(size=20))
-p
-dev.off()
 
-custom_breaks_y <- c(0.01, 0.1, 1)  # Custom tick positions
-custom_labels_y <- c(expression(0.01),expression(0.1),expression(1))  # Custom tick labels
-#offset del ratio
-tiff("ub_analtyical_offset_delratio.tiff", units="in", width=5, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_ub_kim_ud2_highoffset,
-                 aes(x=Ub, y=1.5e-5/abs(del_flux), col="2", linetype="High offset"), linewidth =1)
-p <- p+geom_line(data = dat_ub_kim_ud1_highoffset,
-                 aes(x=Ub, y=1.5e-5/abs(del_flux), col="1", linetype="High offset"), linewidth =1)
-p <- p+geom_line(data = dat_ub_kim_ud2_lowoffset,
-                 aes(x=Ub, y=1e-6/abs(del_flux), col="2", linetype="Low offset"), linewidth =1)
-p <- p+geom_line(data = dat_ub_kim_ud1_lowoffset,
-                 aes(x=Ub, y=1e-6/abs(del_flux), col="1", linetype="Low offset"), linewidth =1)
-p <- p+scale_x_continuous(trans=c("log10","reverse"),name=expression(U[b]),
-                          breaks=custom_breaks,
-                          labels=custom_labels)+annotation_logticks(sides = "bl", outside = TRUE)+ coord_cartesian(clip = "off")
-p <- p+scale_colour_manual(name = expression(U[d]), 
-                           values =c("2" = "#9e9e9e","1"="#2298e6"), 
-                           labels = c("1","2"))
-p <- p+scale_linetype_manual(name = '',
-                             values=c("Low offset"="dashed", "High offset"="solid"),
-                             labels = c('High offset','Low offset'))
-p <- p+scale_y_log10(limits=c(0.0038, 1),
-                     breaks=custom_breaks_y,
-                     labels=custom_labels_y)
-p <- p+geom_hline(aes(yintercept =1), linetype="dotted", alpha=0.5, col="red", linewidth =.9)
-p <- p+labs(y=expression(atop("Env. change to del. flux ",paste("ratio at ", N[crit]))))+theme_Publication()
-p <- p+guides(color = guide_legend(override.aes = list(size = 2),ncol =1, nrow=2), 
-              linetype=guide_legend(keywidth = 2, keyheight = 1, ncol =1, nrow=2))
-p <- p+theme(legend.position = "none",legend.title=element_text(size=14),
-             legend.background = element_blank(), axis.title.y = element_text(size=20,vjust = -2),
-             legend.text = element_text(size=12), axis.text = element_text(size=18))
-p
+#p5 #offset del ratio
+p5 <- ggplot() +
+  geom_line(data = dat_ub_kim_ud2_highoffset,
+            aes(x=Ub, y=1.5e-5/abs(del_flux-1.5e-5), col="2", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_ub_kim_ud1_highoffset,
+            aes(x=Ub, y=1.5e-5/abs(del_flux-1.5e-5), col="1", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_ub_kim_ud2_lowoffset,
+            aes(x=Ub, y=1e-6/abs(del_flux-1e-6), col="2", linetype="Low offset"), linewidth =line_width)+
+  geom_line(data = dat_ub_kim_ud1_lowoffset,
+            aes(x=Ub, y=1e-6/abs(del_flux-1e-6), col="1", linetype="Low offset"), linewidth =line_width)+
+  scale_x_continuous(trans=c("log10","reverse"),
+                     name=NULL, breaks = c(0.0001, 0.001, 0.01, 0.1), labels = c("0.0001", "0.001","0.01","0.1") ) +
+  annotation_logticks(sides = "bl",short = unit(0.25, "mm"),
+                      mid = unit(0.5, "mm"),
+                      long = unit(1, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  scale_y_log10(limits=c(0.0038,1), breaks=c(0.01, 0.1, 1), labels=c("0.01","0.1","1")) +
+  geom_hline(aes(yintercept =1), linetype="dotted", alpha=0.5, col="red", linewidth=line_width)+
+  scale_colour_manual(values=c("2"="#9e9e9e","1"="#2298e6")) +
+  scale_linetype_manual(values=c("High offset"="solid", "Low offset"="dashed")) +
+  labs(y=expression("Env. ch. to mut. deg. ratio at "*N[crit])) +
+  theme_Publication(base_size=text_size) +
+  theme(legend.position="none",
+        axis.title.x=element_blank(),  # remove x-axis for top row
+        axis.text.x=element_blank(),
+        axis.title.y=element_blank(),  # remove y-axis for top row
+        axis.text.y=element_blank(),
+        plot.margin=margin(.5,.5,.5,.5))
+
+#p6 #Ncrit
+p6 <- ggplot() +
+  geom_line(data = dat_ub_kim_ud2_highoffset,
+            aes(x=Ub, y=Ncrit, col="2", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_ub_kim_ud1_highoffset,
+            aes(x=Ub, y=Ncrit, col="1", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_ub_kim_ud2_lowoffset,
+            aes(x=Ub, y=Ncrit, col="2", linetype="Low offset"), linewidth =line_width)+
+  geom_line(data = dat_ub_kim_ud1_lowoffset,
+            aes(x=Ub, y=Ncrit, col="1", linetype="Low offset"), linewidth =line_width)+
+  geom_point(aes(x=0.002,y=1834.57),col = "#F05039",shape=42, size=7)+
+  scale_x_continuous(trans=c("log10","reverse"),name=expression(bold(U[b])),
+                     breaks = c(0.0001, 0.001, 0.01, 0.1), labels = c("0.0001", "0.001","0.01","0.1") ) +
+  annotation_logticks(sides = "bl",short = unit(0.25, "mm"),
+                      mid = unit(0.5, "mm"),
+                      long = unit(1, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  scale_y_log10(limits=c(120, 21000), breaks=c(300, 1000, 3000, 10000), labels=c("300", "1000", "3000", "10000")) +
+  scale_colour_manual(values=c("2"="#9e9e9e","1"="#2298e6")) +
+  scale_linetype_manual(values=c("High offset"="solid", "Low offset"="dashed")) +
+  labs(y=expression(N[crit])) +
+  theme_Publication(base_size=text_size) +
+  theme(legend.position="none",
+        axis.title.y=element_blank(),  # remove y-axis for top row
+        axis.text.y=element_blank(),
+        plot.margin=margin(.5,.5,.5,.5))
+
+# Combine plots in 2 columns x 3 rows
+combined <- (p1 | p4) / (p2 | p5) / (p3 | p6) +
+  plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
+  theme(plot.tag = element_text(family="Times New Roman", face="italic", size=9))
+
+# Save as Proceedings B single-column figure (88 mm = 3.46 inches)
+tiff("figure5_combined_1col.tiff",
+     width = 88/25.4, height = 140/25.4,  # adjust height for readability
+     units = "in", res = 600, compression = "lzw")
+
+print(combined)
 dev.off()
 
 ########################################Figure 7: Reduction in Ne##########################################
@@ -788,34 +819,29 @@ df_red_ub <- data.frame("Ub" = c(0.001, 0.001584893, 0.002511886, 0.003981072, 0
                         "N_e_coal" = c(5212.694265627656, 4325.696819001546, 3604.4934791060996, 
                                        2966.6656237152997, 2302.653578295538, 1865.6689174206622)/2)
 
-custom_breaks <- c(0.001, 0.001584893, 0.002511886, 0.003981072, 0.006309573, 0.01)  # Custom tick positions
-custom_labels <- c(expression(10^-3),expression(10^-2.8),expression(10^-2.6),
-                   expression(10^-2.4),expression(10^-2.2),expression(10^-2))  # Custom tick labels
+custom_breaks <- c(0.001, 0.005, 0.01)  # Custom tick positions
+custom_labels <- c("0.001", "0.005", "0.01")  # Custom tick labels
 Ub <- c(0.001, 0.001584893, 0.002511886, 0.003981072, 0.006309573, 0.01)
-Ne_N2 <- rep(0.8227204,6)
+Ne_N2_ub <- rep(0.8227204,6)
 
-#plot
-tiff("Ne_reduction_Ub.tiff", units="in", width=5, height=5, res=300)
-p <- ggplot()
-p <- p+geom_point(data = df_red_ub, aes(x=Ub, y=(N_ana/N_sim_sec), col="Fitness-flux-Ne", shape="Fitness-flux-Ne"), size=3)
-p <- p+geom_point(data = df_red_ub, aes(x=Ub, y=(N_e_coal/N_sim_fit), col="Coalescent-Ne", shape="Coalescent-Ne"), size=3)
-p <- p+geom_point(aes(x=Ub, y=Ne_N2, col="Del only model", shape="Del only model"), size=3)
-p <- p+geom_hline(yintercept = 1.0, col="red", linetype="dashed")
-p <- p+scale_x_log10(breaks = custom_breaks,
-                     labels = custom_labels)+annotation_logticks(sides = "bl", outside = TRUE)+ coord_cartesian(clip = "off")
-p <- p+labs(x=bquote(U[b]), y=expression("Factor reduction in "~N[e]))+theme_Publication()
-p <- p+scale_shape_manual(name = '', 
-                          values =c("Fitness-flux-Ne"=16,"Del only model"=15,"Coalescent-Ne"=17), 
-                          labels = c('Coalescent-Ne','Del only model', 'Fitness-flux-Ne'))
-p <- p+scale_colour_manual(name = ' ', 
-                           values =c("Fitness-flux-Ne"="black","Coalescent-Ne"="#56b4e9", "Del only model"="red"),
-                           labels = c("Fitness-flux-Ne","Coalescent-Ne", "Del only model"))
-p <- p+guides(shape=guide_legend(keywidth = 0.05, keyheight = 0.05, ncol =1, nrow=3))+ylim(c(0,1))
-p <- p+theme(legend.position = "none",
-             legend.text = element_text(size = 18),
-             legend.background = element_blank())
-p
-dev.off()
+#Fig 7A
+p7a <- ggplot() +
+  geom_point(data = df_red_ub, aes(x=Ub, y=(N_ana/N_sim_fit), col="Fitness-flux-Ne", shape="Fitness-flux-Ne"), size=1) +
+  geom_point(data = df_red_ub, aes(x=Ub, y=(N_e_coal/N_sim_fit), col="Coalescent-Ne", shape="Coalescent-Ne"), size=1) +
+  geom_point(aes(x=Ub, y=Ne_N2_ub, col="Del only model", shape="Del only model"), size=1) +
+  scale_x_log10(breaks=custom_breaks, labels=custom_labels) +
+  labs(x=bquote(bold(U[b])), y=expression(bold("Factor reduction in "~N[e]))) +
+  theme_Publication(base_size=9) +
+  annotation_logticks(sides = "b",short = unit(0.25, "mm"),
+                      mid = unit(0.5, "mm"),
+                      long = unit(1, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  scale_shape_manual(name='', values=c("Fitness-flux-Ne"=16,"Del only model"=15,"Coalescent-Ne"=17)) +
+  scale_colour_manual(name=' ', values=c("Fitness-flux-Ne"="black","Coalescent-Ne"="#56b4e9","Del only model"="red")) +
+  scale_y_continuous(limits=c(0,1), breaks=seq(0.2,1,by=0.2),
+                     labels=c("0.2", "0.4", "0.6","0.8", "1")) +
+  theme(legend.position="none",
+        plot.margin=margin(.5,.5,.5,.5))
 
 #change in Ud with Ub=0.02;sb=0.001
 df_red_ud_2 <- data.frame("Ud" = c(0.2511886, 0.5011872, 1.0, 1.9952623, 3.9810717),
@@ -824,7 +850,7 @@ df_red_ud_2 <- data.frame("Ud" = c(0.2511886, 0.5011872, 1.0, 1.9952623, 3.98107
                           "N_ana" = c(216.286, 313.904, 445.359, 623.097, 864.754),
                           "N_e_coal" = c(471.0206607437395, 682.0131766892991, 901.7554276638273,
                                          1320.4766134408887, 1847.292478102416)/2)
- ####factor reduction in Ne  based on Del only model####
+####factor reduction in Ne  based on Del only model
 s=0.00948704
 Ud=c(0.2511886, 0.5011872, 1.0, 1.9952623, 3.9810717)
 L=100
@@ -839,26 +865,27 @@ Ne_N
 #linked+unlined Joseph's equation
 Ne_N2_Ud=exp(-8 * (Ud-Udw)*s) * exp(-Ud/(2*chr))
 
-#plot
-tiff("Ne_reduction_Ud_high_Ub.tiff", units="in", width=5, height=5, res=300)
-p <- ggplot()
-p <- p+geom_point(data = df_red_ud_2, aes(x=Ud, y=(N_ana/N_sim_sec), col="Fitness-flux-Ne", shape="Fitness-flux-Ne"), size=3)
-p <- p+geom_point(data = df_red_ud_2, aes(x=Ud, y=(N_e_coal/N_sim_fit), col="Coalescent-Ne", shape="Coalescent-Ne"), size=3)
-p <- p+geom_point(aes(x=Ud, y=Ne_N2_Ud, col="Del. only", shape="Del. only"), size=3)
-p <- p+geom_hline(yintercept = 1.0, col="red", linetype="dashed")
-p <- p+scale_x_log10(breaks = custom_breaks,
-                     labels = custom_labels)+annotation_logticks(sides = "bl", outside = TRUE)+ coord_cartesian(clip = "off")
-p <- p+labs(x=bquote(U[d]), y=expression("Factor reduction in "~N[e]))+theme_Publication()
-p <- p+scale_shape_manual(name = '', 
-                          values =c("Fitness-flux-Ne"=16,"Del. only"=15,"Coalescent-Ne"=17), 
-                          labels = c('Del. only','Coalescent-Ne', 'Fitness-flux-Ne'))
-p <- p+scale_colour_manual(name = ' ', 
-                           values =c("Fitness-flux-Ne"="black","Coalescent-Ne"="#56b4e9", "Del. only"="red"),
-                           labels = c("Fitness-flux-Ne","Coalescent-Ne", "Del. only"))
-p <- p+guides(shape=guide_legend(keywidth = 0.05, keyheight = 0.05, ncol =1, nrow=3))+ylim(c(0,1))
-p <- p+theme(legend.position = "none", legend.text = element_text(size = 12),legend.background = element_blank())
-p
-dev.off()
+custom_breaks <- c(0.2, 1, 5)  # Custom tick positions
+custom_labels <- c("0.2", "1", "5")  # Custom tick labels
+#Fig7b
+p7b <- ggplot() +
+  geom_point(data = df_red_ud_2, aes(x=Ud, y=(N_ana/N_sim_fit), col="Fitness-flux-Ne", shape="Fitness-flux-Ne"), size=1) +
+  geom_point(data = df_red_ud_2, aes(x=Ud, y=(N_e_coal/N_sim_fit), col="Coalescent-Ne", shape="Coalescent-Ne"), size=1) +
+  geom_point(aes(x=Ud, y=Ne_N2_Ud, col="Del. only", shape="Del. only"), size=1) +
+  scale_x_log10(breaks=custom_breaks, labels=custom_labels, limits=c(0.2,5)) +
+  annotation_logticks(sides = "b",short = unit(0.25, "mm"),
+                      mid = unit(0.5, "mm"),
+                      long = unit(1, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  labs(x=bquote(bold(U[d])), y=expression("Factor reduction in "~N[e])) +
+  theme_Publication(base_size=9) +
+  scale_shape_manual(name='', values=c("Fitness-flux-Ne"=16,"Del. only"=15,"Coalescent-Ne"=17)) +
+  scale_colour_manual(name=' ', values=c("Fitness-flux-Ne"="black","Coalescent-Ne"="#56b4e9","Del. only"="red")) +
+  ylim(c(0,1)) +
+  theme(legend.position="none",
+        axis.title.y=element_blank(),  # remove y-axis for top row
+        axis.text.y=element_blank(),
+        plot.margin=margin(.5,.5,.5,.5))
 
 #change in Sd with Ub=0.02;sb=0.001, Ud=2.0
 df_red_sd_2 <- data.frame("Sd" = c(0.05, 0.03, 0.01, 0.005, 0.003),
@@ -868,88 +895,424 @@ df_red_sd_2 <- data.frame("Sd" = c(0.05, 0.03, 0.01, 0.005, 0.003),
                           "N_e_coal" = c(1042.8969946062832, 1155.8836408279096, 1277.1174874421363,
                                          1327.5279447736898, 1340.582373437434)/2)
 
- ####factor reduction in Ne based on Del only model####
+####factor reduction in Ne based on Del only model
 Sd=c(0.05, 0.03, 0.01, 0.005, 0.003)
-Ud=2
+Ud_sd=2
 L=100
 chr=23
-Udw=Ud/(L*chr/2)
+Udw=Ud_sd/(L*chr/2)
 Udw
 Rw=2/(L*chr/2/chr)
 Rw
 #Unlinked
-Ne_N=exp(-8 * Ud * s)
+Ne_N=exp(-8 * Ud_sd * s)
 Ne_N
 #linked+unlined Joseph's equation
-Ne_N2_Sd=exp(-8 * (Ud-Udw)*Sd) * exp(-Ud/(2*chr))
+Ne_N2_Sd=exp(-8 * (Ud_sd-Udw)*Sd) * exp(-Ud_sd/(2*chr))
 
-#plot
-tiff("Ne_reduction_Sd_high_Ub.tiff", units="in", width=5, height=5, res=300)
-p <- ggplot()
-p <- p+geom_point(data = df_red_sd_2, aes(x=Sd, y=(N_ana/N_sim_sec), col="Fitness-flux-Ne", shape="Fitness-flux-Ne"), size=3)
-p <- p+geom_point(data = df_red_sd_2, aes(x=Sd, y=(N_e_coal/N_sim_fit), col="Coalescent-Ne", shape="Coalescent-Ne"), size=3)
-p <- p+geom_point(aes(x=Sd, y=Ne_N2_Sd, col="Del. only", shape="Del. only"), size=3)
-p <- p+geom_hline(yintercept = 1.0, col="red", linetype="dashed")
-p <- p+scale_x_log10(breaks = custom_breaks,
-                     labels = custom_labels)+annotation_logticks(sides = "bl", outside = TRUE)+ coord_cartesian(clip = "off")
-p <- p+labs(x=bquote(bar(S)[d]), y=expression("Factor reduction in "~N[e]))+theme_Publication()
-p <- p+scale_shape_manual(name = '', 
-                          values =c("Fitness-flux-Ne"=16,"Del. only"=15,"Coalescent-Ne"=17), 
-                          labels = c('Del. only','Coalescent-Ne', 'Fitness-flux-Ne'))
-p <- p+scale_colour_manual(name = ' ', 
-                           values =c("Fitness-flux-Ne"="black","Coalescent-Ne"="#56b4e9", "Del. only"="red"),
-                           labels = c("Fitness-flux-Ne","Coalescent-Ne", "Del. only"))
-p <- p+guides(shape=guide_legend(keywidth = 0.05, keyheight = 0.05, ncol =1, nrow=3))+ylim(c(0,1))
-p <- p+theme(legend.position = "none", legend.text = element_text(size = 12),legend.background = element_blank())
-p
+
+custom_breaks <- c(0.001, 0.01, 0.05)  # Custom tick positions
+custom_labels <- c("0.001", "0.01", "0.05")  # Custom tick labels
+
+p7d <- ggplot() +
+  geom_point(data = df_red_sd_2, aes(x=Sd, y=(N_ana/N_sim_fit), col="Fitness-flux-Ne", shape="Fitness-flux-Ne"), size=1) +
+  geom_point(data = df_red_sd_2, aes(x=Sd, y=(N_e_coal/N_sim_fit), col="Coalescent-Ne", shape="Coalescent-Ne"), size=1) +
+  geom_point(aes(x=Sd, y=Ne_N2_Sd, col="Del. only", shape="Del. only"), size=1) +
+  scale_x_log10(breaks=custom_breaks, labels=custom_labels) +
+  annotation_logticks(sides = "b",short = unit(0.25, "mm"),
+                      mid = unit(0.5, "mm"),
+                      long = unit(1, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  labs(x=bquote(bold(-bar(s)[d])), y=expression("Factor reduction in "~N[e])) +
+  theme_Publication(base_size=9) +
+  scale_shape_manual(name='', values=c("Fitness-flux-Ne"=16,"Del. only"=15,"Coalescent-Ne"=17)) +
+  scale_colour_manual(name=' ', values=c("Fitness-flux-Ne"="black","Coalescent-Ne"="#56b4e9","Del. only"="red")) +
+  ylim(c(0,1)) +
+  theme(legend.position="none",
+        axis.title.y=element_blank(),  # remove y-axis for top row
+        axis.text.y=element_blank(),
+        plot.margin=margin(.5,.5,.5,.5))
+
+#change in Sb with Ub=0.02;sd=0.009, Ud=2.0
+df_red_sb_2 <- data.frame("Sb" = c(0.0005, 0.00075, 0.001, 0.0025, 0.005),
+                          "N_sim_fit" = c(2939, 1770, 1462, 587, 288),
+                          "N_sim_sec" = c(2738, 1799, 1504, 453, 290),
+                          "N_ana" = c(1181.74, 813.343, 623.805, 267.396, 140.4),
+                          "N_e_coal" = c(2487.70697, 1575.4146529, 1269.811607,
+                                         534.860132, 264.64819387776504)/2)
+
+####factor reduction in Ne based on Del only model
+Sb <- c(0.0005, 0.00075, 0.001, 0.0025, 0.005)
+Ne_N2_sb <- rep(0.8227204,5)
+
+
+custom_breaks <- c(0.0005, 0.005)  # Custom tick positions
+custom_labels <- c("0.0005", "0.005")  # Custom tick labels
+
+p7c <- ggplot() +
+  geom_point(data = df_red_sb_2, aes(x=Sb, y=(N_ana/N_sim_fit), col="Fitness-flux-Ne", shape="Fitness-flux-Ne"), size=1) +
+  geom_point(data = df_red_sb_2, aes(x=Sb, y=(N_e_coal/N_sim_fit), col="Coalescent-Ne", shape="Coalescent-Ne"), size=1) +
+  geom_point(aes(x=Sb, y=Ne_N2_sb, col="Del. only", shape="Del. only"), size=1) +
+  scale_x_log10(breaks=custom_breaks, labels=custom_labels) +
+  annotation_logticks(sides = "b",short = unit(0.25, "mm"),
+                      mid = unit(0.5, "mm"),
+                      long = unit(1, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  labs(x=bquote(bold(bar(s)[b])), y=expression(bold("Factor reduction in "~N[e]))) +
+  theme_Publication(base_size=9) +
+  scale_shape_manual(name='', values=c("Fitness-flux-Ne"=16,"Del. only"=15,"Coalescent-Ne"=17)) +
+  scale_colour_manual(name=' ', values=c("Fitness-flux-Ne"="black","Coalescent-Ne"="#56b4e9","Del. only"="red")) +
+  scale_y_continuous(limits=c(0,1), breaks=seq(0.2,1,by=0.2),
+                     labels=c("0.2", "0.4", "0.6","0.8", "1")) +
+  theme(legend.position="none",
+        plot.margin=margin(.5,.5,.5,.5))
+
+fig7 <- (p7a | p7b) / (p7c | p7d) +
+  plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
+  theme(plot.tag = element_text(family="Times New Roman", face="italic", size=9))
+
+# Save for single-column (≈83 mm)
+tiff("figure7_combined_1col.tiff",
+     width=83/25.4, height=100/25.4, units="in",
+     res=600, compression="lzw")
+
+print(fig7)
 dev.off()
 
-#change in Ud*Sd with Ub=0.02;sb=0.001
-# From your Ud-varying dataset
-df_ud <- df_red_ud_2
-df_ud$Sd <- 0.00948704
-df_ud$UdSd <- df_ud$Ud * df_ud$Sd
-df_ud$type <- "Vary Ud (fixed Sd)"
-df_ud$Ne_N2� <- Ne_N2_Ud
-# From your Sd-varying dataset
-df_sd <- df_red_sd_2
-df_sd$Ud <- 2   # your fixed Ud value = 2
-df_sd$UdSd <- df_sd$Ud * df_sd$Sd
-df_sd$type <- "Vary Sd (fixed Ud)"
-df_sd$Ne_N2 <- Ne_N2_Sd
+####################################Supplementary Figures####################################################
+#############################Figure S1: calculating Ncrit for second verison of W(2000)###################################
+#Ncrit to Ud/Ub for three models Kim et al. (2017)
+dat_ubud_ncrit_compare_kim <- read.csv("Ncrit_compare.csv", header = F)
+colnames(dat_ubud_ncrit_compare_kim) <- c("Ub_Ud", "Ncrit_W2","Ncrit_ana")
+dat_ubud_ncrit_compare_kim <- dat_ubud_ncrit_compare_kim[-22,]
 
-df_combined <- rbind(
-  data.frame(x=df_ud$UdSd, Ne_reduction=df_ud$N_ana/df_ud$N_sim_sec, source="Fitness-flux-Ne", type=df_ud$type),
-  data.frame(x=df_ud$UdSd, Ne_reduction=df_ud$N_e_coal/df_ud$N_sim_fit, source="Coalescent-Ne", type=df_ud$type),
-  data.frame(x=df_ud$UdSd, Ne_reduction=df_ud$Ne_N2, source="Del. only", type=df_ud$type),
+dat_ubud_ncrit_all_kim <- read.csv("Ncrit_all.csv", header = F)
+colnames(dat_ubud_ncrit_all_kim) <- c("Ub_Ud", "Ncrit_ana","Ncrit_W","Ncrit_MD")
 
-  data.frame(x=df_sd$UdSd, Ne_reduction=df_sd$N_ana/df_sd$N_sim_sec, source="Fitness-flux-Ne", type=df_sd$type),
-  data.frame(x=df_sd$UdSd, Ne_reduction=df_sd$N_e_coal/df_sd$N_sim_fit, source="Coalescent-Ne", type=df_sd$type),
-  data.frame(x=df_sd$UdSd, Ne_reduction=df_sd$Ne_N2, source="Del. only", type=df_sd$type)
-)
-#plot
+dat_ubud_ncrit_compare_kim_udvarying <- read.csv("Ncrit_compare_Udvarying.csv", header = F)
+colnames(dat_ubud_ncrit_compare_kim_udvarying) <- c("Ub_Ud", "Ncrit_W2","Ncrit_ana")
+dat_ubud_ncrit_compare_kim <- dat_ubud_ncrit_compare_kim[-22,]
 
-tiff("Ne_reduction_UdSd_high_Ub.tiff", units="in", width=5, height=5, res=300)
-p <- ggplot(df_combined, aes(x=x, y=Ne_reduction,
-                             col=source, shape=source, linetype=type))
-p <- p+geom_point(size=3)
-p <- p+geom_line()
-p <- p+geom_point(aes(x=Sd, y=Ne_N2, col="Del. only", shape="Del. only"), size=3)
-p <- p+geom_hline(yintercept = 1.0, col="red", linetype="dashed")
-p <- p+scale_x_log10() + annotation_logticks(sides="bl", outside=TRUE)
-p <- p+labs(x=expression(U[d] %.% bar(S)[d]),
-       y=expression("Factor reduction in "~N[e]))+theme_Publication()
-p <- p+scale_shape_manual(values=c("Fitness-flux-Ne"=16,"Del. only"=15,"Coalescent-Ne"=17))
-p <- p+scale_colour_manual(values=c("Fitness-flux-Ne"="black","Coalescent-Ne"="#56b4e9","Del. only"="red"))
-p <- p+scale_linetype_manual(values=c("Vary Ud (fixed Sd)"="solid",
-                                 "Vary Sd (fixed Ud)"="dashed"))  
-p <- p+ylim(c(0,1))
+
+tiff("ncrit_analtyical_compare.tiff", units="in", width=5, height=5, res=300)
+p <- ggplot()
+p <- p+geom_line(data = dat_ubud_ncrit_compare_kim, aes(x=Ub_Ud, y=Ncrit_ana, col="This paper", linetype="Kim"), linewidth =1)
+p <- p+geom_line(data = dat_ubud_ncrit_compare_kim, aes(x=Ub_Ud, y=Ncrit_W2, col="Whitlock (2000)V2", linetype="Kim"), linewidth =1)
+p <- p+geom_line(data = dat_ubud_ncrit_all_kim, aes(x=Ub_Ud, y=Ncrit_W, col="Whitlock (2000)", linetype="Kim"), linewidth =1)
+p <- p+scale_x_log10(breaks = c(10, 100, 1000, 10000),
+                     label_number(big.mark = "\u202F"),
+                     name=expression(U[d]~"/"~U[b]))
+p <- p+annotation_logticks(sides = "b",short = unit(0.25, "mm"),
+                    mid = unit(0.5, "mm"),
+                    long = unit(1, "mm"),
+                    outside=TRUE)+ coord_cartesian(clip="off")
+p <- p+geom_point(aes(x=1000,y=1834.57),col="#F05039",shape=42, size=10)
+p <- p+scale_colour_manual(name = '', 
+                           values =c("This paper"="#000000","Whitlock (2000)V2"="#7fc97f","Whitlock (2000)"="#386cb0"), 
+                           labels = c("This paper","Whitlock (2000)V2","Whitlock (2000)"))
+p <- p+labs(y=expression(bold(N[crit])))+theme_Publication(base_size=9)
 p <- p+theme(legend.position = "none")
 p
 dev.off()
 
+#######################################Figure S2: Ncrit as a function of xb###############################################
+#Ncrit
+# Top-left plot
+p1 <- ggplot(dat_ubud_kim, aes(x = Ub_Ud, y = Ncrit)) +
+  geom_line(linewidth = line_width) +
+  geom_point(aes(x=1000,y=1834), col = "#F05039", shape = 42, size = 5) +
+  scale_x_log10(breaks = c(10,100,1000,10000), labels = c("10","100","1000","10000")) +
+  annotation_logticks(sides = "b",short = unit(0.25, "mm"),
+                      mid = unit(0.5, "mm"),
+                      long = unit(1, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  ylim(0,5315.267) +
+  labs(x = expression(bold(U[d]/U[b])), y = expression(bold(N[crit]))) +
+  theme_Publication(base_size = 9) +
+  theme(plot.margin = margin(5,5,5,5), legend.position = "none")
 
-##################################Figure 8: Change in L#################################
+# Top-right plot
+p2 <- ggplot() +
+  geom_line(data = dat_sb_kim_100, aes(x = sb, y = Ncrit, linetype = "mut. rate ratio = 100"), linewidth = line_width) +
+  geom_line(data = dat_sb_kim_1000, aes(x = sb, y = Ncrit, linetype = "mut. rate ratio = 1000"), linewidth = line_width) +
+  geom_point(aes(x=0.001,y=1834), col = "#F05039", shape = 42, size = 5) +
+  scale_x_log10(breaks = c(0.001,0.005,0.01), labels = c("0.001","0.005","0.01")) +
+  annotation_logticks(sides = "b",short = unit(0.25, "mm"),
+                      mid = unit(0.5, "mm"),
+                      long = unit(1, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  scale_linetype_manual(values = c("mut. rate ratio = 100" = 2, "mut. rate ratio = 1000" = 1)) +
+  ylim(0,5315.267) +
+  labs(x = bquote(bold(bar(s)[b])), y = expression(N[crit])) +
+  theme_Publication(base_size = 9) +
+  theme(plot.margin = margin(5,5,5,5),axis.title.y=element_blank(),  # remove y-axis for top row
+        axis.text.y=element_blank(), legend.position = "none")
+
+# Bottom centered plot
+p3 <- ggplot() +
+  geom_line(data = dat_sd_100[-21,], aes(x = sd, y = Ncrit, linetype = "mut. rate ratio = 100"), linewidth = line_width) +
+  geom_line(data = dat_sd_1000[-21,], aes(x = sd, y = Ncrit, linetype = "mut. rate ratio = 1000"), linewidth = line_width) +
+  geom_hline(yintercept = 1, linetype = "dotted", alpha = 0.5, col = "red", linewidth = line_width) +
+  scale_x_log10(limits=c(0.001,0.1), breaks = c(0.001, 0.01, 0.1), labels = c("0.001","0.01","0.1")) +
+  scale_linetype_manual(values = c("mut. rate ratio = 100" = 2, "mut. rate ratio = 1000" = 1)) +
+  annotation_logticks(sides = "b",short = unit(0.25, "mm"),
+                      mid = unit(0.5, "mm"),
+                      long = unit(1, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  ylim(0,5315.267) +
+  labs(x = bquote(bold(-bar(s)[d])), y = expression(N[crit])) +
+  theme_Publication(base_size = 9) +
+  theme(plot.margin = margin(5,5,5,5),axis.title.y=element_blank(),  # remove y-axis for top row
+        axis.text.y=element_blank(), legend.position = "none")
+
+# Combine with patchwork
+combined <- (p1 | p2 | p3) +   # stack bottom plot
+  plot_layout(heights = c(1, 0.7)) + # bottom plot slightly shorter
+  plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
+  theme(plot.tag = element_text(family = "Times New Roman", face = "italic", size = 9))
+
+# Save 2-column Proceedings B figure (2-col = 167 mm)
+tiff("figure_S2_combined_2col.tiff",
+     width = 167/25.4, height = 80/25.4, units = "in",
+     res = 600, compression = "lzw")
+
+print(combined)
+dev.off()
+
+#############################Figure S3: calculating dorught:meltdown ratio for changing ud and ub with env change###################################
+#with offset varying Sd fixed Ud
+dat_sd_highoffset_1000 <- read.csv("offset_sdvarying_1000.csv", header = F)
+colnames(dat_sd_highoffset_1000) <- c("sd", "del_flux","Ncrit", "bendelratio")
+
+dat_sd_lowoffset_1000 <- read.csv("lowoffset_sdvarying_1000.csv", header = F)
+colnames(dat_sd_lowoffset_1000) <- c("sd", "del_flux","Ncrit", "bendelratio")
+
+dat_sd_highoffset_100 <- read.csv("offset_sdvarying_100.csv", header = F)
+colnames(dat_sd_highoffset_100) <- c("sd", "del_flux","Ncrit", "bendelratio")
+
+dat_sd_lowoffset_100 <- read.csv("lowoffset_sdvarying_100.csv", header = F)
+colnames(dat_sd_lowoffset_100) <- c("sd", "del_flux","Ncrit", "bendelratio")
+
+#with offset varying sb fixed Ud
+dat_sb_highoffset_1000 <- read.csv("offset_sbvarying_1000.csv", header = F)
+colnames(dat_sb_highoffset_1000) <- c("sb", "del_flux","Ncrit", "bendelratio")
+
+dat_sb_lowoffset_1000 <- read.csv("lowoffset_sbvarying_1000.csv", header = F)
+colnames(dat_sb_lowoffset_1000) <- c("sb", "del_flux","Ncrit", "bendelratio")
+
+dat_sb_highoffset_100 <- read.csv("offset_sbvarying_100.csv", header = F)
+colnames(dat_sb_highoffset_100) <- c("sb", "del_flux","Ncrit", "bendelratio")
+
+dat_sb_lowoffset_100 <- read.csv("lowoffset_sbvarying_100.csv", header = F)
+colnames(dat_sb_lowoffset_100) <- c("sb", "del_flux","Ncrit", "bendelratio")
+
+# Add columns for offset type, Ub, and sd_type
+dat_sd_highoffset_1000$offset <- "Faster env. change";dat_sd_highoffset_1000$UdUb <- "1000";
+dat_sd_highoffset_100$offset <- "Faster env. change";dat_sd_highoffset_100$UdUb <- "100";
+dat_sd_lowoffset_1000$offset <- "Slower env. change";dat_sd_lowoffset_1000$UdUb <- "1000";
+dat_sd_lowoffset_100$offset <- "Slower env. change";dat_sd_lowoffset_100$UdUb <- "100";
+
+# Add columns for offset type, Ub, and sd_type
+dat_sb_highoffset_1000$offset <- "Faster env. change";dat_sb_highoffset_1000$UdUb <- "1000";
+dat_sb_highoffset_100$offset <- "Faster env. change";dat_sb_highoffset_100$UdUb <- "100";
+dat_sb_lowoffset_1000$offset <- "Slower env. change";dat_sb_lowoffset_1000$UdUb <- "1000";
+dat_sb_lowoffset_100$offset <- "Slower env. change";dat_sb_lowoffset_100$UdUb <- "100";
+
+# Combine datasets
+dat_all_sd <- bind_rows(
+  dat_sd_highoffset_1000[-21,],
+  dat_sd_highoffset_100[-21,],
+  dat_sd_lowoffset_1000[-21,],
+  dat_sd_lowoffset_100[-21,]
+)
+
+dat_all_sb <- bind_rows(
+  dat_sb_highoffset_1000,
+  dat_sb_highoffset_100,
+  dat_sb_lowoffset_1000,
+  dat_sb_lowoffset_100
+)
+
+#ben del ratio
+#p1
+p1 <- ggplot() +
+  geom_line(data = dat_sd_highoffset_1000[-21,],
+            aes(x=sd, y=bendelratio, col="1000", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_sd_highoffset_100[-21,],
+            aes(x=sd, y=bendelratio, col="100", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_sd_lowoffset_1000[-21,],
+            aes(x=sd, y=bendelratio, col="1000", linetype="Low offset"), linewidth =line_width)+
+  geom_line(data = dat_sd_lowoffset_100[-21,],
+            aes(x=sd, y=bendelratio, col="100", linetype="Low offset"), linewidth =line_width)+
+  geom_point(aes(x=0.009487042205869916,y=0.853449),col = "#F05039",shape=42, size=7)+
+  scale_x_log10(name=NULL, limits=c(0.001,0.1), breaks = c(0.001, 0.01, 0.1), labels=c("0.001", "0.01", "0.1")) +
+  annotation_logticks(sides = "bl",short = unit(0.5, "mm"),
+                      mid = unit(0.75, "mm"),
+                      long = unit(1.25, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  geom_hline(aes(yintercept =1), linetype="dotted", alpha=0.5, col="red", linewidth=line_width)+
+  scale_y_log10(limits=c(0.35,18.5), breaks=c(1,3,10), labels=c("1","3","10")) +
+  scale_colour_manual(values=c("1000"="#9e9e9e","100"="#2298e6")) +
+  scale_linetype_manual(values=c("High offset"="solid", "Low offset"="dashed")) +
+  labs(y="Drought:Meltdown ratio") +
+  theme_Publication(base_size=text_size) +
+  theme(legend.position="none",
+        axis.title.x=element_blank(),  # remove x-axis for top row
+        axis.text.x=element_blank(),
+        plot.margin=margin(.5,.5,.5,.5))
+
+
+#p2 #offset del ratio
+p2 <- ggplot() +
+  geom_line(data = dat_sd_highoffset_1000[-21,],
+            aes(x=sd, y=1.5e-5/abs(del_flux-1.5e-5), col="1000", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_sd_highoffset_100[-21,],
+            aes(x=sd, y=1.5e-5/abs(del_flux-1.5e-5), col="100", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_sd_lowoffset_1000[-21,],
+            aes(x=sd, y=1e-6/abs(del_flux-1e-6), col="1000", linetype="Low offset"), linewidth =line_width)+
+  geom_line(data = dat_sd_lowoffset_100[-21,],
+            aes(x=sd, y=1e-6/abs(del_flux-1e-6), col="100", linetype="Low offset"), linewidth =line_width)+
+  scale_x_log10(name=NULL, limits=c(0.001,0.1), breaks = c(0.001, 0.01, 0.1), labels=c("0.001", "0.01", "0.1")) +
+  annotation_logticks(sides = "bl",short = unit(0.5, "mm"),
+                      mid = unit(0.75, "mm"),
+                      long = unit(1.25, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  scale_y_log10(limits=c(0.0038,1), breaks=c(0.01, 0.1, 1), labels=c("0.01","0.1","1")) +
+  geom_hline(aes(yintercept =1), linetype="dotted", alpha=0.5, col="red", linewidth=line_width)+
+  scale_colour_manual(values=c("1000"="#9e9e9e","100"="#2298e6")) +
+  scale_linetype_manual(values=c("High offset"="solid", "Low offset"="dashed")) +
+  labs(y=expression(bold("Env.: Mut. deg. ratio at "*N[crit])))+
+  theme_Publication(base_size=text_size) +
+  theme(legend.position="none",
+        axis.title.x=element_blank(),  # remove x-axis for top row
+        axis.text.x=element_blank(),
+        axis.title.y=element_text(size=8),
+        plot.margin=margin(.5,.5,.5,.5))
+
+#p3 #Ncrit
+p3 <- ggplot() +
+  geom_line(data = dat_sd_highoffset_1000[-21,],
+            aes(x=sd, y=Ncrit, col="1000", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_sd_highoffset_100[-21,],
+            aes(x=sd, y=Ncrit, col="100", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_sd_lowoffset_1000[-21,],
+            aes(x=sd, y=Ncrit, col="1000", linetype="Low offset"), linewidth =line_width)+
+  geom_line(data = dat_sd_lowoffset_100[-21,],
+            aes(x=sd, y=Ncrit, col="100", linetype="Low offset"), linewidth =line_width)+
+  geom_point(aes(x=0.009487042205869916,y=1834.57),col = "#F05039",shape=42, size=7)+
+  scale_x_log10(name=expression(bold(-bar(s[d]))),  limits=c(0.001,0.1), breaks = c(0.001, 0.01, 0.1),
+                labels=c("0.001", "0.01", "0.1")) +
+  annotation_logticks(sides = "bl",short = unit(0.25, "mm"),
+                      mid = unit(0.5, "mm"),
+                      long = unit(1, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  scale_y_log10(limits=c(120, 21000), breaks=c(300, 1000, 3000, 10000), labels = label_number(big.mark = "\u202F")) +
+  scale_colour_manual(values=c("1000"="#9e9e9e","100"="#2298e6")) +
+  scale_linetype_manual(values=c("High offset"="solid", "Low offset"="dashed")) +
+  labs(y=expression(bold(N[crit]))) +
+  theme_Publication(base_size=text_size) +
+  theme(legend.position="none",
+        plot.margin=margin(.5,.5,.5,.5))
+
+#ben del ratio
+#p4
+p4 <- ggplot() +
+  geom_line(data = dat_sb_highoffset_1000,
+            aes(x=sb, y=bendelratio, col="1000", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_sb_highoffset_100,
+            aes(x=sb, y=bendelratio, col="100", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_sb_lowoffset_1000,
+            aes(x=sb, y=bendelratio, col="1000", linetype="Low offset"), linewidth =line_width)+
+  geom_line(data = dat_sb_lowoffset_100,
+            aes(x=sb, y=bendelratio, col="100", linetype="Low offset"), linewidth =line_width)+
+  geom_point(aes(x=0.001,y=0.853449),col = "#F05039",shape=42, size=7)+
+  scale_x_log10(name=NULL, breaks = c(0.001, 0.01), labels = c("0.001", "0.01")) +
+  annotation_logticks(sides = "bl",short = unit(0.25, "mm"),
+                      mid = unit(0.5, "mm"),
+                      long = unit(1, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  geom_hline(aes(yintercept =1), linetype="dotted", alpha=0.5, col="red", linewidth=line_width)+
+  scale_y_log10(limits=c(0.35,18.5), breaks=c(1,3,10), labels=c("1","3","10")) +
+  scale_colour_manual(values=c("1000"="#9e9e9e","100"="#2298e6")) +
+  scale_linetype_manual(values=c("High offset"="solid", "Low offset"="dashed")) +
+  labs(y="Drought:Meltdown ratio") +
+  theme_Publication(base_size=text_size) +
+  theme(legend.position="none",
+        axis.title.x=element_blank(),  # remove x-axis for top row
+        axis.text.x=element_blank(),
+        axis.title.y=element_blank(),  # remove y-axis for top row
+        axis.text.y=element_blank(),
+        plot.margin=margin(.5,.5,.5,.5))
+
+
+#p5 #offset del ratio
+p5 <- ggplot() +
+  geom_line(data = dat_sb_highoffset_1000,
+            aes(x=sb, y=1.5e-5/abs(del_flux-1.5e-5), col="1000", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_sb_highoffset_100,
+            aes(x=sb, y=1.5e-5/abs(del_flux-1.5e-5), col="100", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_sb_lowoffset_1000,
+            aes(x=sb, y=1e-6/abs(del_flux-1e-6), col="1000", linetype="Low offset"), linewidth =line_width)+
+  geom_line(data = dat_sb_lowoffset_100,
+            aes(x=sb, y=1e-6/abs(del_flux-1e-6), col="100", linetype="Low offset"), linewidth =line_width)+
+  scale_x_log10(breaks = c(0.001, 0.01), labels = c("0.001", "0.01")) +
+  annotation_logticks(sides = "bl",short = unit(0.25, "mm"),
+                      mid = unit(0.5, "mm"),
+                      long = unit(1, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  scale_y_log10(limits=c(0.0038,1), breaks=c(0.01, 0.1, 1), labels=c("0.01","0.1","1")) +
+  geom_hline(aes(yintercept =1), linetype="dotted", alpha=0.5, col="red", linewidth=line_width)+
+  scale_colour_manual(values=c("1000"="#9e9e9e","100"="#2298e6")) +
+  scale_linetype_manual(values=c("High offset"="solid", "Low offset"="dashed")) +
+  labs(y=expression("Env. ch. to mut. deg. ratio at "*N[crit])) +
+  theme_Publication(base_size=text_size) +
+  theme(legend.position="none",
+        axis.title.x=element_blank(),  # remove x-axis for top row
+        axis.text.x=element_blank(),
+        axis.title.y=element_blank(),  # remove y-axis for top row
+        axis.text.y=element_blank(),
+        plot.margin=margin(.5,.5,.5,.5))
+
+#p6 #Ncrit
+p6 <- ggplot() +
+  geom_line(data = dat_sb_highoffset_1000,
+            aes(x=sb, y=Ncrit, col="1000", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_sb_highoffset_100,
+            aes(x=sb, y=Ncrit, col="100", linetype="High offset"), linewidth=line_width) +
+  geom_line(data = dat_sb_lowoffset_1000,
+            aes(x=sb, y=Ncrit, col="1000", linetype="Low offset"), linewidth =line_width)+
+  geom_line(data = dat_sb_lowoffset_100,
+            aes(x=sb, y=Ncrit, col="100", linetype="Low offset"), linewidth =line_width)+
+  geom_point(aes(x=0.001,y=1834.57),col = "#F05039",shape=42, size=7)+
+  scale_x_log10(name=expression(bold(s[b])), breaks = c(0.001, 0.01), labels = c("0.001", "0.01")) +
+  annotation_logticks(sides = "bl",short = unit(0.25, "mm"),
+                      mid = unit(0.5, "mm"),
+                      long = unit(1, "mm"),
+                      outside=TRUE)+ coord_cartesian(clip="off")+
+  scale_y_log10(limits=c(120, 21000), breaks=c(300, 1000, 3000, 10000), labels = label_number(big.mark = "\u202F")) +
+  scale_colour_manual(values=c("1000"="#9e9e9e","100"="#2298e6")) +
+  scale_linetype_manual(values=c("High offset"="solid", "Low offset"="dashed")) +
+  labs(y=expression(N[crit])) +
+  theme_Publication(base_size=text_size) +
+  theme(legend.position="none",
+        axis.title.y=element_blank(),  # remove y-axis for top row
+        axis.text.y=element_blank(),
+        plot.margin=margin(.5,.5,.5,.5))
+
+# Combine plots in 2 columns x 3 rows
+combined <- (p1 | p4) / (p2 | p5) / (p3 | p6) +
+  plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
+  theme(plot.tag = element_text(family="Times New Roman", face="italic", size=9))
+
+# Save as Proceedings B single-column figure (88 mm = 3.46 inches)
+tiff("figureS3_combined_1col.tiff",
+     width = 4, height = 6,  # adjust height for readability
+     units = "in", res = 600, compression = "lzw")
+
+print(combined)
+dev.off()
+
+##################################Figure S4: Change in L#################################
 df_sim_L_5 <- data.frame("N" = c(1000, 2000, 3000, 4000, 5000, 6000, 7000),
                          "vb" = c(0.0000052944, 0.0000108097, 0.0000171429, 0.0000230964,
                                   0.0000291456, 0.0000336541, 0.0000375358),
@@ -1071,287 +1434,30 @@ change_in_L <- data.frame("nchr"=c(5, 10, 15, 20, 30, 40, 50),
                           "ratio" = c(1.117898, 1.011884, 0.9634023, 0.9085198,  0.902947, 0.9188318, 0.859119))
 
 #plotting fluxes
-tiff("change_L_Ncrit.tiff", units="in", width=5, height=5, res=300)
-p1 <- ggplot()
-p1 <- p1+geom_point(data = change_in_L, aes(x=nchr, y=Ncrit), size=3)
-p1 <- p1+geom_hline(yintercept = 1834.57, col="red", linetype="dashed")
-p1 <- p1+labs(x="Number of Chromosomes", y=expression(N[crit]))+theme_Publication()
-p1 <- p1+theme(axis.text.x = element_text(size=18),
-               axis.text.y = element_text(size=18))
-p1
-dev.off()
+p1 <- ggplot(change_in_L, aes(x = nchr, y = Ncrit)) +
+  geom_point(size=2) +
+  geom_hline(yintercept = 1834.57, col="red", linetype="dotted", linewidth = line_width) +
+  labs(x = "Number of Chromosomes", y = expression(bold(N[crit]))) +
+  theme_Publication(base_size = 9) +
+  theme(plot.margin = margin(5,5,5,5))
 
-tiff("change_L_ratio.tiff", units="in", width=5, height=5, res=300)
-p1 <- ggplot()
-p1 <- p1+geom_point(data = change_in_L, aes(x=nchr, y=ratio), size=3)
-p1 <- p1+geom_hline(yintercept = 0.85, col="red", linetype="dashed")
-p1 <- p1+labs(x="Number of Chromosomes", y=expression("Drought:Meltdown ratio"))+ylim(0, 1.13)+theme_Publication()
-p1 <- p1+theme(axis.text.x = element_text(size=18),
-               axis.text.y = element_text(size=18))
-p1
-dev.off()
+p2 <- ggplot(change_in_L, aes(x = nchr, y = ratio)) +
+  geom_point(size=2) +
+  geom_hline(yintercept = 0.85, col="red", linetype="dotted", linewidth = line_width) +
+  ylim(0, 1.13) +
+  labs(x = "Number of Chromosomes", y = "Drought:Meltdown ratio") +
+  theme_Publication(base_size = 9) +
+  theme(plot.margin = margin(5,5,5,5))
 
-tiff("change_L_redNe.tiff", units="in", width=5, height=5, res=300)
-p1 <- ggplot()
-p1 <- p1+geom_point(data = change_in_L, aes(x=nchr, y=100*(1-red_NE_BGS)/(1-red_Ne_ext), shape="Del only model"), size=3)
-p1 <- p1+geom_hline(yintercept = 100.0, col="red", linetype="dashed")
-p1 <- p1+scale_shape_manual(name = '', 
-                            values =c("Fitness-flux-Ne"=16,"Del only model"=15), 
-                            labels = c('Del only model','Fitness-flux-Ne'))
-p1 <- p1+labs(x="Number of Chromosomes", y=expression(atop(paste("% reduction in fitness-flux ", N[e]),"explained by del only model")))+ylim(0,100)+theme_Publication()
-p1 <- p1+guides(shape=guide_legend(ncol =1, nrow=2))
-p1 <- p1+theme(legend.position = c(0.83, 1.03), axis.title.y = element_text(size=18),
-               legend.text = element_text(size = 12),legend.background = element_blank())
-p1
-dev.off()
-####################################Supplementary Figures####################################################
-###############################Figure S1: Comparing DFEs###########################
-dat_cdf_kim <- read.csv("kim_comp_CDF.csv", header = F)
-colnames(dat_cdf_kim) <- c("s", "density")
+# Combine plots in 2 columns x 3 rows
+combined <- (p1 / p2) +
+  plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
+  theme(plot.tag = element_text(family="Times New Roman", face="italic", size=9))
 
-custom_breaks <- c(1e-07, 1e-04, 1e-01)  # Custom tick positions
-custom_labels <- c(expression(10^-7), expression(10^-4), expression(10^-1))  # Custom tick labels
+# Save as Proceedings B single-column figure (88 mm = 3.46 inches)
+tiff("figureS4_combined_1col.tiff",
+     width = 3, height = 5,  # adjust height for readability
+     units = "in", res = 600, compression = "lzw")
 
-tiff("dfe_compare_cdf.tiff", units="in", width=5, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_cdf_kim, aes(x=10^s, y=density, col="Kim et al."), linewidth =1)
-p <- p+geom_line(data = dat_cdf_boyko, aes(x=10^s, y=density, col="Boyko et al."), linewidth =1)
-p <- p +scale_x_log10(breaks=custom_breaks,
-                      labels=custom_labels)
-p <- p+scale_colour_manual(name = ' ', 
-                           values =c("Kim et al."="#000000","Boyko et al."="#CCCCCC"), 
-                           labels = c("Boyko et al.","Kim et al."))
-p <- p+annotation_logticks()
-p <- p+labs(x=bquote(-x[d]), y=expression("Cumulative probability"))+theme_Publication()
-p <- p+guides(color = guide_legend(override.aes = list(size = 5)))
-p <- p+theme(legend.position = c(0.5,1.05), legend.background = element_blank())
-p
-dev.off()
-
-#############################Figure S2: calculating Ncrit for second verison of W(2000)###################################
-#Ncrit to Ud/Ub for three models Kim et al. (2017)
-dat_ubud_ncrit_compare_kim <- read.csv("Ncrit_compare.csv", header = F)
-colnames(dat_ubud_ncrit_compare_kim) <- c("Ub_Ud", "Ncrit_W2","Ncrit_ana")
-dat_ubud_ncrit_compare_kim <- dat_ubud_ncrit_compare_kim[-22,]
-
-dat_ubud_ncrit_all_kim <- read.csv("Ncrit_all.csv", header = F)
-colnames(dat_ubud_ncrit_all_kim) <- c("Ub_Ud", "Ncrit_ana","Ncrit_W","Ncrit_MD")
-
-dat_ubud_ncrit_compare_kim_udvarying <- read.csv("Ncrit_compare_Udvarying.csv", header = F)
-colnames(dat_ubud_ncrit_compare_kim_udvarying) <- c("Ub_Ud", "Ncrit_W2","Ncrit_ana")
-dat_ubud_ncrit_compare_kim <- dat_ubud_ncrit_compare_kim[-22,]
-
-
-custom_breaks <- c(10, 100, 1000, 10000)  # Custom tick positions
-custom_labels <- c("10", "100", "1000", "10000")  # Custom tick labels
-
-tiff("ncrit_analtyical_compare.tiff", units="in", width=5, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_ubud_ncrit_compare_kim, aes(x=Ub_Ud, y=Ncrit_ana, col="This paper", linetype="Kim"), linewidth =1)
-p <- p+geom_line(data = dat_ubud_ncrit_compare_kim, aes(x=Ub_Ud, y=Ncrit_W2, col="Whitlock (2000)V2", linetype="Kim"), linewidth =1)
-p <- p+geom_line(data = dat_ubud_ncrit_all_kim, aes(x=Ub_Ud, y=Ncrit_W, col="Whitlock (2000)", linetype="Kim"), linewidth =1)
-p <- p+scale_x_log10(breaks = custom_breaks,
-                     labels = custom_labels,
-                     name=expression(U[d]~"/"~U[b]))
-p <- p+geom_point(aes(x=1000,y=1834.57),col="#F05039",shape=42, size=10)
-p <- p+scale_colour_manual(name = '', 
-                           values =c("This paper"="#000000","Whitlock (2000)V2"="#7fc97f","Whitlock (2000)"="#386cb0"), 
-                           labels = c("This paper","Whitlock (2000)V2","Whitlock (2000)"))
-#p <- p+annotation_logticks()
-p <- p+labs(y=expression(N[crit]))+theme_Publication()
-p <- p+guides(color = guide_legend(override.aes = list(size = 5)))
-p <- p+theme(legend.position = "none", legend.background = element_blank())
-p
-dev.off()
-
-#######################################Figure S3: Ncrit as a function of xb###############################################
-#Ncrit sensitivity to xb
-dat_sb_kim_100 <- read.csv("sbtablekim_Ncrit_100.csv", header = F)
-colnames(dat_sb_kim_100) <- c("sb", "Ncrit")
-dat_sb_kim_1000 <- read.csv("sbtablekim_Ncrit_1000.csv", header = F)
-colnames(dat_sb_kim_1000) <- c("sb", "Ncrit")
-dat_sb_boyko_100 <- read.csv("sbtableboyko_Ncrit_100.csv", header = F)
-colnames(dat_sb_boyko_100) <- c("sb", "Ncrit")
-dat_sb_boyko_1000 <- read.csv("sbtableboyko_Ncrit_1000.csv", header = F)
-colnames(dat_sb_boyko_1000) <- c("sb", "Ncrit")
-
-custom_breaks <- c(0.0001, 0.001, 0.01)  # Custom tick positions
-custom_labels <- c("0.0001", "0.001", "0.01")  # Custom tick labels
-
-tiff("sb_analtyical_Ncrit.tiff", units="in", width=5, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_sb_kim_100, aes(x=sb, y=Ncrit, col="Kim et al.", linetype="mut. rate ratio = 100"), linewidth =1)
-p <- p+geom_line(data = dat_sb_kim_1000, aes(x=sb, y=Ncrit, col="Kim et al.", linetype="mut. rate ratio = 1000"), linewidth =1)
-p <- p+geom_line(data = dat_sb_boyko_100, aes(x=sb, y=Ncrit, col="Boyko et al.", linetype="mut. rate ratio = 100"), linewidth =1)
-p <- p+geom_line(data = dat_sb_boyko_1000, aes(x=sb, y=Ncrit, col="Boyko et al.", linetype="mut. rate ratio = 1000"), linewidth =1)
-p <- p+scale_x_log10(breaks = custom_breaks,
-                     labels = custom_labels)  
-p <- p+scale_colour_manual(name = ' ', 
-                           values =c("Kim et al."="#000000","Boyko et al."="#CCCCCC"), 
-                           labels = c("Boyko et al.","Kim et al."))
-p <- p+scale_linetype_manual(name = '',
-                             values=c("mut. rate ratio = 100"=2,"mut. rate ratio = 1000"=1),
-                             labels = c(expression(U[d]~"/"~U[b]~"= 100"), expression(U[d]~"/"~U[b]~"= 1000")))
-p <- p+labs(x=bquote(bar(x)[b]), y=expression(N[crit]))+theme_Publication()
-p <- p+guides(color = guide_legend(keywidth = 2, keyheight = 1, ncol =1, nrow=2),
-              linetype = guide_legend(keywidth = 2, keyheight = 1, ncol =1, nrow=2))
-p <- p+theme(legend.position = c(0.7, 0.8), legend.background = element_blank())
-p
-dev.off()
-
-#############################Figure S4: calculating dorught:meltdown ratio for changing ud and ub with env change###################################
-#with offset Kim et al. ratio varying Ud fixed Ub
-dat_ud_kim_ub0.002_highoffset <- read.csv("offset_udvaryingub0.002_kim.csv", header = F)
-colnames(dat_ud_kim_ub0.002_highoffset) <- c("Ud", "ncrit", "delratio", "ratio")
-
-dat_ud_kim_ub0.02_highoffset <- read.csv("offset_udvaryingub0.02_kim.csv", header = F)
-colnames(dat_ud_kim_ub0.02_highoffset) <- c("Ud", "ncrit", "delratio", "ratio")
-
-dat_ud_kim_ub0.002_lowoffset <- read.csv("lowoffset_udvaryingub0.002_kim.csv", header = F)
-colnames(dat_ud_kim_ub0.002_lowoffset) <- c("Ud", "ncrit", "delratio", "ratio")
-
-dat_ud_kim_ub0.02_lowoffset <- read.csv("lowoffset_udvaryingub0.02_kim.csv", header = F)
-colnames(dat_ud_kim_ub0.02_lowoffset) <- c("Ud", "ncrit", "delratio", "ratio")
-
-dat_ud_boyko_ub0.002_highoffset <- read.csv("offset_udvaryingub0.002_boyko.csv", header = F)
-colnames(dat_ud_boyko_ub0.002_highoffset) <- c("Ud", "ncrit", "delratio", "ratio")
-
-dat_ud_boyko_ub0.02_highoffset <- read.csv("offset_udvaryingub0.02_boyko.csv", header = F)
-colnames(dat_ud_boyko_ub0.02_highoffset) <- c("Ud", "ncrit", "delratio", "ratio")
-
-dat_ud_boyko_ub0.002_lowoffset <- read.csv("lowoffset_udvaryingub0.002_boyko.csv", header = F)
-colnames(dat_ud_boyko_ub0.002_lowoffset) <- c("Ud", "ncrit", "delratio", "ratio")
-
-dat_ud_boyko_ub0.02_lowoffset <- read.csv("lowoffset_udvaryingub0.02_boyko.csv", header = F)
-colnames(dat_ud_boyko_ub0.02_lowoffset) <- c("Ud", "ncrit", "delratio", "ratio")
-
-custom_breaks <- c(1, 3, 10, 30)  # Custom tick positions
-custom_labels <- c("1","3","10","30")  # Custom tick labels
-
-#ben del ratio
-tiff("ud_analtyical_offset_si.tiff", units="in", width=4, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_ud_kim_ub0.002_highoffset,
-                 aes(x=Ud, y=ratio, col="0.002", linetype="High offset"), linewidth =1)
-p <- p+geom_line(data = dat_ud_kim_ub0.02_highoffset,
-                 aes(x=Ud, y=ratio, col="0.02", linetype="High offset"), linewidth =1)
-p <- p+geom_line(data = dat_ud_kim_ub0.002_lowoffset,
-                 aes(x=Ud, y=ratio, col="0.002", linetype="Low offset"), linewidth =1)
-p <- p+geom_line(data = dat_ud_kim_ub0.02_lowoffset,
-                 aes(x=Ud, y=ratio, col="0.02", linetype="Low offset"), linewidth =1)
-p <- p+geom_line(data = dat_ud_boyko_ub0.002_highoffset,
-                 aes(x=Ud, y=ratio, col="0.002", linetype="High offset"), linewidth =1)+
-  geom_point(data = dat_ud_boyko_ub0.002_highoffset,
-             aes(x=Ud, y=ratio), size=1.2, shape=17)
-p <- p+geom_line(data = dat_ud_boyko_ub0.02_highoffset,
-                 aes(x=Ud, y=ratio, col="0.02", linetype="High offset"), linewidth =1)+
-  geom_point(data = dat_ud_boyko_ub0.02_highoffset,
-             aes(x=Ud, y=ratio), size=1.2, shape=17)
-p <- p+geom_line(data = dat_ud_boyko_ub0.002_lowoffset,
-                 aes(x=Ud, y=ratio, col="0.002", linetype="Low offset"), linewidth =1)+
-  geom_point(data = dat_ud_boyko_ub0.002_lowoffset,
-             aes(x=Ud, y=ratio), size=1.2, shape=17)
-p <- p+geom_line(data = dat_ud_boyko_ub0.02_lowoffset,
-                 aes(x=Ud, y=ratio, col="0.02", linetype="Low offset"), linewidth =1)+
-  geom_point(data = dat_ud_boyko_ub0.02_lowoffset,
-             aes(x=Ud, y=ratio), size=1.2, shape=17)
-p <- p+scale_x_log10(name=expression(U[d]))+annotation_logticks(sides = "bl", outside = TRUE)+ coord_cartesian(clip = "off")
-p <- p+scale_colour_manual(name = expression(U[b]), 
-                           values =c("0.002" = "#9e9e9e","0.02"="#2298e6"), 
-                           labels = c("0.002","0.02"))
-p <- p+scale_linetype_manual(name = '',
-                             values=c("Low offset"="dashed", "High offset"="solid"),
-                             labels = c('High offset','Low offset'))
-p <- p+scale_y_log10(limits=c(0.35,18.5),
-                     breaks=custom_breaks,
-                     labels=custom_labels)
-p <- p+geom_point(aes(x=2,y=0.853449),col="#F05039",shape=42, size=10)
-p <- p+geom_hline(aes(yintercept =1), linetype="dotted", alpha=0.5, col="red", linewidth=0.9)
-p <- p+labs(y="Drought : Meltdown ratio")+theme_Publication()
-p <- p+guides(color = guide_legend(override.aes = list(size = 2),ncol =1, nrow=2), 
-              linetype=guide_legend(keywidth = 2, keyheight = 1, ncol =2, nrow=1))
-p <- p+theme(legend.position = "none",legend.title=element_text(size=16), legend.background = element_blank(),
-             legend.text = element_text(size=16), axis.text = element_text(size=20))
-p
-dev.off()
-
-#with offset Kim et al. ratio varying Ub fixed Ud
-dat_ub_kim_ud2_highoffset <- read.csv("offset_ubvaryingud2_kim.csv", header = F)
-colnames(dat_ub_kim_ud2_highoffset) <- c("Ub", "ncrit", "delratio", "ratio")
-
-dat_ub_kim_ud1_highoffset <- read.csv("offset_ubvaryingud1_kim.csv", header = F)
-colnames(dat_ub_kim_ud1_highoffset) <- c("Ub", "ncrit", "delratio", "ratio")
-
-dat_ub_kim_ud2_lowoffset <- read.csv("lowoffset_ubvaryingud2_kim.csv", header = F)
-colnames(dat_ub_kim_ud2_lowoffset) <- c("Ub", "ncrit", "delratio", "ratio")
-
-dat_ub_kim_ud1_lowoffset <- read.csv("lowoffset_ubvaryingud1_kim.csv", header = F)
-colnames(dat_ub_kim_ud1_lowoffset) <- c("Ub", "ncrit", "delratio", "ratio")
-
-dat_ub_boyko_ud2_highoffset <- read.csv("offset_ubvaryingud2_boyko.csv", header = F)
-colnames(dat_ub_boyko_ud2_highoffset) <- c("Ub", "ncrit", "delratio", "ratio")
-
-dat_ub_boyko_ud1_highoffset <- read.csv("offset_ubvaryingud1_boyko.csv", header = F)
-colnames(dat_ub_boyko_ud1_highoffset) <- c("Ub", "ncrit", "delratio", "ratio")
-
-dat_ub_boyko_ud2_lowoffset <- read.csv("lowoffset_ubvaryingud2_boyko.csv", header = F)
-colnames(dat_ub_boyko_ud2_lowoffset) <- c("Ub", "ncrit", "delratio", "ratio")
-
-dat_ub_boyko_ud1_lowoffset <- read.csv("lowoffset_ubvaryingud1_boyko.csv", header = F)
-colnames(dat_ub_boyko_ud1_lowoffset) <- c("Ub", "ncrit", "delratio", "ratio")
-
-custom_breaks <- c(0.0001, 0.001, 0.01, 0.1)  # Custom tick positions
-custom_labels <- c(expression(10^-4),expression(10^-3),expression(10^-2),
-                   expression(10^-1))  # Custom tick labels
-
-custom_breaks_y <- c(1, 3, 10)  # Custom tick positions
-custom_labels_y <- c("1","3","10")  # Custom tick labels
-
-#ben del ratio
-tiff("ub_analtyical_offset_si.tiff", units="in", width=5, height=5, res=300)
-p <- ggplot()
-p <- p+geom_line(data = dat_ub_kim_ud2_highoffset,
-                 aes(x=Ub, y=ratio, col="2", linetype="High offset"), linewidth =1)
-p <- p+geom_line(data = dat_ub_kim_ud1_highoffset,
-                 aes(x=Ub, y=ratio, col="1", linetype="High offset"), linewidth =1)
-p <- p+geom_line(data = dat_ub_kim_ud2_lowoffset,
-                 aes(x=Ub, y=ratio, col="2", linetype="Low offset"), linewidth =1)
-p <- p+geom_line(data = dat_ub_kim_ud1_lowoffset,
-                 aes(x=Ub, y=ratio, col="1", linetype="Low offset"), linewidth =1)
-p <- p+geom_line(data = dat_ub_boyko_ud2_highoffset,
-                aes(x=Ub, y=ratio, col="2", linetype="High offset"), linewidth =1)+
-geom_point(data = dat_ub_boyko_ud2_highoffset,
-          aes(x=Ub, y=ratio), size=1.2, shape=17)
-p <- p+geom_line(data = dat_ub_boyko_ud1_highoffset,
-                aes(x=Ub, y=ratio, col="1", linetype="High offset"), linewidth =1)+
-geom_point(data = dat_ub_boyko_ud1_highoffset,
-          aes(x=Ub, y=ratio), size=1.2, shape=17)
-p <- p+geom_line(data = dat_ub_boyko_ud2_lowoffset,
-                aes(x=Ub, y=ratio, col="2", linetype="Low offset"), linewidth =1)+
-geom_point(data = dat_ub_boyko_ud2_lowoffset,
-          aes(x=Ub, y=ratio), size=1.2, shape=17)
-p <- p+geom_line(data = dat_ub_boyko_ud1_lowoffset,
-                aes(x=Ub, y=ratio, col="1", linetype="Low offset"), linewidth =1)+
-geom_point(data = dat_ub_boyko_ud1_lowoffset,
-          aes(x=Ub, y=ratio), size=1.2, shape=17)
-p <- p+scale_x_continuous(trans=c("log10","reverse"),name=expression(U[b]),
-                          breaks=custom_breaks,
-                          labels=custom_labels)+annotation_logticks(sides = "bl", outside = TRUE)+ coord_cartesian(clip = "off")
-p <- p+scale_colour_manual(name = expression(U[d]), 
-                           values =c("2" = "#9e9e9e","1"="#2298e6"), 
-                           labels = c("1","2"))
-p <- p+scale_linetype_manual(name = '',
-                             values=c("Low offset"="dashed", "High offset"="solid"),
-                             labels = c('Fast env. change','Slow env. change'))
-p <- p+scale_y_log10(limits=c(0.35,18.5),
-                     breaks=custom_breaks_y,
-                     labels=custom_labels_y)
-p <- p+geom_point(aes(x=0.002,y=0.853449),col="#F05039",shape=42, size=10)
-p <- p+geom_hline(aes(yintercept =1), linetype="dotted", alpha=0.5, col="red", linewidth =.9)
-p <- p+labs(y="Drought : Meltdown ratio")+theme_Publication()
-p <- p+guides(color = guide_legend(override.aes = list(size = 2),ncol =1, nrow=2), 
-              linetype=guide_legend(keywidth = 2, keyheight = 1, ncol =1, nrow=2))
-p <- p+theme(legend.position = "none",legend.title=element_text(size=14), legend.background = element_blank(),
-             legend.text = element_text(size=12), axis.text = element_text(size=20))
-p
+print(combined)
 dev.off()
