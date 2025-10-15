@@ -90,7 +90,7 @@ then
 elif [ $deldist -eq 1 ]
 then
 	deldiststring="exponential_"
-elif [ $deldist -eq 2]
+elif [ $deldist -eq 2 ]
 then
 	deldiststring="point_"
 fi
