@@ -16,7 +16,7 @@ tskit – version 0.5.8; gsl – version 2.8
 
 # Tskit Download 
 
-To use tskit with the simulation code for tree sequence recording, version 0.5.8 of the tskit GitHub repository should be cloned into your home directory; this location of the repository is assumed by the Makefile for the program. To obtain a path to the home directory, you can use the command  
+To use tskit with the simulation code for tree sequence recording, version 0.5.8 of the tskit GitHub repository should be cloned into your home directory. To obtain a path to the home directory, you can use the command  
 
 ``` 
 
@@ -31,6 +31,8 @@ on most systems. The following command can also be used move to this home direct
 	cd $HOME 
 
 ``` 
+Note, however, that using this default home directory is not absolutely necessary- it's simply a convenient choice for those who are less familiar with working in the terminal. So long as tskit, gsl, and the Mutation Load code are all within the same directory, the make process will run as expected- just be sure to update the HOME_DIR macro within Makefile to reflect the actual name of this parent directory. 
+
 
 To download the appropriate version of the tskit repository, when in your home directory, the commands given below can be typed into the terminal: 
 
@@ -47,6 +49,13 @@ To download the appropriate version of the tskit repository, when in your home d
  
 
 # gsl Installation 
+
+** Note that if working on the HPC, downloading and installing gsl actually isn't necessary! To ensure that this library is accessible to the code, simply use the command 
+```
+	module load gsl
+```
+when in the MutationLoad directory. The following steps are only relevant when setting up the code to be run on a local system. **
+
 
 Version 2.8 of the GNU Scientific Library, or gsl, must also be installed to compile and run the simulation code. Information on this library and how to download it on your own system can be found here (https://www.gnu.org/software/gsl/), and the downloaded package will then contain an INSTALL text file, providing specific information on how to install gsl. For the purposes of running the simulation, gsl should be installed to the default location, rather than using the --prefix option to specify a particular folder.  
 
@@ -77,6 +86,12 @@ Finally, once this command runs, the program can be installed with
 	make install 
 ```
 With this, gsl should have been installed to the default location in your directory system!  
+
+However, with Mac systems in particular, permission errors may arise when attempting to install gsl to the default location (i.e. make install may not have the permissions necessary to install gsl in the appropriate place). To work around this, sudo can be used via the following instruction:
+```
+	sudo make install 
+```
+Doing so will prompt you for your system password, and once this is entered, make install will have the permissions that it needs to install gsl. 
 
  
 
