@@ -50,7 +50,7 @@ To download the appropriate version of the tskit repository, when in your home d
 
 # gsl Installation 
 
-** Note that if working on the HPC, downloading and installing gsl actually isn't necessary! To ensure that this library is accessible to the code, simply use the command 
+** Note that if working on the HPC, downloading and installing gsl actually isn't necessary! To ensure that this library is accessible to the code, simply use the command **
 ```
 	module load gsl
 ```
