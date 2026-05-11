@@ -1,4 +1,4 @@
-HOME_DIR = /home/u6/micailamarcelle
+HOME_DIR = /Users/sarveshbaheti/Documents/GitHub
 
 CC = gcc
 INCLUDES = -I$(HOME_DIR)/tskit/c -I$(HOME_DIR)/tskit/c/subprojects/kastore/

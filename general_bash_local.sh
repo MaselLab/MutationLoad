@@ -9,22 +9,22 @@
 fitnesstype=0
 
 #General variables
-timeSteps=20000
-initialPopsize=20000
+timeSteps=1000
+initialPopsize=100
 mud=2.1
 chromosomesize=200
 numberofchromosomes=23
 bentodelratio=0
 sb=1
 #0 for point; 1 for exponential; and 2 for uniform
-bendist=1
+bendist=0
 #0 for root sb; 1 for single; 2 for root Ncrit
 typeofrun=1
 #0 for no tskit; 1 for tskit on; 2 for tskit on after burnin
 tskitstatus=2
 SdtoSbratio=0.029
 #0 for Kim et al., 1 for exponential, 2 for point
-deldist=1
+deldist=2
 
 #
 #	The command line arguments below are then specifically used for a run of the simulation
@@ -90,7 +90,7 @@ then
 elif [ $deldist -eq 1 ]
 then
 	deldiststring="exponential_"
-elif [ $deldist -eq 2]
+elif [ $deldist -eq 2 ]
 then
 	deldiststring="point_"
 fi
