@@ -23,10 +23,9 @@
 #include <tskit/trees.h>
 
 int main(int argc, char *argv[]) {
-
-    // INCREASED ARG COUNT to 30 to accomodate new mutator parameters
+    
     if (argc != 30) {
-        printf("Incorrect number of arguments. Expected 30, got %d.\n", argc - 1);
+        printf("Incorrect number of arguments. Expected 30, got %d.\n", argc);
         return -1;
     }
     

@@ -1,13 +1,15 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 
 typedef struct{
     double *fitnessArray;
     double *mutatorArray;
-    long double fitness;
+    float fitness;
     long double mutationRate;
 } Individual;
 
-Individual createIndividual(double *fitnessArray, double *mutatorArray, int totalindividualgenomelength, int minimumMutationRate, int mutationRateGrowthFactor){
+Individual createIndividual(double *fitnessArray, double *mutatorArray, int totalindividualgenomelength, float minimumMutationRate, float mutationRateGrowthFactor){
     Individual ind;
     ind.fitnessArray = fitnessArray;
     ind.mutatorArray = mutatorArray;
@@ -39,10 +41,14 @@ void UpdateIndividual(Individual *ind, int totalindividualgenomelength){
 }
 
 void printIndividual(Individual ind){
-    printf("Fitness: %Lf\n", ind.fitness);
+    printf("Fitness: %f\n", ind.fitness);
     printf("Mutation Rate: %Lf\n", ind.mutationRate);
 }
 
 int main(){
+    Individual ind = createIndividual((double[]){0.1, 0.2, 0.3}, (double[]){0.01, 0.02, 0.03}, 3, 0.001, 3);
+    printIndividual(ind);
+    UpdateIndividual(&ind, 3);
+    printIndividual(ind);
     return 0;
 }
