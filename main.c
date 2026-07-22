@@ -13,7 +13,6 @@
 #include "dependencies/pcg_basic.h"
 #include "sharedfunc_flag.h"
 #include "relative_functions.h"
-#include "absolute_functions.h"
 #include "global_vars.h"
 #include "main.h"
 #include <tskit.h>
@@ -25,7 +24,7 @@
 int main(int argc, char *argv[]) {
     
     if (argc != 30) {
-        printf("Incorrect number of arguments. Expected 30, got %d.\n", argc);
+        printf("Incorrect number of arguments. Expected 30, got %d.\n", argc-1);
         return -1;
     }
     
@@ -130,8 +129,12 @@ int main(int argc, char *argv[]) {
         if(!isabsolute){
             RunSimulationRel(tskitstatus, isabsolute, ismodular, elementsperlb, Nxtimestepsname, popsizename, deleteriousmutationratename, chromosomesizename, numberofchromosomesname, beneficialmutationratename, Sb2name, mutator_switch_ratename, mutator_biasname, mutator_strength_factorname, typeofrun, Nxtimesteps, popsize, chromosomesize, numberofchromosomes, deleteriousmutationrate, beneficialmutationrate, Sb2, beneficialdistribution, Sd, deleteriousdistribution, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer, rawdatafilesize, mutator_strength_factor, mutator_switch_rate, mutator_bias);
         }else{
-            // Absolute simulation call (unmodified here, ensure Absolute functions are updated if needed)
-             RunSimulationAbs(issnapshot, prevsnapshotfilename, isredinmaxpopsize, redinmaxpopsizename, redinmaxpopsize, beneficialmutationratename, Sb2name, tskitstatus, ismodular, elementsperlb, isabsolute, Nxtimesteps, popsize, K, chromosomesize, numberofchromosomes, deleteriousmutationrate, Sd, deleteriousdistribution, beneficialmutationrate, Sb2, beneficialdistribution, r, i_init, s, randomnumbergeneratorforgamma, miscfilepointer, veryverbosefilepointer, rawdatafilesize, iscalcfixation);
+            // Absolute-fitness path is currently disabled (absolute_functions.c is not being
+            // built/linked).
+            fprintf(miscfilepointer, "Error: absolute fitness runs are currently disabled in this build.\n");
+            fflush(miscfilepointer);
+            fprintf(stderr, "Error: absolute fitness runs are currently disabled in this build.\n");
+            exit(1);
         }
     }
 
