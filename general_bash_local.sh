@@ -52,7 +52,19 @@ calcfixation=0
 modularepis=0
 elementsperl=0
 
+#
+#	The following parameters control evolution of the mutator loci (mu = mu0 * mutator_strength_factor ^ n,
+#	where n is the number of mutator alleles carried). Set mutator_switch_rate to 0 to effectively disable
+#	mutator-locus evolution (loci will never switch state) and keep mutator_strength_factor at 1 so mutation
+#	rate is unaffected even if a locus were somehow in the mutator state.
+#
 
+#f in mu = mu0 * f^n; 1.0 means mutator alleles have no effect on mutation rate
+mutator_strength_factor=1.0
+#per-locus, per-generation probability of a mutator/anti-mutator switch; 0 disables mutator evolution
+mutator_switch_rate=0.0
+#bias applied to the anti-mutator -> mutator switch rate relative to mutator -> anti-mutator
+mutator_bias=1.0
 
 if [ $fitnesstype -eq 0 ]
 then
@@ -102,10 +114,10 @@ mub=$(printf "%.4f" $mub)
 #creates 2 strings; directory refers to the folder where data for the specified parameters will be stored; file is the snapshot of the simulation at its end.
 if [ $modularepis -eq 0 ]
 then
-	directory="datafor_"$fitnessstring"tskitstatus_"$tskitstring"r_"$r"_i_init"$i_init"_s_"$s"_K_"$K"_deldist_"$deldiststring"bendist_"$bendiststring"_mub_"$mub"_chromnum_"$numberofchromosomes"_N0_"$initialPopsize"_mud_"$mud"_L_"$chromosomesize"seed_"$seed"/"
+	directory="datafor_"$fitnessstring"tskitstatus_"$tskitstatusstring"r_"$r"_i_init"$i_init"_s_"$s"_K_"$K"_deldist_"$deldiststring"bendist_"$bendiststring"_mub_"$mub"_chromnum_"$numberofchromosomes"_N0_"$initialPopsize"_mud_"$mud"_L_"$chromosomesize"seed_"$seed"/"
 elif [ $modularepis -eq 1 ]
 then
-	directory="datafor_"$fitnessstring"tskitstatus_"$tskitstring"elementsperlb_"$elementsperl"_r_"$r"_i_init"$i_init"_s_"$s"_K_"$K"_deldist_"$deldiststring"_bendist_"$bendiststring"_mub_"$mub"_chromnum_"$numberofchromosomes"_N0_"$initialPopsize"_mud_"$mud"_L_"$chromosomesize"seed_"$seed"/"
+	directory="datafor_"$fitnessstring"tskitstatus_"$tskitstatusstring"elementsperlb_"$elementsperl"_r_"$r"_i_init"$i_init"_s_"$s"_K_"$K"_deldist_"$deldiststring"_bendist_"$bendiststring"_mub_"$mub"_chromnum_"$numberofchromosomes"_N0_"$initialPopsize"_mud_"$mud"_L_"$chromosomesize"seed_"$seed"/"
 fi
 
 printf "directory path is %s \n" "$directory"
@@ -129,7 +141,7 @@ SECONDS=0
 echo "start of mutationload program"
 
 # run mutationload program with arguments
-./mutationload $timeSteps $initialPopsize $mud $chromosomesize $numberofchromosomes $bentodelratio $sb $bendist $typeofrun $slope $seed $K $fitnesstype $r $i_init $s $tskitstatus $modularepis $elementsperl $snapshot $file1 $SdtoSbratio $deldist $rawdatafilesize $redinmaxpopsize $calcfixation
+./mutationload $timeSteps $initialPopsize $mud $chromosomesize $numberofchromosomes $bentodelratio $sb $bendist $typeofrun $slope $seed $K $fitnesstype $r $i_init $s $tskitstatus $modularepis $elementsperl $snapshot $file1 $SdtoSbratio $deldist $rawdatafilesize $redinmaxpopsize $calcfixation $mutator_strength_factor $mutator_switch_rate $mutator_bias
 
 echo $SECONDS
 
