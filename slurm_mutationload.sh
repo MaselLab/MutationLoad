@@ -75,12 +75,15 @@
 set -u   # abort on an undefined variable rather than silently passing an empty
          # argument, which would shift every later positional argument
 
-# The program links against GSL and tskit. If those are provided as modules on
-# your cluster, load them here. Run "module avail gsl" to see what is available;
-# leave these commented out if GSL is already on your default path (which is how
-# the existing bash_hpc_array*.sh scripts in this repository ran).
+# At RUN time the job needs the GSL runtime library, not a compiler - the binary
+# is already built by then. So load gsl here if your cluster provides it as a
+# module, and do NOT load a compiler module: on this cluster "module load gcc"
+# fails with "The following module(s) are unknown: gcc". Because there is no
+# set -e, that failure does not stop the job, but it does clutter the .err file.
+# Run "module avail gsl" to see what is available; leave this commented out if
+# GSL is already on your default path (which is how the existing
+# bash_hpc_array*.sh scripts in this repository ran).
 # module load gsl
-# module load gcc
 
 SUBMITDIR="${SLURM_SUBMIT_DIR:-$(pwd)}"
 EXE="$SUBMITDIR/mutationload"
